@@ -14,7 +14,7 @@ library(showtext)
 library(devtools)
 source_url("https://raw.githubusercontent.com/hdg204/exeteR/main/ex_theme.R")
 
-## Step 1: Run "Logistic Regressions testing Conti's GRS" script all the way
+## Step 1: Run "Logistic_Regressions_testing_Conti_GRS.R" script all the way
 ##         down to running a model
 
 ## Step 2: Set variables and labels
