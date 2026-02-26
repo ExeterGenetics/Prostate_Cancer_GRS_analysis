@@ -32,6 +32,6 @@ Key:
 
 - Family_history.R is an adapted version of @hdg204's Family History Script (https://github.com/hdg204/UKBB/blob/main/Family_History_Script.R) which collates Prostate and Breast cancer family history into a more useful binary format that can be applied in models.
 
-- Scatter_plot_HGDP1KG_projected_PCs.R and Scatter_plot_UKB_provided_PCs.R are simple scatter plots for visualising Principal Components from the HGDP+1KG reference panel and the projected UK Biobank Principal Components.
+- Scatter_plot_HGDP1KG_projected_PCs.R and Scatter_plot_UKB_provided_PCs.R are simple scatter plots for visualising Principal Components from the HGDP+1KG reference panel and the UK Biobank built-in Principal Components.
 
 - Stratifying_risk_by_GRS_percentile.R and Stratifying_risk_by_IRM_pred_percentile.R produce plots to visualise how certain quantiles of GRSs and Integrated Risk Models differ in their prevalence of Prostate Cancer diagnosis.
