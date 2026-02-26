@@ -1,0 +1,11 @@
+﻿# OS / Editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+ Build / deps (adjust for your stack)
+dist/
+build/
+node_modules/
