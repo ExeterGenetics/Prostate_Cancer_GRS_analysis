@@ -5,7 +5,7 @@ source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/sessio
 library(ggplot2)
 
 dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs.csv") # HGDP+1KG Principal components as calculated using AncestryProbability1_bigsnpr folder scripts
-dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
+dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
 dxdownload("Callum/HGDP_1KG/hgdp_tgp_pca_covid19hgi_snps_scores.txt") # can be downloaded from:
 # https://console.cloud.google.com/storage/browser/covid19-hg-public/pca_projection;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
 
