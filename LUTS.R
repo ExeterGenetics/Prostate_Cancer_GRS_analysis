@@ -438,12 +438,12 @@ PCaCases_earliest$assess_date_initial <- coalesce(PCaCases_earliest$assess_date_
 
 PrCa_symptoms_diagnosis <- merge(chosen_symptom_earliest_dataframe, PCaCases_earliest, by = "eid", all.x = T)
 
-# Tag patients who already had prostate cancer at symptom event date as "pre-diagnosed". Also make "earliest PrCa diagnosis date" which is the earliest of epistart and date
+# Tag patients who already had prostate cancer diagnosis before symptom event date as "pre-diagnosed". Also make "earliest PrCa diagnosis date" which is the earliest of epistart and date
 
 PrCa_symptoms_diagnosis <- PrCa_symptoms_diagnosis %>%
   dplyr::mutate(
     pre_diagnosed =
-      ((!is.na(epistart)) | (!is.na(date)) | (!is.na(date_of_death))) &
+      (!is.na(epistart) | !is.na(date) | !is.na(date_of_death)) &
       ((!is.na(epistart) & epistart < EarliestDate_symptom) | (!is.na(date) & date < EarliestDate_symptom)),
     earliest_PrCa_date = pmin(epistart, date, na.rm = TRUE)
   )
@@ -797,7 +797,7 @@ PCa_iv_covariates <- merge(iv_covariates, PrCa_symptoms_diagnosis, by = "eid", a
 
 PCa_iv_covariates_GRS <- merge(PCa_iv_covariates, All_Conti_GRS, by = "eid", all.x = TRUE)
 
-PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all = T)
+PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all.x = T)
 
 # Remove anybody who is female or who lacks GRS data (optionally, also remove anyone pre-diagnosed)
 
@@ -1600,7 +1600,7 @@ RRtable <- function(data,
 #
 #
 # Set "covariates" to either: (or add multiple using + between covariates)
-#   - Age (Age at assessment centre visit)
+#   - event_age (Age at symptom presentation)
 #   - rs72725854_T (carrier status of rs72725854 risk allele)
 #
 
