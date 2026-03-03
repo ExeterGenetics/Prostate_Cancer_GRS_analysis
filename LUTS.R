@@ -57,7 +57,7 @@ print(PrCa_symptom_codes)
 
 ## Using these codes, select corresponding GP records
 
-# Method 1) Exactly as codes are written, all full stops and ellipses included, without Prostate Cancer codes
+# Method 1) Exactly as codes are written, all full stops and ellipses (written as three ASCII dots) included, without Prostate Cancer codes
 
 PrCaSymptom_gp_records1 <- read_GP(c(
   "1A27.", "K16y8", "XaNFc", "X30Ni", "1A1Z.", "1A11.", "1A1..", "R084.", "1A12.", "R084z", "R0840",
@@ -81,9 +81,9 @@ PrCaSymptom_gp_records1 <- PrCaSymptom_gp_records1 %>%                          
 
 PrCaSymptom_gp_records1$read_code <- coalesce(PrCaSymptom_gp_records1$read_2, PrCaSymptom_gp_records1$read_3) # Combine read2 and read3 into one column called "read_code"
 
+## Assign symptom categories (note that this is strict - only exact matches will be categorized)
 
-
-PrCaSymptom_gp_records1_over40 <- PrCaSymptom_gp_records1 %>%
+PrCaSymptom_gp_records1_over40_strict <- PrCaSymptom_gp_records1 %>%
   filter(event_age >= 40) %>%
   mutate(category = case_when(
     read_code %in% c("1A27.", "K16y8", "XaNFc", "X30Ni") ~ "DoubleVoiding",
@@ -95,74 +95,96 @@ PrCaSymptom_gp_records1_over40 <- PrCaSymptom_gp_records1 %>%
     read_code %in% c("1A33.", "1A31.", "1A3..", "1A3Z.", "1A3..", "R0861", "R0863", "R0860", "317C.", "1A37.", "1A36.", "XaD2w", "X77SF", "X76Y0") ~ "PoorStream",
     read_code %in% c("R082.", "R0824", "1A32.", "K196.", "R0820", "1A32.", "R0822") ~ "Retention",
     read_code %in% c("1A25.", "R0862", "1A25.") ~ "Urgency",
-##    read_code %in% c("R15y0", "B7C20", "14270", "ZV104", "B834.", "1J08.", "B58y5", "B8340", "B46..", "XaC0j", "Xa3fu", "XaXGk", "XaFwo", "XaKyV") ~ "ProstateCancer",
+    ##    read_code %in% c("R15y0", "B7C20", "14270", "ZV104", "B834.", "1J08.", "B58y5", "B8340", "B46..", "XaC0j", "Xa3fu", "XaXGk", "XaFwo", "XaKyV") ~ "ProstateCancer",
     TRUE ~ NA_character_
   ))
 
 
+## Write uncategorized dataframe to investigate non-exact codes - see if we should drop or include them
+
+uncategorized <- PrCaSymptom_gp_records1_over40_strict %>%
+  dplyr::filter(is.na(category))
 
 
-# Method 2) Codes as written, but without full stops and ellipses
+unique_uncategorized_codes <- uncategorized %>%
+  mutate(read_code = str_trim(as.character(read_code))) %>%
+  filter(!is.na(read_code), read_code != "") %>%
+  distinct(read_code) %>%
+  arrange(read_code)
 
-PrCaSymptom_gp_records2 <- read_GP(c(
-  "1A27", "K16y8", "XaNFc", "X30Ni", "1A1Z", "1A11", "1A1", "R084", "1A12", "R084z", "R0840",
-  "1A1", "1A1", "1A34", "1A34", "R083z", "R083", "1AZ6", "1AZ60", "1AZ61", "1AZ62", "1A2",
-  "1A2Z", "R086z", "8D7", "R08", "R08zz", "66K3", "1A4", "1A", "1A", "1AZ", "1AZZ",
-  "1AH1", "R086", "R08z", "Kz", "Ryu4", "XaB9O", "XaXHi", "XaXHj", "XaXHk", "Xa96j", "1A13",
-  "R0842", "1A33", "1A31", "1A3", "1A3Z", "1A3", "R0861", "R0863", "R0860", "317C", "1A37",
-  "1A36", "XaD2w", "X77SF", "X76Y0", "R082", "R0824", "1A32", "K196", "R0820", "1A32", "R0822",
-  "1A25", "R0862", "1A25", "R15y0", "B7C20", "14270", "ZV104", "B834", "1J08", "B58y5", "B8340",
-  "B46", "XaC0j", "Xa3fu", "XaXGk", "XaFwo", "XaKyV"
-))
+unique_uncategorized_codes
 
-PrCaSymptom_gp_records2 <- PrCaSymptom_gp_records2 %>%                                          ## Change all blanks to NA
-  dplyr::mutate(across(all_of(c("read_2", "read_3")),
-                       ~ na_if(str_trim(as.character(.)), "")))
+## Read in read2 and read3 dictionaries to see what these codes mean
 
+dxdownload("Callum/read2_read3_codes/read2_lkp3.csv")
+dxdownload("Callum/read2_read3_codes/read3_lkp3.csv")
 
-PrCaSymptom_gp_records2$read_code <- coalesce(PrCaSymptom_gp_records2$read_2, PrCaSymptom_gp_records2$read_3)
+uncategorized_codes_table <- uncategorized %>%
+  transmute(code = str_trim(as.character(read_code))) %>%
+  filter(!is.na(code), code != "") %>%
+  distinct()
 
 
-
-starts_with_any <- function(x, prefixes) {
-  # returns a logical vector same length as x
-  Reduce(`|`, lapply(prefixes, function(p) startsWith(x, p)))
-}
+read2_dictionary <- read.csv("read2_lkp3.csv") %>%
+  transmute(code = as.character(read_2), term_r2 = as.character(term_description)) %>%
+  distinct()
 
 
-PrCaSymptom_gp_records2_over40 <- PrCaSymptom_gp_records2 %>%
+read3_dictionary <- read.csv("read3_lkp3.csv") %>%
+  transmute(code = as.character(read_3), term_r3 = as.character(term_description)) %>%
+  distinct()
+
+
+
+mapped_uncategorized_codes_table <- uncategorized_codes_table %>%
+  left_join(read2_dictionary, by = "code") %>%
+  left_join(read3_dictionary,  by = "code") %>%
+  mutate(
+    scheme = case_when(
+      !is.na(term_r2)   &  is.na(term_r3) ~ "Read v2",
+      is.na(term_r2)    & !is.na(term_r3) ~ "Read v3",
+      !is.na(term_r2)   & !is.na(term_r3) ~ "Both (check)",
+      TRUE                                 ~ "Not found"
+    ),
+    term = coalesce(term_r2, term_r3)
+  ) %>%
+  select(code, scheme, term) %>%
+  arrange(scheme, code)
+
+mapped_uncategorized_codes_table
+
+
+## Create a less strict categorization based on mapped_uncategorized_codes_table
+
+PrCaSymptom_gp_records1_over40_liberal <- PrCaSymptom_gp_records1 %>%
   filter(event_age >= 40) %>%
-  dplyr::mutate(category = case_when(
-    starts_with_any(read_code, c("1A27", "K16y8", "XaNFc", "X30Ni")) ~ "DoubleVoiding",
-    starts_with_any(read_code, c("1A1Z", "1A11", "1A1", "R084", "1A12", "R084z", "R0840", "1A1", "1A1")) ~ "Frequency",
-    starts_with_any(read_code, c("1A34", "1A34")) ~ "Hesitancy",
-    starts_with_any(read_code, c("R083z", "R083")) ~ "Incontinence",
-    starts_with_any(read_code, c("1AZ6", "1AZ60", "1AZ61", "1AZ62", "1A2", "1A2Z", "R086z", "8D7",
-                                 "R08", "R08zz", "66K3", "1A4", "1A", "1A", "1AZ", "1AZZ", "1AH1",
-                                 "R086", "R08z", "Kz…", "Ryu4", "XaB9O", "XaXHi", "XaXHj", "XaXHk", "Xa96j")) ~ "LUTS",
-    starts_with_any(read_code, c("1A13", "R0842")) ~ "Nocturia",
-    starts_with_any(read_code, c("1A33", "1A31", "1A3", "1A3Z", "1A3", "R0861", "R0863", "R0860",
-                                 "317C", "1A37", "1A36", "XaD2w", "X77SF", "X76Y0")) ~ "PoorStream",
-    starts_with_any(read_code, c("R082", "R0824", "1A32", "K196", "R0820", "1A32", "R0822")) ~ "Retention",
-    starts_with_any(read_code, c("1A25", "R0862", "1A25")) ~ "Urgency",
-    starts_with_any(read_code, c("R15y0", "B7C20", "14270", "ZV104", "B834", "1J08", "B58y5", "B8340",
-                                 "B46", "XaC0j", "Xa3fu", "XaXGk", "XaFwo", "XaKyV")) ~ "ProstateCancer",
+  mutate(category = case_when(
+    read_code %in% c("1A27.", "K16y8", "XaNFc", "X30Ni") ~ "DoubleVoiding",
+    read_code %in% c("1A1Z.", "1A11.", "1A1..", "R084.", "1A12.", "R084z", "R0840", "1A1..", "1A1..") ~ "Frequency",
+    read_code %in% c("1A34.", "1A34.") ~ "Hesitancy",
+    read_code %in% c("R083z", "R083.", "1A23.", "1A24.", "1A26.", "1A22.", "1A220", "R0831", "R0832", "R0830") ~ "Incontinence",
+    read_code %in% c("1AZ6.", "1AZ60", "1AZ61", "1AZ62", "1A2..", "1A2Z.", "R086z", "8D7..", "R08..", "R08zz", "66K3.", "1A4..", "1A...", "1A...", "1AZ..", "1AZZ.", "1AH1.", "R086.", "R08z.", "Kz...", "Ryu4.", "XaB9O", "XaXHi", "XaXHj", "XaXHk", "Xa96j") ~ "LUTS",
+    read_code %in% c("1A13.", "R0842") ~ "Nocturia",
+    read_code %in% c("1A33.", "1A31.", "1A3..", "1A3Z.", "1A3..", "R0861", "R0863", "R0860", "317C.", "1A37.", "1A36.", "XaD2w", "X77SF", "X76Y0", "1AZ3.", "Ryu40") ~ "PoorStream",
+    read_code %in% c("R082.", "R0824", "1A32.", "K196.", "R0820", "1A32.", "R0822", "1AH0.", "R0823") ~ "Retention",
+    read_code %in% c("1A25.", "R0862", "1A25.", "1A35.", "R08z2") ~ "Urgency",
+    ##    read_code %in% c("R15y0", "B7C20", "14270", "ZV104", "B834.", "1J08.", "B58y5", "B8340", "B46..", "XaC0j", "Xa3fu", "XaXGk", "XaFwo", "XaKyV") ~ "ProstateCancer",
     TRUE ~ NA_character_
   ))
 
+## Choose which one you want to use here
 
-
-## Chose which one you want to use here
-
-chosen_dataframe <- PrCaSymptom_gp_records1_over40 %>%
-  dplyr::filter(!is.na(category)) %>%
-  dplyr::select(c("eid", "event_dt", "read_code", "event_age", "date_of_birth", "category"))
+chosen_dataframe <- PrCaSymptom_gp_records1_over40_liberal %>%  ## Change this to toggle between strict inclusion and liberal inclusion
+  dplyr::filter(!is.na(category)) %>%    
+  dplyr::select(c("eid", "event_dt", "read_code", "event_age", "date_of_birth", "category")) %>%
+  inner_join(baseline) %>%
+  dplyr::filter(sex == "Male")
 
 ## Create new binary symptom columns - All symptoms, Frequency, Hesitancy, Incontinenece, LUTS, Nocturia, PoorStream, Retention, Urgency
 
 PrCa_symptoms <- chosen_dataframe %>%
   dplyr::mutate(
-    All_symptoms = if_else(!is.na(category), 1L, 0L, missing = 0L),
+    All_symptoms = 1,
     Frequency = if_else(category == "Frequency", 1L, 0L, missing = 0L),
     Hesitancy = if_else(category == "Hesitancy", 1L, 0L, missing = 0L),
     Incontinence = if_else(category == "Incontinence", 1L, 0L, missing = 0L),
@@ -288,9 +310,7 @@ chosen_symptom_earliest_dataframe <- PrCa_all_symptoms_earliest # change this to
 
 ## Sanity check 1 - is there truly 1 row per participant now?
 
-test_df <- chosen_symptom_earliest_dataframe %>% 
-  inner_join(baseline) %>%
-  dplyr::filter(sex == "Male")
+test_df <- chosen_symptom_earliest_dataframe 
 
 test_df %>%
   dplyr::count(eid) %>%
@@ -458,7 +478,7 @@ PCaCases_earliest$assess_date_initial <- coalesce(PCaCases_earliest$assess_date_
 
 PrCa_symptoms_diagnosis <- merge(chosen_symptom_earliest_dataframe, PCaCases_earliest, by = "eid", all.x = T)
 
-# Tag patients who already had prostate cancer diagnosis before symptom event date as "pre-diagnosed". Also make "earliest PrCa diagnosis date" which is the earliest of epistart and date
+# Tag participants who already had prostate cancer diagnosis before symptom event date as "pre-diagnosed". Also make "earliest PrCa diagnosis date" which is the earliest of epistart and date
 
 PrCa_symptoms_diagnosis <- PrCa_symptoms_diagnosis %>%
   dplyr::mutate(
@@ -823,9 +843,9 @@ PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criter
 
 PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
   dplyr::filter(
-    Sex == 'Male'#,
-    #!is.na(multiethnicGRS),
-    #pre_diagnosed == FALSE | is.na(pre_diagnosed) ## to remove pre-diagnosed patients
+    Sex == 'Male',
+    !is.na(multiethnicGRS),
+    pre_diagnosed == FALSE | is.na(pre_diagnosed) ## to remove pre-diagnosed patients
   )
 
 # Sanity Check - how many patients in PCa_iv_covariates were female or lacked GRS data? Does it match the difference in n between PCa_iv_covariates and PCa_iv_covariates_clean ?
