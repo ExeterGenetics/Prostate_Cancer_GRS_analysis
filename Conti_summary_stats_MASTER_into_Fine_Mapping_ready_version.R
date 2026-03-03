@@ -3,7 +3,7 @@
 install.packages('readxl')
 library(readxl)
 
-dxdownload("ContiGWASsummaryStatsMASTER.xlsx") ## This is Conti's Multiancestry GWAS summary stats as downloadable here: https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs001120/analyses/phs001120.pha005082.txt, and converted to Susie-compatible format
+dxdownload("Callum/ContiGWAS/ContiGWASsummaryStatsMASTER.xlsx") ## This is Conti's Multiancestry GWAS summary stats as downloadable here: https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs001120/analyses/phs001120.pha005082.txt, and converted to Susie-compatible format
 
 ContiGWASsummaryStatsMaster <- read_excel("ContiGWASsummaryStatsMASTER.xlsx")
 
@@ -17,9 +17,9 @@ ContiGWASsummaryStatsChr8 <- ContiGWASsummaryStatsMaster %>%
 
 ContiGWASsummaryStatsChr8 <- ContiGWASsummaryStatsChr8 %>%
   dplyr::filter(
-      (ALLELE1 == "T" | ALLELE1 == "A" | ALLELE1 == "G" | ALLELE1 == "C") &
-        (ALLELE0 == "T" | ALLELE0 == "A" | ALLELE0 == "G" | ALLELE0 == "C")
-      )
+    (ALLELE1 == "T" | ALLELE1 == "A" | ALLELE1 == "G" | ALLELE1 == "C") &
+      (ALLELE0 == "T" | ALLELE0 == "A" | ALLELE0 == "G" | ALLELE0 == "C")
+  )
 
 ## Step 3: Create new ID column that is CHR:POS:ALT:REF and goes both ways (i.e., for each SNP, do CHR:POS:ALLELE1:ALLELE0 and CHR:POS:ALLELE0:ALLELE1)
 
