@@ -4,17 +4,25 @@
 
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
-dxdownload("Callum/FineMappingResults/FineMap_rs72725854_test.cs")
-dxdownload("Callum/FineMappingResults/FineMap_rs72725854_test.snp")
-dxdownload("Callum/FineMappingResults/FineMap_rs72725854_test.summary")
+dxdownload("Callum/FineMappingResults/FineMap_rs72725854_AllMen.cs")
+dxdownload("Callum/FineMappingResults/FineMap_rs72725854_AllMen.snp")
+dxdownload("Callum/FineMappingResults/FineMap_rs72725854_AllMen.summary")
+
+dxdownload("Callum/FineMappingResults/FineMap_rs72725854_BlackOnly.cs")
+dxdownload("Callum/FineMappingResults/FineMap_rs72725854_BlackOnly.snp")
+dxdownload("Callum/FineMappingResults/FineMap_rs72725854_BlackOnly.summary")
 
 dxdownload("Callum/FineMappingResults/FineMap_rs72725854_AFR.cs")
 dxdownload("Callum/FineMappingResults/FineMap_rs72725854_AFR.snp")
 dxdownload("Callum/FineMappingResults/FineMap_rs72725854_AFR.summary")
 
-cs_generalGWAS <- read.delim("FineMap_rs72725854_test.cs")
-snp_generalGWAS <- read.delim("FineMap_rs72725854_test.snp")
-summary_generalGWAS <- read.delim("~/FineMap_rs72725854_test.summary", comment.char="#")
+cs_generalGWAS <- read.delim("FineMap_rs72725854_AllMen.cs")
+snp_generalGWAS <- read.delim("FineMap_rs72725854_AllMen.snp")
+summary_generalGWAS <- read.delim("~/FineMap_rs72725854_AllMen.summary", comment.char="#")
+
+cs_BlackOnlyGWAS <- read.delim("FineMap_rs72725854_BlackOnly.cs")
+snp_BlackOnlyGWAS <- read.delim("FineMap_rs72725854_BlackOnly.snp")
+summary_BlackOnlyGWAS <- read.delim("~/FineMap_rs72725854_BlackOnly.summary", comment.char="#")
 
 cs_AFRGWAS <- read.delim("FineMap_rs72725854_AFR.cs")
 snp_AFRGWAS <- read.delim("FineMap_rs72725854_AFR.snp")
