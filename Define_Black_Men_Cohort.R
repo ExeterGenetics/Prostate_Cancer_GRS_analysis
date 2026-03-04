@@ -1,4 +1,6 @@
-## Create dataframe of Black men only
+## Create dataframe of Black men only ##
+
+## Note: Requires running "Logistic_Regressions_testing_Conti_GRS" down to creation of "PCa_iv_covariates_GRS_severity"
 
 BlackMen <- PCa_iv_covariates_GRS_severity %>%
   dplyr::filter(
