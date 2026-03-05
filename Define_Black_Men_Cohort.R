@@ -15,4 +15,20 @@ BlackMen <- PCa_iv_covariates_GRS_severity %>%
 
 write.table(BlackMen, "BlackMen.tsv",quote=FALSE,sep='\t',row.names = FALSE)
 
+## write to gzipped tsv
+
+write.table(
+  BlackMen,
+  file = gzfile("BlackMen.tsv.gz"),
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
+
 system(paste("dx upload", "BlackMen.tsv"))
+system(paste("dx upload", "BlackMen.tsv.gz"))
+
+
+
+
+
+
+
