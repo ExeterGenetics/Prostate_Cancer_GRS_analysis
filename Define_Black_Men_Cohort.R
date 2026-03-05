@@ -24,7 +24,9 @@ write.table(
 )
 
 system(paste("dx upload", "BlackMen.tsv"))
-system(paste("dx upload", "BlackMen.tsv.gz"))
+system(paste("dx upload", "BlackMen.tsv.gz")) # Main phenotype file used in Fine Mapping
+
+
 
 
 
