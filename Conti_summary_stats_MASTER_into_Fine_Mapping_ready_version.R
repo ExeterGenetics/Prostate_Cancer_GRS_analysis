@@ -1,15 +1,18 @@
-## Converting Conti summary stats MASTER excel file into rs72725854 Fine Mapping-ready version
+## Converting Conti summary stats MASTER/AFR excel file into rs72725854 Fine Mapping-ready version
 
 install.packages('readxl')
 library(readxl)
+library(dplyr)
 
-dxdownload("Callum/ContiGWAS/ContiGWASsummaryStatsMASTER.xlsx") ## This is Conti's Multiancestry GWAS summary stats as downloadable here: https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs001120/analyses/phs001120.pha005082.txt, and converted to Susie-compatible format
+system(paste("dx download", "Callum/ContiGWAS/ContiGWASsummaryStatsMASTER.xlsx")) ## This is Conti's Multiancestry GWAS summary stats as downloadable here: https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs001120/analyses/phs001120.pha005082.txt, and converted to Susie-compatible format
+system(paste("dx download", "Callum/ContiGWAS/ContiGWASsummaryStatsMASTER.xlsx")) ## This is Conti's AFR-specific GWAS summary stats as downloadable here: https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs001120/analyses/phs001120.pha005078.txt, and converted to Susie-compatible format
 
 ContiGWASsummaryStatsMaster <- read_excel("ContiGWASsummaryStatsMASTER.xlsx")
+ContiGWASsummaryStatsAFR <- read_excel("ContiGWASsummaryStatsAFR.xlsx")
 
 ## Step 1: isolate only Chromosome 8 entries
 
-ContiGWASsummaryStatsChr8 <- ContiGWASsummaryStatsMaster %>%
+ContiGWASsummaryStatsChr8 <- ContiGWASsummaryStatsAFR %>%    ## Choose which summary stats version (Master or AFR) you want to use here
   dplyr::filter(CHROM == "8") %>%
   dplyr::rename("rsid" = "ID")
 
@@ -23,7 +26,6 @@ ContiGWASsummaryStatsChr8 <- ContiGWASsummaryStatsChr8 %>%
 
 ## Step 3: Create new ID column that is CHR:POS:ALT:REF and goes both ways (i.e., for each SNP, do CHR:POS:ALLELE1:ALLELE0 and CHR:POS:ALLELE0:ALLELE1)
 
-library(dplyr)
 library(stringr)
 
 # Orientation 1: as-is
@@ -55,7 +57,12 @@ ContiGWASsummaryStatsChr8_long <- bind_rows(fwd, rev) %>%
   arrange(CHROM, GENPOS, ID, desc(orientation))
 
 ContiGWASsummaryStatsChr8_noindel_clean <- ContiGWASsummaryStatsChr8_long %>%
-  dplyr::select("CHROM", "GENPOS", "ID", "ALLELE1", "ALLELE0", "BETA", "SE", "P")
+  dplyr::select("CHROM", "GENPOS", "ID", "ALLELE1", "ALLELE0", "BETA", "SE", "P") %>%
+  dplyr::mutate(
+    OR = exp(BETA),
+    OR_L95 = exp(BETA - 1.96 * SE),
+    OR_U95 = exp(BETA + 1.96 * SE)
+  )
 
 # Write to tsv
 
@@ -67,6 +74,7 @@ write.table(
   file = gzfile("ContiGWASsummaryStatsChr8_noindel_clean.tsv.gz"),
   quote = FALSE, sep = "\t", row.names = FALSE
 )
+
 
 ## Upload to project
 
