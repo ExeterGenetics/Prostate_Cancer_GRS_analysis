@@ -5,7 +5,7 @@ library(readxl)
 library(dplyr)
 
 system(paste("dx download", "Callum/ContiGWAS/ContiGWASsummaryStatsMASTER.xlsx")) ## This is Conti's Multiancestry GWAS summary stats as downloadable here: https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs001120/analyses/phs001120.pha005082.txt, and converted to Susie-compatible format
-system(paste("dx download", "Callum/ContiGWAS/ContiGWASsummaryStatsMASTER.xlsx")) ## This is Conti's AFR-specific GWAS summary stats as downloadable here: https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs001120/analyses/phs001120.pha005078.txt, and converted to Susie-compatible format
+system(paste("dx download", "Callum/ContiGWAS/ContiGWASsummaryStatsAFR.xlsx")) ## This is Conti's AFR-specific GWAS summary stats as downloadable here: https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs001120/analyses/phs001120.pha005078.txt, and converted to Susie-compatible format
 
 ContiGWASsummaryStatsMaster <- read_excel("ContiGWASsummaryStatsMASTER.xlsx")
 ContiGWASsummaryStatsAFR <- read_excel("ContiGWASsummaryStatsAFR.xlsx")
