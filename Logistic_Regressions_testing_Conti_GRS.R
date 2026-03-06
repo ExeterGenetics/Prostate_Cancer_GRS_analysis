@@ -18,15 +18,21 @@ dxdownload("Callum/Derived_datasets/ethnicity.csv")		# Dataset of self-reported 
 dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs_UKB2_scaled.csv")	# Projected Principal Components of UKB participants in the principal components space of the HGDP+1000 Genomes reference panel, calculated using "AncestryProbability2calculation.R" in AncestryProbability2_plink folder
 dxdownload("Callum/Derived_datasets/AncestryProbability.csv")	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
 dxdownload("Callum/Derived_datasets/AncestryProbability2.csv") 	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability2_plink folder script
-
 dxdownload("Callum/Derived_datasets/FH_PrCa_BrCa.csv")		# Dataset of Family History of Prostate Cancer and Breast Cancer, created using "Family_history.R" script
+
 dxdownload("Callum/GRSs/Conti_multi_ethnic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Multiethnic Analysis"
 dxdownload("Callum/GRSs/Conti_European.pgs.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "European...16"
 dxdownload("Callum/GRSs/Conti_African.pgs.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "African...19"
 dxdownload("Callum/GRSs/Conti_East_Asian.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "East Asian...22"
 dxdownload("Callum/GRSs/Conti_Hispanic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Hispanic...25"
 
-dxdownload("Callum/Derived_datasets/OR_adjustedGRS.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
+dxdownload("Callum/GRSs/Conti_multiethnicGRS_267.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI"
+dxdownload("Callum/GRSs/Conti_EuropeanGRS_265.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR"
+dxdownload("Callum/GRSs/Conti_AfricanGRS_246.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR"
+dxdownload("Callum/GRSs/Conti_East_AsianGRS_222.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS"
+dxdownload("Callum/GRSs/Conti_HispanicGRS_253.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS"
+
+dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
 
 ######################################################################
 # Step 1 - Fetch PrCa Cases and collapse into earliest epistart/date #
@@ -472,12 +478,48 @@ HispanicGRS <- HispanicGRS %>%
   dplyr::rename('HispanicGRS' = 'Conti') %>%
   dplyr::mutate(top10_all_HispanicGRS = HispanicGRS >= quantile(HispanicGRS, probs = 0.9))
 
+multiethnicGRS267 <- read_delim("Conti_multiethnicGRS_267.tsv")
+multiethnicGRS267 <- multiethnicGRS267 %>%
+  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
+  dplyr::rename('multiethnicGRS267' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::mutate(top10_all_multiethnicGRS267 = multiethnicGRS267 >= quantile(multiethnicGRS267, probs = 0.9)) 
+
+EuropeanGRS265 <- read_delim("Conti_EuropeanGRS_265.tsv")
+EuropeanGRS265 <- EuropeanGRS265 %>%
+  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
+  dplyr::rename('EuropeanGRS265' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::mutate(top10_all_EuropeanGRS265 = EuropeanGRS265 >= quantile(EuropeanGRS265, probs = 0.9))
+
+AfricanGRS246 <- read_delim("Conti_AfricanGRS_246.tsv")
+AfricanGRS246 <- AfricanGRS246 %>%
+  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
+  dplyr::rename('AfricanGRS246' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::mutate(top10_all_AfricanGRS246 = AfricanGRS246 >= quantile(AfricanGRS246, probs = 0.9))
+
+East_AsianGRS222 <- read_delim("Conti_East_AsianGRS_222.tsv")
+East_AsianGRS222 <- East_AsianGRS222 %>%
+  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
+  dplyr::rename('East_AsianGRS222' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::mutate(top10_all_East_AsianGRS222 = East_AsianGRS222 >= quantile(East_AsianGRS222, probs = 0.9))
+
+HispanicGRS253 <- read_delim("Conti_HispanicGRS_253.tsv")
+HispanicGRS253 <- HispanicGRS253 %>%
+  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
+  dplyr::rename('HispanicGRS253' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::mutate(top10_all_HispanicGRS253 = HispanicGRS253 >= quantile(HispanicGRS253, probs = 0.9))
+
 # Merge all data
 
 All_Conti_GRS <- merge(multiethnicGRS, EuropeanGRS, by = "eid")
 All_Conti_GRS <- merge(All_Conti_GRS, AfricanGRS, by = "eid")
 All_Conti_GRS <- merge(All_Conti_GRS, East_AsianGRS, by = "eid")
 All_Conti_GRS <- merge(All_Conti_GRS, HispanicGRS, by = "eid")
+
+All_Conti_GRS <- merge(All_Conti_GRS, multiethnicGRS267, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, EuropeanGRS265, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, AfricanGRS246, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, East_AsianGRS222, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, HispanicGRS253, by = "eid")
 
 ### Creating an adjusted GRS ###
 
@@ -491,7 +533,7 @@ AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%
 
 GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability or AncestryProbability 2 depending on preference
 GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
-  dplyr::select(c("eid", "multiethnicGRS", "top10_all_multiethnicGRS", "EuropeanGRS", "top10_all_EuropeanGRS", "AfricanGRS", "top10_all_AfricanGRS", "East_AsianGRS", "top10_all_East_AsianGRS", "HispanicGRS", "top10_all_HispanicGRS", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
+  dplyr::select(c("eid", "multiethnicGRS", "top10_all_multiethnicGRS", "EuropeanGRS", "top10_all_EuropeanGRS", "AfricanGRS", "top10_all_AfricanGRS", "East_AsianGRS", "top10_all_East_AsianGRS", "HispanicGRS", "top10_all_HispanicGRS", "multiethnicGRS267", "top10_all_multiethnicGRS267", "EuropeanGRS265", "top10_all_EuropeanGRS265", "AfricanGRS246", "top10_all_AfricanGRS246", "East_AsianGRS222", "top10_all_East_AsianGRS222", "HispanicGRS253", "top10_all_HispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
 
 GRS_plus_ancestry <- GRS_plus_ancestry %>%
   dplyr::mutate(
@@ -499,11 +541,11 @@ GRS_plus_ancestry <- GRS_plus_ancestry %>%
   )
 
 All_Conti_GRS <- GRS_plus_ancestry %>%
-  dplyr::select(c("eid", "EUR", "AFR", "EAS", "CSA", "MID", "AMR", "multiethnicGRS", "top10_all_multiethnicGRS", "EuropeanGRS", "top10_all_EuropeanGRS", "AfricanGRS", "top10_all_AfricanGRS", "East_AsianGRS", "top10_all_East_AsianGRS", "HispanicGRS", "top10_all_HispanicGRS", "adjustedGRS"))
+  dplyr::select(c("eid", "EUR", "AFR", "EAS", "CSA", "MID", "AMR", "multiethnicGRS", "top10_all_multiethnicGRS", "EuropeanGRS", "top10_all_EuropeanGRS", "AfricanGRS", "top10_all_AfricanGRS", "East_AsianGRS", "top10_all_East_AsianGRS", "HispanicGRS", "top10_all_HispanicGRS", "multiethnicGRS267", "top10_all_multiethnicGRS267", "EuropeanGRS265", "top10_all_EuropeanGRS265", "AfricanGRS246", "top10_all_AfricanGRS246", "East_AsianGRS222", "top10_all_East_AsianGRS222", "HispanicGRS253", "top10_all_HispanicGRS253", "adjustedGRS"))
 
 ## Add Odds Ratio-adjusted GRS (where ancestry probability is applied to the OR, not the final scores)
 
-ORadjustedGRS <- read.table("OR_adjustedGRS.tsv", header = T) %>%
+ORadjustedGRS <- read.table("OR_adjustedGRS267.tsv", header = T) %>%
   dplyr::select(c("eid", "Conti_ORfirst_avg")) %>%
   dplyr::rename("ORadjustedGRS" = "Conti_ORfirst_avg")
 
@@ -586,9 +628,9 @@ PCa_iv_covariates_GRS_predhorizon <- PCa_iv_covariates_GRS_clean %>%
       !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
         earliest_PrCa_date >= assess_date_initial &
         earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(2) & (
-        (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
-          (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
-      )
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
     ),
     PrCa_severe_5yrs = as.integer(
       !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
@@ -619,12 +661,12 @@ PCa_iv_covariates_GRS_predhorizon <- PCa_iv_covariates_GRS_clean %>%
       !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
         earliest_PrCa_date >= assess_date_initial &
         earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(2) & (
-        (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
-          (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
-          (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
-          (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
-          (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
-      )
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
     ),
     PrCa_actionable_5yrs = as.integer(
       !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
@@ -1315,7 +1357,17 @@ RRtable <- function(data,
 #   - PrCa_severe_10yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
 #
 # Set "predictor" to either: 
+#
+#    Note: these top 6 GRSs use "Conti_script.R", which drops 4 SNPs by default. The numbered GRSs below only drop 2 SNPs
+#
 #   - multiethnicGRS (Conti's GRS with pan-Ancestry weights)
+#   - EuropeanGRS (Conti's GRS with European-specific weights)
+#   - AfricanGRS (Conti's GRS with African-specific weights)
+#   - East_AsianGRS (Conti's GRS with East Asian-specific weights)
+#   - HispanicGRS (Conti's GRS with Hispanic-specific weights)
+#   - adjustedGRS (Conti's GRS adjusted for ancestry probability)
+#
+#   - multiethnicGRS267 (Conti's GRS with pan-Ancestry weights, all 267 available SNPs)
 #   - EuropeanGRS (Conti's GRS with European-specific weights)
 #   - AfricanGRS (Conti's GRS with African-specific weights)
 #   - East_AsianGRS (Conti's GRS with East Asian-specific weights)
@@ -1329,8 +1381,8 @@ RRtable <- function(data,
 #
 
 
-model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
-                    outcome = "PrCa_actionable_5yrs",
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+                    outcome = "PrCa_10yrs",
                     predictor = "multiethnicGRS",
                     covariates = "Age",
                     plot_roc = TRUE)
