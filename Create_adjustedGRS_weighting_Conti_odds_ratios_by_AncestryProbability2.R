@@ -3,8 +3,6 @@
 #############################################################################
 
 
-
-
 #--------------------------------------------------------------------#
 # Setup (run these installs separately, then the rest of the script) #
 #--------------------------------------------------------------------#
@@ -64,7 +62,7 @@ Conti_base0 <- Conti_raw %>%
   mutate(CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR))))
 
 Conti_base <- Conti_base0 %>%
-  # Ensure CHR formatting (as you had)
+  # Ensure CHR formatting 
   mutate(CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR)))) %>%
   # Replace invalid/missing ancestry ORs with Multiethnic
   mutate(
@@ -100,14 +98,49 @@ ukbrapR::make_imputed_bed(
 
 stopifnot(file.exists("Conti_subset.bed"))
 
+## Create .raw subset file
+
+
+plink2 <- "/home/rstudio-server/_ukbrapr_tools/plink2"
+plink1 <- "/home/rstudio-server/_ukbrapr_tools/plink"
+
+
+
+cmd <- NULL
+if (file.exists(plink2)) {
+  cmd <- sprintf('%s --bfile %s --export A --out %s',
+                 shQuote(plink2), shQuote("Conti_subset"), shQuote("Conti_subset"))
+} else if (file.exists(plink1)) {
+  cmd <- sprintf('%s --bfile %s --recode A --out %s',
+                 shQuote(plink1), shQuote("Conti_subset"), shQuote("Conti_subset"))
+} else {
+  stop("PLINK tools not found at expected paths. Try ukbrapR:::prep_tools() again.")
+}
+
+
+cmd_with_log <- sprintf('%s 2>&1 | tee plink_export.log', cmd)
+status <- system(cmd_with_log)
+
+if (status != 0L) {
+  stop("PLINK command failed (exit code ", status, "). See plink_export.log.")
+}
+if (!file.exists("Conti_subset.raw")) {
+  stop("PLINK finished but Conti_subset.raw was not created.\n",
+       "Inspect plink_export.log; check that the .bim contains >0 variants.")
+}
+
+
+stopifnot(file.exists("Conti_subset.raw"))
 
 
 # -----------------------------
 # 4) Read BIM to align alleles, and RAW dosages (no ID renaming)
 # -----------------------------
+
 bim <- readr::read_tsv("Conti_subset.bim",
                        col_names = c("chr","id","null","pos","a1","a2"),
                        show_col_types = FALSE)
+
 raw <- read.table("Conti_subset.raw", header = TRUE, check.names = FALSE)
 
 # Normalise chromosome for joins (map "X"->23 if present)
@@ -292,8 +325,8 @@ out <- tibble(
   Conti_ORfirst_avg = avg_scores
 )
 
-write.table(out, "OR_adjustedGRS.tsv",
+write.table(out, "OR_adjustedGRS267.tsv",
             sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)
 
 # Optional upload
-system("dx upload OR_adjustedGRS.tsv")
+system("dx upload OR_adjustedGRS267.tsv")
