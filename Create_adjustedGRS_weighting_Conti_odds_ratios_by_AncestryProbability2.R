@@ -54,10 +54,10 @@ Conti_base0 <- Conti_raw %>%
   ) %>%
   mutate(
     OR_MULTI = get_or_col(., "^Multiethnic"),
-    OR_EUR   = get_or_col(., "^European"),
-    OR_AFR   = get_or_col(., "^African"),
-    OR_EAS   = get_or_col(., "^East\\s*Asian"),
-    OR_HIS   = get_or_col(., "^Hispanic")
+    OR_EUR   = get_or_col(., "^European...16"),
+    OR_AFR   = get_or_col(., "^African...19"),
+    OR_EAS   = get_or_col(., "^East\\s*Asian...22"),
+    OR_HIS   = get_or_col(., "^Hispanic...25")
   ) %>%
   # Keep rows with valid positive ORs across all needed ancestries
   #filter(OR_MULTI > 0, OR_EUR > 0, OR_AFR > 0, OR_EAS > 0, OR_HIS > 0) %>%
