@@ -44,7 +44,8 @@ rsid_loadings <- "hgdp_tgp_pca_covid19hgi_snps_loadings.rsid.plink.tsv"
 
 system(sprintf("awk 'NR>1{print $1}' %s > variants.rsid", rsid_loadings))
 
-
+dxdownload("Callum/tools/plink2"); Sys.chmod("plink2", "0755")  # can be downloaded from https://www.cog-genomics.org/plink/2.0/
+plink2_bin <- normalizePath("./plink2")
 
 
 
@@ -57,19 +58,12 @@ stopifnot(file.exists(loadings_tsv), file.exists(afreq_file), file.exists("varia
 
 bgen_path <- '/mnt/project/Bulk/Imputation/UKB imputation from genotype'
 
-dxdownload("Callum/tools/plink2"); Sys.chmod("plink2", "0755")  # can be downloaded from https://www.cog-genomics.org/plink/2.0/
-plink2_bin <- normalizePath("./plink2")
+
 
 
 ### Load in bgenix 
 
 system("dx download 'Callum/tools/bgen.tgz' -o bgen.tgz") # can be downloaded from http://code.enkre.net/bgen/tarball/release/bgen.tgz
-
-# Inspect what's inside the local folder named 'bgen.tgz'
-
-print(file.info("bgen.tgz")$isdir)       # should be TRUE
-print(head(list.files("bgen.tgz"), 20))  # do you see 'waf', 'apps', 'src', 'doc', etc.?
-
 
 ## Install/Expose bgenix + cat-bgen from a .tgz (binary or source)
 
@@ -336,7 +330,7 @@ audit_overlap_all <- function(loadings_tsv, rsid_loadings, merged_pfx, plink2_bi
   dir.create(tmp_dir, showWarnings = FALSE, recursive = TRUE)
   
   # RSID-based sanity check 
-
+  
   rsid_vec <- fread(rsid_loadings, nThread = 1)[[1]]
   rsid_vec <- unique(rsid_vec[!is.na(rsid_vec) & rsid_vec != "rsid" & !grepl("^#", rsid_vec)])
   
@@ -348,7 +342,7 @@ audit_overlap_all <- function(loadings_tsv, rsid_loadings, merged_pfx, plink2_bi
   rsid_overlap <- length(intersect(rsid_vec, pvar_ids))
   
   # Position-keyed checks with different patterns ---
-
+  
   pos_ids <- unique(fread(loadings_tsv, nThread = 1)[[1]][-1])  # skip header
   pos_ids <- pos_ids[!is.na(pos_ids)]
   writeLines(pos_ids, file.path(tmp_dir, "loadings.posid"))
@@ -446,7 +440,6 @@ system2(plink2_bin, args_score, stdout = TRUE, stderr = TRUE)  # linear scoring 
 
 ## Scale to HGDP+1KG PCs
 
-
 library(data.table)
 
 ss <- fread(paste0(score_out, ".sscore"))           
@@ -461,6 +454,26 @@ for (i in seq_along(pc_sum)) {
   nm <- sub("_SUM$", "", pc_sum[i])                 # "PC1".."PC20"
   ukb_scaled[[nm]] <- ss[[pc_sum[i]]] / sqrt(nv)    # scale by sqrt(#variants)
 }
+
+#############################################
+# Important - remove withdrawn participants #
+#############################################
+
+library(dplyr)
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite') ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(IID=X1),
+    by='IID'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+ukb_scaled <- exclude_withdrawn(ukb_scaled)
 
 fwrite(ukb_scaled, "HGDP_1KG_PCs_UKB2_scaled.csv")
 
@@ -487,6 +500,12 @@ keep     <- c("IID", intersect(sum_cols, names(sc)))
 ukb_dt   <- sc[, ..keep]
 data.table::setnames(ukb_dt, old = intersect(sum_cols, names(sc)),
                      new = sub("_SUM$", "", intersect(sum_cols, names(sc))))
+
+#############################################
+# Important - remove withdrawn participants #
+#############################################
+
+ukb_dt <- exclude_withdrawn(ukb_dt)
 
 data.table::fwrite(ukb_dt, "HGDP_1KG_PCs_UKB2_unscaled.csv")  
 
@@ -613,7 +632,7 @@ Genomic_ancestry <- read.csv("Age_Sex_PRS_GA.csv") %>%
                   Genomic_ancestry == "Central/South Asian ancestry (CSA)" |
                   Genomic_ancestry == "Middle Eastern ancestry (MID)" |
                   Genomic_ancestry == "Admixed American ancestry (AMR)"
-                  )
+  )
 
 ## Attach labels and PCs to compare
 
@@ -655,9 +674,9 @@ HGDP_1KG_PCs_w_labels <- HGDP_1KG_PCs_w_labels %>%
     Region %in% c("EUR") ~ "European ancestry (EUR)",
     Region %in% c("AFR") ~ "African ancestry (AFR)",
     Region %in% c("EAS") ~ "East Asian ancestry (EAS)",
-    Region %in% c("CSA") ~ "Central/South Asian ancestry (AFR)",
+    Region %in% c("CSA") ~ "Central/South Asian ancestry (CSA)",
     Region %in% c("MID") ~ "Middle Eastern ancestry (MID)",
-    Region %in% c("AMR") ~ "Admixed American ancestry (AFR)",
+    Region %in% c("AMR") ~ "Admixed American ancestry (AMR)",
   ))
 
 ## First take a look at HGDP+1KG Principal Components

@@ -76,7 +76,7 @@ system(paste("dx upload", "SNPs_in_HGDP_1KG_PCs.csv"))
 # ---- Step 2: Lift over GRCh38 (HGDP + 1KG type) into GRCh37 (UKB type) ---- #    Takes ~10 minutes
 ###############################################################################
 
-dxdownload("SNPs_in_HGDP_1KG_PCs.csv")
+dxdownload("Callum/HGDP_1KG/SNPs_in_HGDP_1KG_PCs.csv")
 ref_bim_sub <- read_csv("SNPs_in_HGDP_1KG_PCs.csv")
 
 BiocManager::install(c("GenomicRanges", "rtracklayer"), ask = FALSE, update = FALSE) # Takes ~7 minutes
@@ -127,7 +127,7 @@ system(paste("dx upload", "ref19.csv"))
 # ---- Step 3: Build per‑chr keep‑lists from UKB .bim, then extract reduced sets ---- #    Takes ~11 minutes
 #######################################################################################
 
-dxdownload("ref19.csv")
+dxdownload("Callum/HGDP_1KG/ref19.csv")
 ref19 <- read_csv("ref19.csv")
 
 ## Load in UKB PLINK files (takes ~ 10 minutes) (requires a project with Bulk data dispensed)
@@ -179,9 +179,9 @@ system(paste("dx upload", "UKB_refSNPs_merged.fam"))
 # ---- Step 4: Project with bigsnpr::bed_projectPCA() ---- #      Takes ~ 8 minutes
 ############################################################
 
-dxdownload("UKB_refSNPs_merged.bed")
-dxdownload("UKB_refSNPs_merged.bim")
-dxdownload("UKB_refSNPs_merged.fam")
+dxdownload("Callum/HGDP_1KG/UKB_refSNPs_merged.bed")
+dxdownload("Callum/HGDP_1KG/UKB_refSNPs_merged.bim")
+dxdownload("Callum/HGDP_1KG/UKB_refSNPs_merged.fam")
 
 dxdownload("Callum/tools/liftOver")
 liftOver_bin <- "liftOver"
@@ -246,6 +246,27 @@ stopifnot(all(ref_df$IID == ref_ids),
           length(unique(ukb_ids)) == length(ukb_ids))
 
 
+
+
+#############################################
+# Important - remove withdrawn participants #
+#############################################
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite') ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(IID=X1),
+    by='IID'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+ukb_df <- exclude_withdrawn(ukb_df)
+
+ref_df <- exclude_withdrawn(ukb_df)
 
 ## Write to project directory ##
 

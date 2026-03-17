@@ -91,6 +91,26 @@ rf_data <- rf_data %>%
   )
 
 
+#############################################
+# Important - remove withdrawn participants #
+#############################################
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite') ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(IID=X1),
+    by='IID'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+rf_data <- exclude_withdrawn(rf_data)
+
+
+
 # Predict for all participants with Principal_Components
 probs <- predict(rf, rf_data[, keepPCs], type = "prob")
 
@@ -139,8 +159,9 @@ probDF_w_results <- merge(probDF, rf_data, by = "IID") %>%
 
 
 ## Save
-#write.csv(probDF, "AncestryProbability.csv")
-#system(paste("dx upload", "AncestryProbability.csv"))
+
+write.csv(probDF, "AncestryProbability1.csv")
+system(paste("dx upload", "AncestryProbability1.csv"))
 
 
 #============================================================================================================#
@@ -277,6 +298,7 @@ ukb[stage1_label != "Other" & !is.na(MD2) & MD2 > thr_emp95, stage2_label := "Ot
 
 # Compare to Pan-UKB labels
 
+install.packages("caret")
 library(caret)
 
 # Bring in Pan-UKBB labels (already in your probDF_w_results data)
