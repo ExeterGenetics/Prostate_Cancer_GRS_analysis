@@ -16,7 +16,7 @@ dxdownload("Callum/Derived_datasets/imputed_rs72725854.csv")	# Dataset of rs7272
 dxdownload("Callum/Derived_datasets/Age_Sex_PRS_GA.csv")	# Dataset of Age at Recruitment (p21022), Sex (p31), Genetically-inferred Sex (p22001), Standard PRS for Prostate cancer (p26267), Enhanced PRS for Prostate cancer (p26268), Genomic Ancestry (p30079), created using the UKB-RAP cohort browser
 dxdownload("Callum/Derived_datasets/ethnicity.csv")		# Dataset of self-reported Ethnic Background (p21000_i0), created using the UKB-RAP cohort browser
 dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs_UKB2_scaled.csv")	# Projected Principal Components of UKB participants in the principal components space of the HGDP+1000 Genomes reference panel, calculated using "AncestryProbability2calculation.R" in AncestryProbability2_plink folder
-dxdownload("Callum/Derived_datasets/AncestryProbability.csv")	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
+dxdownload("Callum/Derived_datasets/AncestryProbability1.csv")	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
 dxdownload("Callum/Derived_datasets/AncestryProbability2.csv") 	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability2_plink folder script
 dxdownload("Callum/Derived_datasets/FH_PrCa_BrCa.csv")		# Dataset of Family History of Prostate Cancer and Breast Cancer, created using "Family_history.R" script
 
@@ -441,7 +441,8 @@ ethnicity <- ethnicity %>% # stricter ethnicity grouping
   ))
 
 principal_components<-read_csv("HGDP_1KG_PCs_UKB2_scaled.csv") %>%
-  dplyr::rename("eid" = "IID")
+  dplyr::rename("eid" = "IID") %>%
+  dplyr::select("eid", "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11", "PC12", "PC13", "PC14", "PC15", "PC16", "PC17", "PC18", "PC19", "PC20")
 
 family_history <- read.csv("FH_PrCa_BrCa.csv") %>%
   dplyr::select(c("eid", "FH_Prostate_cancer", "FH_Breast_cancer", "FH_PrCa_BrCa"))
@@ -522,7 +523,7 @@ All_Conti_GRS <- merge(All_Conti_GRS, HispanicGRS253, by = "eid")
 
 ### Creating an adjusted GRS ###
 
-AncestryProbability <- read.csv("AncestryProbability.csv") %>%          
+AncestryProbability1 <- read.csv("AncestryProbability1.csv") %>%          
   dplyr::select(c("IID", "AMR", "AFR", "CSA", "EAS", "EUR", "MID")) %>%
   dplyr::rename("eid" = "IID")
 
@@ -530,7 +531,7 @@ AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%
   dplyr::select(c("IID", "AMR", "AFR", "CSA", "EAS", "EUR", "MID")) %>%
   dplyr::rename("eid" = "IID")
 
-GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability or AncestryProbability 2 depending on preference
+GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability1 or AncestryProbability 2 depending on preference
 GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
   dplyr::select(c("eid", "multiethnicGRS", "top10_all_multiethnicGRS", "EuropeanGRS", "top10_all_EuropeanGRS", "AfricanGRS", "top10_all_AfricanGRS", "East_AsianGRS", "top10_all_East_AsianGRS", "HispanicGRS", "top10_all_HispanicGRS", "multiethnicGRS267", "top10_all_multiethnicGRS267", "EuropeanGRS265", "top10_all_EuropeanGRS265", "AfricanGRS246", "top10_all_AfricanGRS246", "East_AsianGRS222", "top10_all_East_AsianGRS222", "HispanicGRS253", "top10_all_HispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
 
@@ -590,9 +591,9 @@ PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
     PrCa = if_else(!is.na(pre_diagnosed), 1L, 0L, missing = 0L),
   )
 
-#############################################
-# Important - remove withdrawn participants #
-#############################################
+############################################# (these should have already been filtered out, 
+# Important - remove withdrawn participants #  since the withdrawn participants no longer have 
+#############################################  a GRS calculated, but still worth making sure)
 
 exclude_withdrawn=function(df){
   system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite') ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
@@ -1398,7 +1399,7 @@ RRtable <- function(data,
 #
 
 
-model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_AFROnly,
                     outcome = "PrCa_10yrs",
                     predictor = "multiethnicGRS",
                     covariates = "Age",
