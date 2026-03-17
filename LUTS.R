@@ -718,9 +718,7 @@ severity_criteria <- death_chemo
 
 iv <- read_csv("imputed_rs72725854.csv") # loads independent variable dataset
 iv <- iv %>%
-  select(c("eid", "rs72725854_G", "rs72725854_T"))
-##iv <-iv %>%
-##  rename(`eid` = `olink_instance_0$eid`) # new name first, old name second
+  select(c("eid", "rs72725854_G"))
 
 covariates <- read_csv("Age_Sex_PRS_GA.csv")
 covariates <- covariates %>% 
@@ -755,7 +753,8 @@ ethnicity <- ethnicity %>% # stricter ethnicity grouping
 principal_components<-read_csv("HGDP_1KG_PCs_UKB2_scaled.csv") %>%
   dplyr::rename("eid" = "IID")
 
-family_history <- read.csv("FH_PrCa_BrCa.csv")
+family_history <- read.csv("FH_PrCa_BrCa.csv") %>%
+  dplyr::select(c("eid", "FH_Prostate_cancer", "FH_Breast_cancer", "FH_PrCa_BrCa"))
 
 covariates <- merge(covariates, ethnicity, by = "eid", all.x = T)
 covariates <- merge(covariates, principal_components, by = "eid", all = T)
@@ -819,7 +818,7 @@ All_Conti_GRS <- GRS_plus_ancestry %>%
 
 ## Add Odds Ratio-adjusted GRS (where ancestry probability is applied to the OR, not the final scores)
 
-ORadjustedGRS <- read.table("OR_adjustedGRS.tsv", header = T) %>%
+ORadjustedGRS <- read.table("OR_adjustedGRS_267.tsv", header = T) %>%
   dplyr::select(c("eid", "Conti_ORfirst_avg")) %>%
   dplyr::rename("ORadjustedGRS" = "Conti_ORfirst_avg")
 
@@ -864,6 +863,24 @@ PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
   dplyr::mutate(
     PrCa = if_else(!is.na(epistart) | !is.na(date) | !is.na(date_of_death), 1L, 0L, missing = 0L),
   )
+
+#############################################
+# Important - remove withdrawn participants #
+#############################################
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite')  ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(eid=X1),
+    by='eid'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+PCa_iv_covariates_GRS_clean <- exclude_withdrawn(PCa_iv_covariates_GRS_clean)
 
 ##################################################################################
 # Step 6 - Set prediction horizons, including for general/actionable/severe PrCa #
@@ -1645,7 +1662,7 @@ RRtable <- function(data,
 #
 
 
-model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
                     outcome = "PrCa",
                     predictor = "multiethnicGRS",
                     covariates = "event_age",

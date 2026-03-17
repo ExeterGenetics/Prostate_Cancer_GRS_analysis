@@ -171,6 +171,24 @@ bim2 <- bim %>%
 # Keep only variants present in both BIM and Conti by chr:pos
 join1 <- dplyr::inner_join(bim2, Conti_key, by = c("chr_join","pos_join"))
 
+#############################################
+# Important - remove withdrawn participants #
+#############################################
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite') ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(IID = X1),
+    by='IID'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+raw <- exclude_withdrawn(raw)
+
 # -----------------------------
 # Robust prefix-based mapping from .raw columns to BIM rows
 # -----------------------------
@@ -269,7 +287,9 @@ W <- AP %>%
 
 # Align participants to RAW order; drop any without probabilities
 W <- W %>% filter(eid %in% raw$IID)
+
 raw_ids <- raw$IID
+
 W <- W %>% slice(match(raw_ids, eid))
 stopifnot(all(W$eid == raw_ids))
 
@@ -324,6 +344,8 @@ out <- tibble(
   Conti_ORfirst_sum = sum_scores,
   Conti_ORfirst_avg = avg_scores
 )
+
+
 
 write.table(out, "OR_adjustedGRS267.tsv",
             sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)

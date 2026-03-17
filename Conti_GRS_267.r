@@ -12,7 +12,7 @@ OR_column <- "OR_MULTI"
 
 install.packages("remotes")
 remotes::install_github("lcpilling/ukbrapR@v0.3.10",
-                         force = TRUE, clean = TRUE, dependencies = TRUE)
+                        force = TRUE, clean = TRUE, dependencies = TRUE)
 install.packages("readxl")
 
 library(dplyr)
@@ -270,8 +270,29 @@ out <- tibble(
 )
 names(out)[2:3] <- c(col_sum, col_avg)
 
+#############################################
+# Important - remove withdrawn participants #
+#############################################
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite') ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(eid = X1),
+    by='eid'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+out <- exclude_withdrawn(out)
+
 write.table(out, out_file,
             sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)
+
+
+
 
 # Optional: upload to RAP project
 
