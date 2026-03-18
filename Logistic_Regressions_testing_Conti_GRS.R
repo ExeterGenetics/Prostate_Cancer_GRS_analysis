@@ -589,6 +589,8 @@ All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS, by = "eid")
 
+## Merge all GRSs into one
+
 All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
 
 #########################################################################################
