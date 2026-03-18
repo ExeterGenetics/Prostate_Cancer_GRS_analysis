@@ -41,7 +41,13 @@ dxdownload("Callum/GRSs/Conti_African.pgs.tsv")			# Calculated Conti GRS for all
 dxdownload("Callum/GRSs/Conti_East_Asian.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "East Asian...22"
 dxdownload("Callum/GRSs/Conti_Hispanic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Hispanic...25"
 
-dxdownload("Callum/Derived_datasets/OR_adjustedGRS.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
+dxdownload("Callum/GRSs/Wang_multi_ethnic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_European.pgs.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_script" 
+dxdownload("Callum/GRSs/Wang_African.pgs.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_East_Asian.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_Hispanic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+
+dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
 
 
 system("dx download Callum/LUTS/Green2022supplementarytable1.csv") # This is the supplementary table 1 from Harry's LUTS paper, converted to .csv format using excel. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC9553867/
@@ -780,7 +786,7 @@ AfricanGRS <- AfricanGRS %>%
 East_AsianGRS <- read_delim("Conti_East_Asian.pgs.tsv")
 East_AsianGRS <- East_AsianGRS %>%
   dplyr::rename('East_AsianGRS' = 'Conti') %>%
-  dplyr::mutate(top10_all_East_AsianGRS = AfricanGRS >= quantile(East_AsianGRS, probs = 0.9))
+  dplyr::mutate(top10_all_East_AsianGRS = East_AsianGRS >= quantile(East_AsianGRS, probs = 0.9))
 
 HispanicGRS <- read_delim("Conti_Hispanic.pgs.tsv")
 HispanicGRS <- HispanicGRS %>%
@@ -824,6 +830,40 @@ ORadjustedGRS <- read.table("OR_adjustedGRS_267.tsv", header = T) %>%
 
 All_Conti_GRS <- merge(All_Conti_GRS, ORadjustedGRS, by = "eid", all.x = T)
 
+### Now repeat for Wang GRSs
+
+WangmultiethnicGRS <- read_delim("Wang_multi_ethnic.pgs.tsv")
+WangmultiethnicGRS <- WangmultiethnicGRS %>%
+  dplyr::rename('WangmultiethnicGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangmultiethnicGRS = WangmultiethnicGRS >= quantile(WangmultiethnicGRS, probs = 0.9))
+
+WangEuropeanGRS <- read_delim("Wang_European.pgs.tsv")
+WangEuropeanGRS <- WangEuropeanGRS %>%
+  dplyr::rename('WangEuropeanGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangEuropeanGRS = WangEuropeanGRS >= quantile(WangEuropeanGRS, probs = 0.9))
+
+WangAfricanGRS <- read_delim("Wang_African.pgs.tsv")
+WangAfricanGRS <- WangAfricanGRS %>%
+  dplyr::rename('WangAfricanGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangAfricanGRS = WangAfricanGRS >= quantile(WangAfricanGRS, probs = 0.9))
+
+WangEast_AsianGRS <- read_delim("Wang_East_Asian.pgs.tsv")
+WangEast_AsianGRS <- WangEast_AsianGRS %>%
+  dplyr::rename('WangEast_AsianGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangEast_AsianGRS = WangEast_AsianGRS >= quantile(WangEast_AsianGRS, probs = 0.9))
+
+WangHispanicGRS <- read_delim("Wang_Hispanic.pgs.tsv")
+WangHispanicGRS <- WangHispanicGRS %>%
+  dplyr::rename('WangHispanicGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangHispanicGRS = WangHispanicGRS >= quantile(WangHispanicGRS, probs = 0.9))
+
+All_Wang_GRS <- merge(WangmultiethnicGRS, WangEuropeanGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS, by = "eid")
+
+All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
+
 
 
 #########################################################################################
@@ -834,7 +874,7 @@ iv_covariates <- merge(iv, covariates, by = "eid", all.y = T)
 
 PCa_iv_covariates <- merge(iv_covariates, PrCa_symptoms_diagnosis, by = "eid", all.y = TRUE)
 
-PCa_iv_covariates_GRS <- merge(PCa_iv_covariates, All_Conti_GRS, by = "eid", all.x = TRUE)
+PCa_iv_covariates_GRS <- merge(PCa_iv_covariates, All_GRS, by = "eid", all.x = TRUE)
 
 PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all.x = T)
 
@@ -1654,6 +1694,11 @@ RRtable <- function(data,
 #   - East_AsianGRS (Conti's GRS with East Asian-specific weights)
 #   - HispanicGRS (Conti's GRS with Hispanic-specific weights)
 #   - adjustedGRS (Conti's GRS adjusted for ancestry probability)
+#   - WangmultiethnicGRS (Wang's GRS with multi-ethnic weights)
+#   - WangEuropeanGRS (Wang's GRS with European-specific weights)
+#   - WangAfricanGRS (Wang's GRS with African-specific weights)
+#   - WangEast_AsianGRS (Wang's GRS with East Asian-specific weights)
+#   - WangHispanicGRS (Wang's GRS with Hispanic-specific weights)
 #
 #
 # Set "covariates" to either: (or add multiple using + between covariates)
