@@ -1654,9 +1654,9 @@ RRtable <- function(data,
 
 
 
-##########################################################################
-# NEW FUNCTION: logreg_table() - Generate summary table for all logistic regressions
+## NEW FUNCTION: logreg_table() - Generate summary table for all logistic regressions
 # (Population x Outcome x GRS x Covariates)
+
 logreg_table <- function(
     populations = NULL,
     grs_list = NULL,
@@ -1792,6 +1792,7 @@ logreg_table <- function(
   return(results)
 }
 
+##########################################################################
 # Step 9 - Model Logistic Regression, Confusion Matrix, and OR/RR tables #
 ##########################################################################
 
