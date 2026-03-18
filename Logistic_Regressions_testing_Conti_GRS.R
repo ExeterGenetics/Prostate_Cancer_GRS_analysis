@@ -1383,7 +1383,7 @@ logreg_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
-    covariates_list = c(NULL, "Age"),
+    covariates_list = list(NULL, "Age"),  # use list() so NULL is preserved as a distinct option
     plot_roc = FALSE,
     verbose = TRUE
 ) {
@@ -1586,6 +1586,7 @@ logreg_table <- function(
 #   - WangEast_AsianGRS (Wang's GRS with East Asian-specific weights)
 #
 # Set "covariates" to either: (or add multiple using + between covariates)
+#   - (without quote marks) NULL
 #   - Age (Age at assessment centre visit)
 #   - rs72725854_T (carrier status of rs72725854 risk allele)
 #
@@ -1628,7 +1629,15 @@ print(RR_table$wide_formatted)
 
 
 ######################################################################################
-# Step 11 - Generate comprehensive logreg summary table for all GRSs and populations #
+# Step 11 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
 ######################################################################################
 
 bulk <- logreg_table()
+
+subset <- bulk %>%                        ## View a subset. Change filter to investigate 
+  dplyr::filter(                          ## specific populations, GRSs, Prediction Horizons, etc.
+    Population == "Black",
+    GRS == "ContimultiethnicGRS",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+    )    
