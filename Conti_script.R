@@ -4,10 +4,13 @@ install.packages('readxl')
 
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
-
 library(dplyr)
 library(readxl)
-system('dx download file-J4BBx88Jj59xJPB35Kv3f114') # This is the supplementary table file from Conti et al. (2021), downloadable at: https://www.nature.com/articles/s41588-020-00748-0
+library(stringr)
+library(tidyr)
+
+system('dx download Callum/ContiGWAS/Conti2021supplementarytables.xlsx') # This is the supplementary table file from Conti et al. (2021), downloadable at: https://www.nature.com/articles/s41588-020-00748-0
+system('dx download Callum/WangGWAS/Wang2023supplementarytables.xlsx') # This is the supplementary table file from Wang et al. (2023), downloadable at: https://pmc.ncbi.nlm.nih.gov/articles/PMC10841479/
 
 ############################
 # Define withdrawal filter #
@@ -25,16 +28,16 @@ exclude_withdrawn=function(df){
   return(df2)
 }
 
-###############################
-# Option #1 - Multiethnic GRS #
-###############################
+#####################################
+# Option #1 - Conti Multiethnic GRS #
+#####################################
 
 
-# The below block of code reads the conti xlsx file, and puts it into a form that ukbrapR can use to make a grs (the outputted tsv)
+# The below block of code reads the conti xlsx file, and puts it into a form that ukbrapR can use to make a GRS (the outputted tsv)
 
 #If you change the effect_weight column it should be easy to run a different GRS
 
-Conti <- read_excel("Conti.xlsx", sheet = "S4", skip = 3, na = "NA")
+Conti <- read_excel("Conti2021supplementarytables.xlsx", sheet = "S4", skip = 3, na = "NA")
 Conti=Conti[1:269,]
 Conti=arrange(Conti,Chromosome,Position)
 Conti=Conti%>%rename(
@@ -58,34 +61,34 @@ write.table(Conti2,'Conti.tsv',quote=FALSE,sep='\t',row.names = FALSE)
 
 conti_out=ukbrapR:::create_pgs(
   in_file='Conti.tsv',
-  out_file='multi_ethnic.pgs',
+  out_file='Conti_multi_ethnic.pgs',
   pgs_name='Conti',
   use_imp_pos=TRUE,
   very_verbose=TRUE, # can probably remove
   overwrite=TRUE # overwrites files with same name
 )
 
-outbim=read.table('multi_ethnic.pgs.bim')
-outscore=read.table('multi_ethnic.pgs.profile',header=T)
+outbim=read.table('Conti_multi_ethnic.pgs.bim')
+#outscore=read.table('Conti_multi_ethnic.pgs.profile',header=T)
 
-GRS <- read.table("multi_ethnic.pgs.tsv", header = TRUE)
+GRS <- read.table("Conti_multi_ethnic.pgs.tsv", header = TRUE)
 
 GRS <- exclude_withdrawn(GRS) %>%
   dplyr::select(c("eid", "Conti"))
 
-write.table(GRS, "multi_ethnic.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+write.table(GRS, "Conti_multi_ethnic.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
 
 ## Upload to project
 
-system(paste("dx upload", "multi_ethnic.pgs.tsv"))
+system(paste("dx upload", "Conti_multi_ethnic.pgs.tsv"))
 
 
 
-#####################################
-# Option #2 - European-specific GRS #
-#####################################
+###########################################
+# Option #2 - Conti European-specific GRS #
+###########################################
 
-Conti <- read_excel("Conti.xlsx", sheet = "S4", skip = 3, na = "NA")
+Conti <- read_excel("Conti2021supplementarytables.xlsx", sheet = "S4", skip = 3, na = "NA")
 Conti=Conti[1:269,]
 Conti=arrange(Conti,Chromosome,Position)
 Conti=Conti%>%rename(
@@ -109,34 +112,34 @@ write.table(Conti2,'Conti.tsv',quote=FALSE,sep='\t',row.names = FALSE)
 
 conti_out=ukbrapR:::create_pgs(
   in_file='Conti.tsv',
-  out_file='European.pgs',
+  out_file='Conti_European.pgs',
   pgs_name='Conti',
   use_imp_pos=TRUE,
   very_verbose=TRUE, # can probably remove
   overwrite=TRUE # overwrites files with same name
 )
 
-outbim=read.table('European.pgs.bim')
-#outscore=read.table('European.pgs.profile',header=T)
+outbim=read.table('Conti_European.pgs.bim')
+#outscore=read.table('Conti_European.pgs.profile',header=T)
 
-GRS <- read.table("European.pgs.tsv", header = TRUE)
+GRS <- read.table("Conti_European.pgs.tsv", header = TRUE)
 
 GRS <- exclude_withdrawn(GRS) %>%
   dplyr::select(c("eid", "Conti"))
 
-write.table(GRS, "European.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+write.table(GRS, "Conti_European.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
 
 ## Upload to project
 
-system(paste("dx upload", "European.pgs.tsv"))
+system(paste("dx upload", "Conti_European.pgs.tsv"))
 
 
 
-#####################################
-# Option #3 - African-specific GRS #
-#####################################
+##########################################
+# Option #3 - Conti African-specific GRS #
+##########################################
 
-Conti <- read_excel("Conti.xlsx", sheet = "S4", skip = 3, na = "NA")
+Conti <- read_excel("Conti2021supplementarytables.xlsx", sheet = "S4", skip = 3, na = "NA")
 Conti=Conti[1:269,]
 Conti=arrange(Conti,Chromosome,Position)
 Conti=Conti%>%rename(
@@ -160,35 +163,35 @@ write.table(Conti2,'Conti.tsv',quote=FALSE,sep='\t',row.names = FALSE)
 
 conti_out=ukbrapR:::create_pgs(
   in_file='Conti.tsv',
-  out_file='African.pgs',
+  out_file='Conti_African.pgs',
   pgs_name='Conti',
   use_imp_pos=TRUE,
   very_verbose=TRUE, # can probably remove
   overwrite=TRUE # overwrites files with same name
 )
 
-outbim=read.table('African.pgs.bim')
-#outscore=read.table('African.pgs.profile',header=T)
+outbim=read.table('Conti_African.pgs.bim')
+#outscore=read.table('Conti_African.pgs.profile',header=T)
 
-GRS <- read.table("African.pgs.tsv", header = TRUE)
+GRS <- read.table("Conti_African.pgs.tsv", header = TRUE)
 
 GRS <- exclude_withdrawn(GRS) %>%
   dplyr::select(c("eid", "Conti"))
 
-write.table(GRS, "African.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+write.table(GRS, "Conti_African.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
 
 ## Upload to project
 
-system(paste("dx upload", "African.pgs.tsv"))
+system(paste("dx upload", "Conti_African.pgs.tsv"))
 
 
 
 
-#######################################
-# Option #4 - East Asian-specific GRS #
-#######################################
+#############################################
+# Option #4 - Conti East Asian-specific GRS #
+#############################################
 
-Conti <- read_excel("Conti.xlsx", sheet = "S4", skip = 3, na = "NA")
+Conti <- read_excel("Conti2021supplementarytables.xlsx", sheet = "S4", skip = 3, na = "NA")
 Conti=Conti[1:269,]
 Conti=arrange(Conti,Chromosome,Position)
 Conti=Conti%>%rename(
@@ -212,33 +215,33 @@ write.table(Conti2,'Conti.tsv',quote=FALSE,sep='\t',row.names = FALSE)
 
 conti_out=ukbrapR:::create_pgs(
   in_file='Conti.tsv',
-  out_file='East_Asian.pgs',
+  out_file='Conti_East_Asian.pgs',
   pgs_name='Conti',
   use_imp_pos=TRUE,
   very_verbose=TRUE, # can probably remove
   overwrite=TRUE # overwrites files with same name
 )
 
-outbim=read.table('East_Asian.pgs.bim')
-#outscore=read.table('East_Asian.pgs.profile',header=T)
+outbim=read.table('Conti_East_Asian.pgs.bim')
+#outscore=read.table('Conti_East_Asian.pgs.profile',header=T)
 
-GRS <- read.table("East_Asian.pgs.tsv", header = TRUE)
+GRS <- read.table("Conti_East_Asian.pgs.tsv", header = TRUE)
 
 GRS <- exclude_withdrawn(GRS) %>%
   dplyr::select(c("eid", "Conti"))
 
-write.table(GRS, "East_Asian.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+write.table(GRS, "Conti_East_Asian.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
 
 ## Upload to project
 
-system(paste("dx upload", "East_Asian.pgs.tsv"))
+system(paste("dx upload", "Conti_East_Asian.pgs.tsv"))
 
 
-#####################################
-# Option #5 - Hispanic-specific GRS #
-#####################################
+###########################################
+# Option #5 - Conti Hispanic-specific GRS #
+###########################################
 
-Conti <- read_excel("Conti.xlsx", sheet = "S4", skip = 3, na = "NA")
+Conti <- read_excel("Conti2021supplementarytables.xlsx", sheet = "S4", skip = 3, na = "NA")
 Conti=Conti[1:269,]
 Conti=arrange(Conti,Chromosome,Position)
 Conti=Conti%>%rename(
@@ -262,23 +265,364 @@ write.table(Conti2,'Conti.tsv',quote=FALSE,sep='\t',row.names = FALSE)
 
 conti_out=ukbrapR:::create_pgs(
   in_file='Conti.tsv',
-  out_file='Hispanic.pgs',
+  out_file='Conti_Hispanic.pgs',
   pgs_name='Conti',
   use_imp_pos=TRUE,
   very_verbose=TRUE, # can probably remove
   overwrite=TRUE # overwrites files with same name
 )
 
-outbim=read.table('Hispanic.pgs.bim')
-#outscore=read.table('Hispanic.pgs.profile',header=T)
+outbim=read.table('Conti_Hispanic.pgs.bim')
+#outscore=read.table('Conti_Hispanic.pgs.profile',header=T)
 
-GRS <- read.table("Hispanic.pgs.tsv", header = TRUE)
+GRS <- read.table("Conti_Hispanic.pgs.tsv", header = TRUE)
 
 GRS <- exclude_withdrawn(GRS) %>%
   dplyr::select(c("eid", "Conti"))
 
-write.table(GRS, "Hispanic.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+write.table(GRS, "Conti_Hispanic.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
 
 ## Upload to project
 
-system(paste("dx upload", "Hispanic.pgs.tsv"))
+system(paste("dx upload", "Conti_Hispanic.pgs.tsv"))
+
+
+
+#=====================================#
+# -- New section: Wang (2023) GRSs -- #
+#=====================================#
+
+# First, we need to rename the columns and ensure they are numeric
+
+Wang <- read_excel("Wang2023supplementarytables.xlsx", sheet = "S4", skip = 3, na = "NA") 
+
+Wang <- Wang %>%
+  dplyr::rename(
+    EUR_Rsquared = European,
+    AFR_Rsquared = African,
+    EAS_Rsquared = Asian,          
+    HIS_Rsquared = Hispanic,       
+    OR_Multiethnic_Marginal = `OR...15`,
+    CI95_Multiethnic_Marginal = `95%CI...16`,
+    Pvalue_Multiethnic_Marginal = `P-value...17`,
+    OR_Multiethnic_Conditional = `OR...18`,
+    CI95_Multiethnic_Conditional = `95%CI...19`,
+    Pvalue_Multiethnic_Conditional = `P-value...20`,
+    RAF_EUR = `RAF...21`,
+    OR_EUR = `OR...22`,
+    CI95_EUR = `95%CI...23`,
+    Pvalue_EUR = `P-value...24`,
+    RAF_AFR = `RAF...25`,
+    OR_AFR = `OR...26`,
+    CI95_AFR = `95%CI...27`,
+    Pvalue_AFR = `P-value...28`,
+    RAF_EAS = `RAF...29`,
+    OR_EAS = `OR...30`,
+    CI95_EAS = `95%CI...31`,
+    Pvalue_EAS = `P-value...32`,
+    RAF_HIS = `RAF...33`,
+    OR_HIS = `OR...34`,
+    CI95_HIS = `95%CI...35`,
+    Pvalue_HIS = `P-value...36`
+  ) %>%
+  # Clean P-values like "<1e-5" -> "1e-5" then numeric
+  mutate(
+    across(
+      c(Pvalue_Multiethnic_Marginal, Pvalue_Multiethnic_Conditional,
+        Pvalue_EUR, Pvalue_AFR, Pvalue_EAS, Pvalue_HIS),
+      ~ .x |> as.character() |> str_replace("^\\s*<\\s*", "") |> as.numeric()
+    ),
+    across(
+      c(EUR_Rsquared, AFR_Rsquared, EAS_Rsquared, HIS_Rsquared,
+        OR_Multiethnic_Marginal, OR_Multiethnic_Conditional,
+        RAF_EUR, OR_EUR, RAF_AFR, OR_AFR, RAF_EAS, OR_EAS, RAF_HIS, OR_HIS),
+      ~ suppressWarnings(as.numeric(.x))
+    )
+  ) 
+
+
+####################################
+# Option #6 - Wang Multiethnic GRS #
+####################################
+
+
+## Filter to Wang 451-SNP GRS-specific variants, and (optionally) to variants with p value below 0.05
+
+Wang2 <- Wang %>%
+  dplyr::filter(!is.na(`Wang et al., 451 SNPs`)) #%>%
+  #dplyr::filter(Pvalue_Multiethnic_Marginal <= 0.05)
+
+## Prepare for bgenix GRS calculation
+
+Wang2=arrange(Wang2,Chromosome,`Position (GRCh37)`)
+Wang2=Wang2%>%rename(
+  rsID=rsID,
+  CHR=Chromosome,
+  POS=`Position (GRCh37)`,
+  effect_allele=`Risk Allele`,
+  other_allele=`Reference Allele`,
+  effect_weight=`OR_Multiethnic_Marginal`
+)%>%mutate(
+  effect_weight=log(effect_weight)
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+Wang3=Wang2%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+Wang3$CHR[is.na(Wang3$CHR)]="X"
+write.table(Wang3,'Wang.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+GRS_out=ukbrapR:::create_pgs(
+  in_file='Wang.tsv',
+  out_file='Wang_multi_ethnic.pgs',
+  pgs_name='Wang',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('Wang_multi_ethnic.pgs.bim')
+#outscore=read.table('Wang_multi_ethnic.pgs.profile',header=T)
+
+GRS <- read.table("Wang_multi_ethnic.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "Wang"))
+
+write.table(GRS, "Wang_multi_ethnic.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "Wang_multi_ethnic.pgs.tsv"))
+
+
+#################################
+# Option #7 - Wang European GRS #
+#################################
+
+
+## Filter to Wang 451-SNP GRS-specific variants, and (optionally) to variants with p value below 0.05
+
+Wang2 <- Wang %>%
+  dplyr::filter(!is.na(`Wang et al., 451 SNPs`)) #%>%
+  #dplyr::filter(Pvalue_EUR <= 0.05)
+
+## Prepare for bgenix GRS calculation
+
+Wang2=arrange(Wang2,Chromosome,`Position (GRCh37)`)
+Wang2=Wang2%>%rename(
+  rsID=rsID,
+  CHR=Chromosome,
+  POS=`Position (GRCh37)`,
+  effect_allele=`Risk Allele`,
+  other_allele=`Reference Allele`,
+  effect_weight=`OR_EUR`
+)%>%mutate(
+  effect_weight=log(effect_weight)
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+Wang3=Wang2%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+Wang3$CHR[is.na(Wang3$CHR)]="X"
+write.table(Wang3,'Wang.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+GRS_out=ukbrapR:::create_pgs(
+  in_file='Wang.tsv',
+  out_file='Wang_European.pgs',
+  pgs_name='Wang',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('Wang_European.pgs.bim')
+#outscore=read.table('Wang_European.pgs.profile',header=T)
+
+GRS <- read.table("Wang_European.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "Wang"))
+
+write.table(GRS, "Wang_European.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "Wang_European.pgs.tsv"))
+
+
+
+################################
+# Option #8 - Wang African GRS #
+################################
+
+
+## Filter to Wang 451-SNP GRS-specific variants, and (optionally) to variants with p value below 0.05
+
+Wang2 <- Wang %>%
+  dplyr::filter(!is.na(`Wang et al., 451 SNPs`)) #%>%
+#dplyr::filter(Pvalue_AFR <= 0.05)
+
+## Prepare for bgenix GRS calculation
+
+Wang2=arrange(Wang2,Chromosome,`Position (GRCh37)`)
+Wang2=Wang2%>%rename(
+  rsID=rsID,
+  CHR=Chromosome,
+  POS=`Position (GRCh37)`,
+  effect_allele=`Risk Allele`,
+  other_allele=`Reference Allele`,
+  effect_weight=`OR_AFR`
+)%>%mutate(
+  effect_weight=log(effect_weight)
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+Wang3=Wang2%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+Wang3$CHR[is.na(Wang3$CHR)]="X"
+write.table(Wang3,'Wang.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+GRS_out=ukbrapR:::create_pgs(
+  in_file='Wang.tsv',
+  out_file='Wang_African.pgs',
+  pgs_name='Wang',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('Wang_African.pgs.bim')
+#outscore=read.table('Wang_African.pgs.profile',header=T)
+
+GRS <- read.table("Wang_African.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "Wang"))
+
+write.table(GRS, "Wang_African.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "Wang_African.pgs.tsv"))
+
+
+###################################
+# Option #9 - Wang East Asian GRS #
+###################################
+
+
+## Filter to Wang 451-SNP GRS-specific variants, and (optionally) to variants with p value below 0.05
+
+Wang2 <- Wang %>%
+  dplyr::filter(!is.na(`Wang et al., 451 SNPs`)) #%>%
+#dplyr::filter(Pvalue_EAS <= 0.05)
+
+## Prepare for bgenix GRS calculation
+
+Wang2=arrange(Wang2,Chromosome,`Position (GRCh37)`)
+Wang2=Wang2%>%rename(
+  rsID=rsID,
+  CHR=Chromosome,
+  POS=`Position (GRCh37)`,
+  effect_allele=`Risk Allele`,
+  other_allele=`Reference Allele`,
+  effect_weight=`OR_EAS`
+)%>%mutate(
+  effect_weight=log(effect_weight)
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+Wang3=Wang2%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+Wang3$CHR[is.na(Wang3$CHR)]="X"
+write.table(Wang3,'Wang.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+GRS_out=ukbrapR:::create_pgs(
+  in_file='Wang.tsv',
+  out_file='Wang_East_Asian.pgs',
+  pgs_name='Wang',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('Wang_East_Asian.pgs.bim')
+#outscore=read.table('Wang_East_Asian.pgs.profile',header=T)
+
+GRS <- read.table("Wang_East_Asian.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "Wang"))
+
+write.table(GRS, "Wang_East_Asian.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "Wang_East_Asian.pgs.tsv"))
+
+
+
+##################################
+# Option #10 - Wang Hispanic GRS #
+##################################
+
+
+## Filter to Wang 451-SNP GRS-specific variants, and (optionally) to variants with p value below 0.05
+
+Wang2 <- Wang %>%
+  dplyr::filter(!is.na(`Wang et al., 451 SNPs`)) #%>%
+#dplyr::filter(Pvalue_HIS <= 0.05)
+
+## Prepare for bgenix GRS calculation
+
+Wang2=arrange(Wang2,Chromosome,`Position (GRCh37)`)
+Wang2=Wang2%>%rename(
+  rsID=rsID,
+  CHR=Chromosome,
+  POS=`Position (GRCh37)`,
+  effect_allele=`Risk Allele`,
+  other_allele=`Reference Allele`,
+  effect_weight=`OR_HIS`
+)%>%mutate(
+  effect_weight=log(effect_weight)
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+Wang3=Wang2%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+Wang3$CHR[is.na(Wang3$CHR)]="X"
+write.table(Wang3,'Wang.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+GRS_out=ukbrapR:::create_pgs(
+  in_file='Wang.tsv',
+  out_file='Wang_Hispanic.pgs',
+  pgs_name='Wang',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('Wang_Hispanic.pgs.bim')
+#outscore=read.table('Wang_Hispanic.pgs.profile',header=T)
+
+GRS <- read.table("Wang_Hispanic.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "Wang"))
+
+write.table(GRS, "Wang_Hispanic.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "Wang_Hispanic.pgs.tsv"))
