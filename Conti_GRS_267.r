@@ -2,7 +2,7 @@
 # Compute Conti/Wang GRS # 
 ##########################
 
-## Note: this is how the following dataset files in "Callum/Derived_datasets" are made: 
+## Note: this is how the following dataset files in "Callum/GRSs" are made: 
 ## - Conti_multiethnicGRS_267.tsv
 ## - Conti_EuropeanGRS_265.tsv, 
 ## - Conti_AfricanGRS_246.tsv, 
