@@ -31,7 +31,7 @@ dxdownload("Callum/Derived_datasets/imputed_rs72725854.csv")	# Dataset of rs7272
 dxdownload("Callum/Derived_datasets/Age_Sex_PRS_GA.csv")	# Dataset of Age at Recruitment (p21022), Sex (p31), Genetically-inferred Sex (p22001), Standard PRS for Prostate cancer (p26267), Enhanced PRS for Prostate cancer (p26268), Genomic Ancestry (p30079), created using the UKB-RAP cohort browser
 dxdownload("Callum/Derived_datasets/ethnicity.csv")		# Dataset of self-reported Ethnic Background (p21000_i0), created using the UKB-RAP cohort browser
 dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs_UKB2_scaled.csv")	# Projected Principal Components of UKB participants in the principal components space of the HGDP+1000 Genomes reference panel, calculated using "AncestryProbability2calculation.R" in AncestryProbability2_plink folder
-dxdownload("Callum/Derived_datasets/AncestryProbability.csv")	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
+dxdownload("Callum/Derived_datasets/AncestryProbability1.csv")	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
 dxdownload("Callum/Derived_datasets/AncestryProbability2.csv") 	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability2_plink folder script
 
 dxdownload("Callum/Derived_datasets/FH_PrCa_BrCa.csv")		# Dataset of Family History of Prostate Cancer and Breast Cancer, created using "Family_history.R" script
@@ -41,11 +41,23 @@ dxdownload("Callum/GRSs/Conti_African.pgs.tsv")			# Calculated Conti GRS for all
 dxdownload("Callum/GRSs/Conti_East_Asian.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "East Asian...22"
 dxdownload("Callum/GRSs/Conti_Hispanic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Hispanic...25"
 
+dxdownload("Callum/GRSs/Conti_multiethnicGRS_267.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_EuropeanGRS_265.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_AfricanGRS_246.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_East_AsianGRS_222.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_HispanicGRS_253.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Conti"
+
 dxdownload("Callum/GRSs/Wang_multi_ethnic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
 dxdownload("Callum/GRSs/Wang_European.pgs.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_script" 
 dxdownload("Callum/GRSs/Wang_African.pgs.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_script"
 dxdownload("Callum/GRSs/Wang_East_Asian.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
 dxdownload("Callum/GRSs/Wang_Hispanic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+
+dxdownload("Callum/GRSs/Wang_multiethnicGRS_450.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_EuropeanGRS_445.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_AfricanGRS_444.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_East_AsianGRS_379.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_HispanicGRS_446.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Wang"
 
 dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
 
@@ -768,41 +780,77 @@ covariates <- merge(covariates, family_history, by = "eid", all.x = T)
 
 
 
-multiethnicGRS <- read_delim("Conti_multi_ethnic.pgs.tsv")
-multiethnicGRS <- multiethnicGRS %>%
-  dplyr::rename('multiethnicGRS' = 'Conti') %>%
-  dplyr::mutate(top10_all_multiethnicGRS = multiethnicGRS >= quantile(multiethnicGRS, probs = 0.9))
+ContimultiethnicGRS <- read_delim("Conti_multi_ethnic.pgs.tsv")
+ContimultiethnicGRS <- ContimultiethnicGRS %>%
+  dplyr::rename('ContimultiethnicGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContimultiethnicGRS = ContimultiethnicGRS >= quantile(ContimultiethnicGRS, probs = 0.9))
 
-EuropeanGRS <- read_delim("Conti_European.pgs.tsv")
-EuropeanGRS <- EuropeanGRS %>%
-  dplyr::rename('EuropeanGRS' = 'Conti') %>%
-  dplyr::mutate(top10_all_EuropeanGRS = EuropeanGRS >= quantile(EuropeanGRS, probs = 0.9))
+ContiEuropeanGRS <- read_delim("Conti_European.pgs.tsv")
+ContiEuropeanGRS <- ContiEuropeanGRS %>%
+  dplyr::rename('ContiEuropeanGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiEuropeanGRS = ContiEuropeanGRS >= quantile(ContiEuropeanGRS, probs = 0.9))
 
-AfricanGRS <- read_delim("Conti_African.pgs.tsv")
-AfricanGRS <- AfricanGRS %>%
-  dplyr::rename('AfricanGRS' = 'Conti') %>%
-  dplyr::mutate(top10_all_AfricanGRS = AfricanGRS >= quantile(AfricanGRS, probs = 0.9))
+ContiAfricanGRS <- read_delim("Conti_African.pgs.tsv")
+ContiAfricanGRS <- ContiAfricanGRS %>%
+  dplyr::rename('ContiAfricanGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiAfricanGRS = ContiAfricanGRS >= quantile(ContiAfricanGRS, probs = 0.9))
 
-East_AsianGRS <- read_delim("Conti_East_Asian.pgs.tsv")
-East_AsianGRS <- East_AsianGRS %>%
-  dplyr::rename('East_AsianGRS' = 'Conti') %>%
-  dplyr::mutate(top10_all_East_AsianGRS = East_AsianGRS >= quantile(East_AsianGRS, probs = 0.9))
+ContiEast_AsianGRS <- read_delim("Conti_East_Asian.pgs.tsv")
+ContiEast_AsianGRS <- ContiEast_AsianGRS %>%
+  dplyr::rename('ContiEast_AsianGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiEast_AsianGRS = ContiEast_AsianGRS >= quantile(ContiEast_AsianGRS, probs = 0.9))
 
-HispanicGRS <- read_delim("Conti_Hispanic.pgs.tsv")
-HispanicGRS <- HispanicGRS %>%
-  dplyr::rename('HispanicGRS' = 'Conti') %>%
-  dplyr::mutate(top10_all_HispanicGRS = HispanicGRS >= quantile(HispanicGRS, probs = 0.9))
+ContiHispanicGRS <- read_delim("Conti_Hispanic.pgs.tsv")
+ContiHispanicGRS <- ContiHispanicGRS %>%
+  dplyr::rename('ContiHispanicGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiHispanicGRS = ContiHispanicGRS >= quantile(ContiHispanicGRS, probs = 0.9))
+
+ContimultiethnicGRS267 <- read_delim("Conti_multiethnicGRS_267.tsv")
+ContimultiethnicGRS267 <- ContimultiethnicGRS267 %>%
+  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
+  dplyr::rename('ContimultiethnicGRS267' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::mutate(top10_all_ContimultiethnicGRS267 = ContimultiethnicGRS267 >= quantile(ContimultiethnicGRS267, probs = 0.9))
+
+ContiEuropeanGRS265 <- read_delim("Conti_EuropeanGRS_265.tsv")
+ContiEuropeanGRS265 <- ContiEuropeanGRS265 %>%
+  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
+  dplyr::rename('ContiEuropeanGRS265' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::mutate(top10_all_ContiEuropeanGRS265 = ContiEuropeanGRS265 >= quantile(ContiEuropeanGRS265, probs = 0.9))
+
+ContiAfricanGRS246 <- read_delim("Conti_AfricanGRS_246.tsv")
+ContiAfricanGRS246 <- ContiAfricanGRS246 %>%
+  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
+  dplyr::rename('ContiAfricanGRS246' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::mutate(top10_all_ContiAfricanGRS246 = ContiAfricanGRS246 >= quantile(ContiAfricanGRS246, probs = 0.9))
+
+ContiEast_AsianGRS222 <- read_delim("Conti_East_AsianGRS_222.tsv")
+ContiEast_AsianGRS222 <- ContiEast_AsianGRS222 %>%
+  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
+  dplyr::rename('ContiEast_AsianGRS222' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::mutate(top10_all_ContiEast_AsianGRS222 = ContiEast_AsianGRS222 >= quantile(ContiEast_AsianGRS222, probs = 0.9))
+
+ContiHispanicGRS253 <- read_delim("Conti_HispanicGRS_253.tsv")
+ContiHispanicGRS253 <- ContiHispanicGRS253 %>%
+  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
+  dplyr::rename('ContiHispanicGRS253' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::mutate(top10_all_ContiHispanicGRS253 = ContiHispanicGRS253 >= quantile(ContiHispanicGRS253, probs = 0.9))
 
 # Merge all data
 
-All_Conti_GRS <- merge(multiethnicGRS, EuropeanGRS, by = "eid")
-All_Conti_GRS <- merge(All_Conti_GRS, AfricanGRS, by = "eid")
-All_Conti_GRS <- merge(All_Conti_GRS, East_AsianGRS, by = "eid")
-All_Conti_GRS <- merge(All_Conti_GRS, HispanicGRS, by = "eid")
+All_Conti_GRS <- merge(ContimultiethnicGRS, ContiEuropeanGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiAfricanGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEast_AsianGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiHispanicGRS, by = "eid")
+
+All_Conti_GRS <- merge(All_Conti_GRS, ContimultiethnicGRS267, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEuropeanGRS265, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiAfricanGRS246, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEast_AsianGRS222, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiHispanicGRS253, by = "eid")
 
 ### Creating an adjusted GRS ###
 
-AncestryProbability <- read.csv("AncestryProbability.csv") %>%          
+AncestryProbability1 <- read.csv("AncestryProbability1.csv") %>%          
   dplyr::select(c("IID", "AMR", "AFR", "CSA", "EAS", "EUR", "MID")) %>%
   dplyr::rename("eid" = "IID")
 
@@ -812,23 +860,23 @@ AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%
 
 GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability or AncestryProbability 2 depending on preference
 GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
-  dplyr::select(c("eid", "multiethnicGRS", "top10_all_multiethnicGRS", "EuropeanGRS", "top10_all_EuropeanGRS", "AfricanGRS", "top10_all_AfricanGRS", "East_AsianGRS", "top10_all_East_AsianGRS", "HispanicGRS", "top10_all_HispanicGRS", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
+  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
 
 GRS_plus_ancestry <- GRS_plus_ancestry %>%
   dplyr::mutate(
-    adjustedGRS = (EUR*EuropeanGRS)+(AFR*AfricanGRS)+(EAS*East_AsianGRS)+(AMR*HispanicGRS)+(CSA*multiethnicGRS)+(MID*AfricanGRS)
+    ContiadjustedGRS = (EUR*ContiEuropeanGRS)+(AFR*ContiAfricanGRS)+(EAS*ContiEast_AsianGRS)+(AMR*ContiHispanicGRS)+(CSA*ContimultiethnicGRS)+(MID*ContiAfricanGRS)
   )
 
 All_Conti_GRS <- GRS_plus_ancestry %>%
-  dplyr::select(c("eid", "EUR", "AFR", "EAS", "CSA", "MID", "AMR", "multiethnicGRS", "top10_all_multiethnicGRS", "EuropeanGRS", "top10_all_EuropeanGRS", "AfricanGRS", "top10_all_AfricanGRS", "East_AsianGRS", "top10_all_East_AsianGRS", "HispanicGRS", "top10_all_HispanicGRS", "adjustedGRS"))
+  dplyr::select(c("eid", "EUR", "AFR", "EAS", "CSA", "MID", "AMR", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "ContiadjustedGRS"))
 
 ## Add Odds Ratio-adjusted GRS (where ancestry probability is applied to the OR, not the final scores)
 
-ORadjustedGRS <- read.table("OR_adjustedGRS_267.tsv", header = T) %>%
+ContiORadjustedGRS <- read.table("OR_adjustedGRS_267.tsv", header = T) %>%
   dplyr::select(c("eid", "Conti_ORfirst_avg")) %>%
-  dplyr::rename("ORadjustedGRS" = "Conti_ORfirst_avg")
+  dplyr::rename("ContiORadjustedGRS" = "Conti_ORfirst_avg")
 
-All_Conti_GRS <- merge(All_Conti_GRS, ORadjustedGRS, by = "eid", all.x = T)
+All_Conti_GRS <- merge(All_Conti_GRS, ContiORadjustedGRS, by = "eid", all.x = T)
 
 ### Now repeat for Wang GRSs
 
@@ -857,10 +905,47 @@ WangHispanicGRS <- WangHispanicGRS %>%
   dplyr::rename('WangHispanicGRS' = 'Wang') %>%
   dplyr::mutate(top10_all_WangHispanicGRS = WangHispanicGRS >= quantile(WangHispanicGRS, probs = 0.9))
 
+WangmultiethnicGRS450 <- read_delim("Wang_multiethnicGRS_450.tsv")
+WangmultiethnicGRS450 <- WangmultiethnicGRS450 %>%
+  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
+  dplyr::rename('WangmultiethnicGRS450' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::mutate(top10_all_WangmultiethnicGRS450 = WangmultiethnicGRS450 >= quantile(WangmultiethnicGRS450, probs = 0.9))
+
+WangEuropeanGRS445 <- read_delim("Wang_EuropeanGRS_445.tsv")
+WangEuropeanGRS445 <- WangEuropeanGRS445 %>%
+  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
+  dplyr::rename('WangEuropeanGRS445' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::mutate(top10_all_WangEuropeanGRS445 = WangEuropeanGRS445 >= quantile(WangEuropeanGRS445, probs = 0.9))
+
+WangAfricanGRS444 <- read_delim("Wang_AfricanGRS_444.tsv")
+WangAfricanGRS444 <- WangAfricanGRS444 %>%
+  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
+  dplyr::rename('WangAfricanGRS444' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::mutate(top10_all_WangAfricanGRS444 = WangAfricanGRS444 >= quantile(WangAfricanGRS444, probs = 0.9))
+
+WangEast_AsianGRS379 <- read_delim("Wang_East_AsianGRS_379.tsv")
+WangEast_AsianGRS379 <- WangEast_AsianGRS379 %>%
+  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
+  dplyr::rename('WangEast_AsianGRS379' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::mutate(top10_all_WangEast_AsianGRS379 = WangEast_AsianGRS379 >= quantile(WangEast_AsianGRS379, probs = 0.9))
+
+WangHispanicGRS446 <- read_delim("Wang_HispanicGRS_446.tsv")
+WangHispanicGRS446 <- WangHispanicGRS446 %>%
+  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
+  dplyr::rename('WangHispanicGRS446' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::mutate(top10_all_WangHispanicGRS446 = WangHispanicGRS446 >= quantile(WangHispanicGRS446, probs = 0.9))
+
+
 All_Wang_GRS <- merge(WangmultiethnicGRS, WangEuropeanGRS, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS, by = "eid")
+
+All_Wang_GRS <- merge(All_Wang_GRS, WangmultiethnicGRS450, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEuropeanGRS445, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS444, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS379, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS446, by = "eid")
 
 All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
 
@@ -1688,17 +1773,32 @@ logreg_table <- function(
   # Default GRS list if not specified
   if (is.null(grs_list)) {
     grs_list <- c(
-      "multiethnicGRS",
-      "EuropeanGRS",
-      "AfricanGRS",
-      "East_AsianGRS",
-      "HispanicGRS",
-      "adjustedGRS",
+      # Conti GRSs (Conti_script.R version)
+      "ContimultiethnicGRS",
+      "ContiEuropeanGRS",
+      "ContiAfricanGRS",
+      "ContiEast_AsianGRS",
+      "ContiHispanicGRS",
+      "ContiadjustedGRS",
+      # Conti GRSs (Conti_GRS_267.R version)
+      "ContimultiethnicGRS267",
+      "ContiEuropeanGRS265",
+      "ContiAfricanGRS246",
+      "ContiEast_AsianGRS222",
+      "ContiHispanicGRS253",
+      "ContiORadjustedGRS",
+      # Wang GRSs (Conti_script.R version)
       "WangmultiethnicGRS",
       "WangEuropeanGRS",
       "WangAfricanGRS",
       "WangEast_AsianGRS",
-      "WangHispanicGRS"
+      "WangHispanicGRS",
+      # Wang GRSs (Conti_GRS_267.R version)
+      "WangmultiethnicGRS450",
+      "WangEuropeanGRS445",
+      "WangAfricanGRS444",
+      "WangEast_AsianGRS379",
+      "WangHispanicGRS446"
     )
   }
   
@@ -1738,7 +1838,7 @@ logreg_table <- function(
           
           # Progress indicator
           if (verbose) {
-            cov_label <- ifelse(is.null(cov), "None", cov)
+            cov_label <- ifelse(is.null(cov), "NULL", cov)
             cat(sprintf("[%d/%d] %s | %s | %s | %s\n", 
                         combo_count, total_combos, current_outcome, pop_name, grs_pred, cov_label))
           }
