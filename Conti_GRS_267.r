@@ -34,7 +34,7 @@ library(tibble)
 OR_column <- "OR_MULTI"
 
 ## Choose the source GWAS: "Conti", "Wang", "Schumacher", or "BARCODE1"
-source <- "BARCODE1" 
+source <- "Wang" 
 
 
 ##########
