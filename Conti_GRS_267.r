@@ -1,14 +1,16 @@
-#####################
-# Compute Conti GRS # 
-#####################
+##########################
+# Compute Conti/Wang GRS # 
+##########################
 
-## Note: this is how Conti_multiethnicGRS_267.tsv, Conti_EuropeanGRS_265.tsv, 
-## Conti_AfricanGRS_246.tsv, Conti_East_AsianGRS_222.tsv, and Conti_HispanicGRS_253.tsv are made
-
-## Choose which OR column to use
-
-# Options: "OR_MULTI", "OR_EUR", "OR_AFR", "OR_EAS", "OR_HIS"
-OR_column <- "OR_MULTI"
+## Note: this is how the following dataset files in "Callum/Derived_datasets" are made: 
+## - Conti_multiethnicGRS_267.tsv
+## - Conti_EuropeanGRS_265.tsv, 
+## - Conti_AfricanGRS_246.tsv, 
+## - Conti_East_AsianGRS_222.tsv, 
+## - Conti_HispanicGRS_253.tsv 
+## - Wang_multiethnicGRS_450.tsv
+## - Wang_EuropeanGRS_445.tsv
+## - Wang_AfricanGRS_444.tsv
 
 install.packages("remotes")
 remotes::install_github("lcpilling/ukbrapR@v0.3.10",
@@ -22,42 +24,122 @@ library(stringr)
 library(tidyr)
 library(tibble)
 
+## Choose which OR column to use
+
+# Options: "OR_MULTI", "OR_EUR", "OR_AFR", "OR_EAS", "OR_HIS"
+OR_column <- "OR_EAS"
+
+## Choose the source GWAS: "Conti" or "Wang" (note: if changing source, restart the R session to clear old data as bgenix reuses temporary files between runs)
+source <- "Wang" 
+
+
 ##########
 # Inputs #
 ##########
 
-# Load in Conti supplementary tables. Downloadable at: https://www.nature.com/articles/s41588-020-00748-0
-system('dx download Conti.xlsx')
+system('dx download Callum/ContiGWAS/Conti2021supplementarytables.xlsx') # This is the supplementary table file from Conti et al. (2021), downloadable at: https://www.nature.com/articles/s41588-020-00748-0
+system('dx download Callum/WangGWAS/Wang2023supplementarytables.xlsx') # This is the supplementary table file from Wang et al. (2023), downloadable at: https://pmc.ncbi.nlm.nih.gov/articles/PMC10841479/
 
-###############################################################################
-# Step 1: Load sheet 4 from Conti Supplementary tables and extract OR columns #
-###############################################################################
+#########################################################################
+# Step 1: Load sheet 4 from Supplementary tables and extract OR columns #
+#########################################################################
 
-Conti_raw <- read_excel("Conti.xlsx", sheet = "S4", skip = 3, na = "NA")
-Conti_raw <- Conti_raw[1:269, ] %>% arrange(Chromosome, Position)
-
-get_or_col <- function(df, pattern) {
-  nm <- grep(pattern, names(df), value = TRUE)
-  if (length(nm) == 0) stop(paste("Could not find OR column matching:", pattern))
-  as.numeric(df[[nm[1]]])
+if (source == "Conti") {
+  raw_data <- read_excel("Conti2021supplementarytables.xlsx", sheet = "S4", skip = 3, na = "NA")
+  raw_data <- raw_data[1:269, ] %>% arrange(Chromosome, Position)
+  
+  get_or_col <- function(df, pattern) {
+    nm <- grep(pattern, names(df), value = TRUE)
+    if (length(nm) == 0) stop(paste("Could not find OR column matching:", pattern))
+    as.numeric(df[[nm[1]]])
+  }
+  
+  base_data <- raw_data %>%
+    rename(
+      rsID = `rs*`,
+      CHR  = Chromosome,
+      POS  = Position,
+      effect_allele = `Risk Allele`,
+      other_allele  = `Reference Allele`
+    ) %>%
+    mutate(
+      OR_MULTI = get_or_col(., "^Multiethnic"),
+      OR_EUR   = get_or_col(., "^European...16"),
+      OR_AFR   = get_or_col(., "^African...19"),
+      OR_EAS   = get_or_col(., "^East\\s*Asian...22"),
+      OR_HIS   = get_or_col(., "^Hispanic...25")
+    ) %>%
+    mutate(CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR))))
+  
+} else if (source == "Wang") {
+  raw_data <- read_excel("Wang2023supplementarytables.xlsx", sheet = "S4", skip = 3, na = "NA")
+  
+  # Rename columns as in Conti_script.R
+  raw_data <- raw_data %>%
+    dplyr::rename(
+      EUR_Rsquared = European,
+      AFR_Rsquared = African,
+      EAS_Rsquared = Asian,          
+      HIS_Rsquared = Hispanic,       
+      OR_Multiethnic_Marginal = `OR...15`,
+      CI95_Multiethnic_Marginal = `95%CI...16`,
+      Pvalue_Multiethnic_Marginal = `P-value...17`,
+      OR_Multiethnic_Conditional = `OR...18`,
+      CI95_Multiethnic_Conditional = `95%CI...19`,
+      Pvalue_Multiethnic_Conditional = `P-value...20`,
+      RAF_EUR = `RAF...21`,
+      OR_EUR = `OR...22`,
+      CI95_EUR = `95%CI...23`,
+      Pvalue_EUR = `P-value...24`,
+      RAF_AFR = `RAF...25`,
+      OR_AFR = `OR...26`,
+      CI95_AFR = `95%CI...27`,
+      Pvalue_AFR = `P-value...28`,
+      RAF_EAS = `RAF...29`,
+      OR_EAS = `OR...30`,
+      CI95_EAS = `95%CI...31`,
+      Pvalue_EAS = `P-value...32`,
+      RAF_HIS = `RAF...33`,
+      OR_HIS = `OR...34`,
+      CI95_HIS = `95%CI...35`,
+      Pvalue_HIS = `P-value...36`
+    ) %>%
+    # Clean P-values
+    mutate(
+      across(
+        c(Pvalue_Multiethnic_Marginal, Pvalue_Multiethnic_Conditional,
+          Pvalue_EUR, Pvalue_AFR, Pvalue_EAS, Pvalue_HIS),
+        ~ .x |> as.character() |> str_replace("^\\s*<\\s*", "") |> as.numeric()
+      ),
+      across(
+        c(EUR_Rsquared, AFR_Rsquared, EAS_Rsquared, HIS_Rsquared,
+          OR_Multiethnic_Marginal, OR_Multiethnic_Conditional,
+          RAF_EUR, OR_EUR, RAF_AFR, OR_AFR, RAF_EAS, OR_EAS, RAF_HIS, OR_HIS),
+        ~ suppressWarnings(as.numeric(.x))
+      )
+    )
+  
+  # Filter to Wang 451-SNP GRS-specific variants
+  raw_data <- raw_data %>%
+    dplyr::filter(!is.na(`Wang et al., 451 SNPs`))
+  
+  base_data <- raw_data %>%
+    rename(
+      rsID = rsID,
+      CHR  = Chromosome,
+      POS  = `Position (GRCh37)`,
+      effect_allele = `Risk Allele`,
+      other_allele  = `Reference Allele`
+    ) %>%
+    mutate(
+      OR_MULTI = OR_Multiethnic_Marginal,
+      # OR_EUR, OR_AFR, OR_EAS, OR_HIS already present from Wang data
+      CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR)))
+    )
+  
+} else {
+  stop("Invalid source. Choose 'Conti' or 'Wang'.")
 }
-
-Conti_base0 <- Conti_raw %>%
-  rename(
-    rsID = `rs*`,
-    CHR  = Chromosome,
-    POS  = Position,
-    effect_allele = `Risk Allele`,
-    other_allele  = `Reference Allele`
-  ) %>%
-  mutate(
-    OR_MULTI = get_or_col(., "^Multiethnic"),
-    OR_EUR   = get_or_col(., "^European...16"),
-    OR_AFR   = get_or_col(., "^African...19"),
-    OR_EAS   = get_or_col(., "^East\\s*Asian...22"),
-    OR_HIS   = get_or_col(., "^Hispanic...25")
-  ) %>%
-  mutate(CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR))))
 
 #######################################################
 # Step 2: Extract genotypes for these SNPs -> BED set #
@@ -65,7 +147,7 @@ Conti_base0 <- Conti_raw %>%
 
 # This varlist is just to make a BED; beta is a placeholder
 
-varlist_for_bed <- Conti_base0 %>%
+varlist_for_bed <- base_data %>%
   transmute(
     rsid = rsID,
     chr  = CHR,
@@ -126,7 +208,7 @@ normalize_chr_to_int <- function(x) {
   suppressWarnings(as.integer(x))
 }
 
-Conti_key <- Conti_base0 %>%
+Conti_key <- base_data %>%
   transmute(
     chr_join = normalize_chr_to_int(CHR),
     pos_join = as.integer(POS),
