@@ -8,6 +8,11 @@ dxdownload("Callum/FineMappingResults/UsingContiGWAS/FineMap_rs72725854_AllMen.c
 dxdownload("Callum/FineMappingResults/UsingContiGWAS/FineMap_rs72725854_AllMen.snp")
 dxdownload("Callum/FineMappingResults/UsingContiGWAS/FineMap_rs72725854_AllMen.summary")
 
+dxdownload("Callum/FineMappingResults/UsingContiGWAS/Conti_FineMap_rs72725854_AllMen.cs")
+dxdownload("Callum/FineMappingResults/UsingContiGWAS/Conti_FineMap_rs72725854_AllMen.snp")
+dxdownload("Callum/FineMappingResults/UsingContiGWAS/Conti_FineMap_rs72725854_AllMen.summary")
+
+
 dxdownload("Callum/FineMappingResults/UsingContiGWAS/FineMap_rs72725854_BlackOnly.cs")
 dxdownload("Callum/FineMappingResults/UsingContiGWAS/FineMap_rs72725854_BlackOnly.snp")
 dxdownload("Callum/FineMappingResults/UsingContiGWAS/FineMap_rs72725854_BlackOnly.summary")
@@ -23,6 +28,10 @@ dxdownload("Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_Blac
 cs_generalGWAS <- read.delim("FineMap_rs72725854_AllMen.cs")
 snp_generalGWAS <- read.delim("FineMap_rs72725854_AllMen.snp")
 summary_generalGWAS <- read.delim("~/FineMap_rs72725854_AllMen.summary", comment.char="#")
+
+cs_generalGWAS_repeated <- read.delim("Conti_FineMap_rs72725854_AllMen.cs")
+snp_generalGWAS_repeated <- read.delim("Conti_FineMap_rs72725854_AllMen.snp")
+summary_generalGWAS_repeated <- read.delim("~/Conti_FineMap_rs72725854_AllMen.summary", comment.char="#")
 
 cs_BlackOnlyGWAS <- read.delim("FineMap_rs72725854_BlackOnly.cs")
 snp_BlackOnlyGWAS <- read.delim("FineMap_rs72725854_BlackOnly.snp")
