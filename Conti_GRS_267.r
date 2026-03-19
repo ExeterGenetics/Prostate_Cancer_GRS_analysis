@@ -13,6 +13,8 @@
 ## - Wang_AfricanGRS_444.tsv
 ## - Wang_East_AsianGRS_379.tsv
 ## - Wang_HispanicGRS_446.tsv
+## - SchumacherGRS_145.tsv
+## - BARCODE1GRS_129.tsv
 
 install.packages("remotes")
 remotes::install_github("lcpilling/ukbrapR@v0.3.10",
@@ -32,7 +34,7 @@ library(tibble)
 OR_column <- "OR_MULTI"
 
 ## Choose the source GWAS: "Conti", "Wang", "Schumacher", or "BARCODE1"
-source <- "Wang" 
+source <- "BARCODE1" 
 
 
 ##########
@@ -142,10 +144,10 @@ if (source == "Conti") {
       CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR))),
       effect_weight = NA_real_
     )
-
+  
 } else if (source == "Schumacher") {
   raw_data <- read.delim("Schumacher.txt", comment.char = "#")
-
+  
   base_data <- raw_data %>%
     arrange(chr_name, chr_position) %>%
     rename(
@@ -164,10 +166,10 @@ if (source == "Conti") {
       OR_HIS   = NA_real_,
       CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR)))
     )
-
+  
 } else if (source == "BARCODE1") {
   raw_data <- read.delim("BARCODE1.txt", comment.char = "#")
-
+  
   base_data <- raw_data %>%
     arrange(chr_name, chr_position) %>%
     rename(
@@ -364,7 +366,7 @@ if (source %in% c("Conti", "Wang")) {
   if (!OR_column %in% c("OR_MULTI","OR_EUR","OR_AFR","OR_EAS","OR_HIS")) {
     stop("OR_column must be one of: OR_MULTI, OR_EUR, OR_AFR, OR_EAS, OR_HIS")
   }
-
+  
   source_vec <- panel[[OR_column]]
   ok_weight  <- is.finite(source_vec) & (source_vec > 0)
   weight_desc <- paste0("OR column ", OR_column)
@@ -380,7 +382,7 @@ if (!any(ok_weight)) {
   raw_ids <- raw_sub$IID
   sum_scores <- rep(NA_real_, length(raw_ids))
   avg_scores <- rep(NA_real_, length(raw_ids))
-
+  
   if (source %in% c("Conti", "Wang")) {
     tag       <- gsub("^OR_", "", OR_column)
     col_sum   <- paste0("Conti_GRS_", tag, "_sum")
@@ -392,7 +394,7 @@ if (!any(ok_weight)) {
     col_avg   <- paste0(source, "_GRS_avg")
     out_file  <- paste0("GRS_", source, ".tsv")
   }
-
+  
   out <- tibble(eid = raw_ids, sum = sum_scores, avg = avg_scores)
   names(out)[2:3] <- c(col_sum, col_avg)
   write.table(out, out_file, sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)
