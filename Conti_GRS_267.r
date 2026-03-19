@@ -31,7 +31,7 @@ library(tibble)
 # Options: "OR_MULTI", "OR_EUR", "OR_AFR", "OR_EAS", "OR_HIS"
 OR_column <- "OR_MULTI"
 
-## Choose the source GWAS: "Conti" or "Wang" (note: if changing source, restart the R session to clear old data as bgenix reuses temporary files between runs)
+## Choose the source GWAS: "Conti", "Wang", "Schumacher", or "BARCODE1"
 source <- "Wang" 
 
 
@@ -41,6 +41,8 @@ source <- "Wang"
 
 system('dx download Callum/ContiGWAS/Conti2021supplementarytables.xlsx') # This is the supplementary table file from Conti et al. (2021), downloadable at: https://www.nature.com/articles/s41588-020-00748-0
 system('dx download Callum/WangGWAS/Wang2023supplementarytables.xlsx') # This is the supplementary table file from Wang et al. (2023), downloadable at: https://pmc.ncbi.nlm.nih.gov/articles/PMC10841479/
+system('dx download Callum/SchumacherGWAS/Schumacher.txt') # This is the list of SNPs and weights from Schumacher et al. (2018), downloadable at: https://www.pgscatalog.org/publication/PGP000019/
+system('dx download Callum/SchumacherGWAS/BARCODE1.txt') # This is the list of SNPs and weights from BARCODE1 (2021), downloadable at: https://www.pgscatalog.org/publication/PGP000726/
 
 #########################################################################
 # Step 1: Load sheet 4 from Supplementary tables and extract OR columns #
@@ -69,7 +71,8 @@ if (source == "Conti") {
       OR_EUR   = get_or_col(., "^European...16"),
       OR_AFR   = get_or_col(., "^African...19"),
       OR_EAS   = get_or_col(., "^East\\s*Asian...22"),
-      OR_HIS   = get_or_col(., "^Hispanic...25")
+      OR_HIS   = get_or_col(., "^Hispanic...25"),
+      effect_weight = NA_real_
     ) %>%
     mutate(CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR))))
   
@@ -136,11 +139,56 @@ if (source == "Conti") {
     mutate(
       OR_MULTI = OR_Multiethnic_Marginal,
       # OR_EUR, OR_AFR, OR_EAS, OR_HIS already present from Wang data
+      CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR))),
+      effect_weight = NA_real_
+    )
+
+} else if (source == "Schumacher") {
+  raw_data <- read.delim("Schumacher.txt", comment.char = "#")
+
+  base_data <- raw_data %>%
+    arrange(chr_name, chr_position) %>%
+    rename(
+      rsID = rsID,
+      CHR  = chr_name,
+      POS  = chr_position,
+      effect_allele = effect_allele,
+      effect_weight = effect_weight
+    ) %>%
+    mutate(
+      other_allele = NA_character_,
+      OR_MULTI = NA_real_,
+      OR_EUR   = NA_real_,
+      OR_AFR   = NA_real_,
+      OR_EAS   = NA_real_,
+      OR_HIS   = NA_real_,
+      CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR)))
+    )
+
+} else if (source == "BARCODE1") {
+  raw_data <- read.delim("BARCODE1.txt", comment.char = "#")
+
+  base_data <- raw_data %>%
+    arrange(chr_name, chr_position) %>%
+    rename(
+      rsID = rsID,
+      CHR  = chr_name,
+      POS  = chr_position,
+      effect_allele = effect_allele,
+      other_allele = other_allele,
+      effect_weight = effect_weight
+    ) %>%
+    mutate(
+      OR_MULTI = NA_real_,
+      OR_EUR   = NA_real_,
+      OR_AFR   = NA_real_,
+      OR_EAS   = NA_real_,
+      OR_HIS   = NA_real_,
       CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR)))
     )
   
 } else {
-  stop("Invalid source. Choose 'Conti' or 'Wang'.")
+  stop("Invalid source. Choose 'Conti', 'Wang', 'Schumacher', or 'BARCODE1'.")
 }
 
 #######################################################
@@ -148,6 +196,29 @@ if (source == "Conti") {
 #######################################################
 
 # This varlist is just to make a BED; beta is a placeholder
+
+if (source %in% c("Conti", "Wang")) {
+  run_tag <- paste0(source, "_", gsub("^OR_", "", OR_column))
+} else {
+  run_tag <- source
+}
+out_prefix <- paste0("Conti_subset_", run_tag)
+raw_export_file <- paste0(out_prefix, ".raw")
+bim_file <- paste0(out_prefix, ".bim")
+
+# Remove stale artifacts from a prior run with the same tag.
+unlink(
+  c(
+    paste0(out_prefix, ".bed"),
+    paste0(out_prefix, ".bim"),
+    paste0(out_prefix, ".fam"),
+    paste0(out_prefix, ".log"),
+    paste0(out_prefix, ".nosex"),
+    raw_export_file,
+    "plink_export.log"
+  ),
+  force = TRUE
+)
 
 varlist_for_bed <- base_data %>%
   transmute(
@@ -161,16 +232,16 @@ varlist_for_bed <- base_data %>%
 
 ukbrapR::make_imputed_bed(
   in_file     = varlist_for_bed,
-  out_bed     = "Conti_subset",
+  out_bed     = out_prefix,
   use_pos     = TRUE,    # use build-37 positions
   progress    = FALSE,
   verbose     = TRUE,
   very_verbose = TRUE
 )
 
-stopifnot(file.exists("Conti_subset.bed"),
-          file.exists("Conti_subset.bim"),
-          file.exists("Conti_subset.fam"))
+stopifnot(file.exists(paste0(out_prefix, ".bed")),
+          file.exists(paste0(out_prefix, ".bim")),
+          file.exists(paste0(out_prefix, ".fam")))
 
 ###########################################
 # Step 3: Export additive dosages to .raw #
@@ -181,27 +252,27 @@ plink1 <- "/home/rstudio-server/_ukbrapr_tools/plink"
 
 if (file.exists(plink2)) {
   cmd <- sprintf('%s --bfile %s --export A --out %s',
-                 shQuote(plink2), shQuote("Conti_subset"), shQuote("Conti_subset"))
+                 shQuote(plink2), shQuote(out_prefix), shQuote(out_prefix))
 } else if (file.exists(plink1)) {
   cmd <- sprintf('%s --bfile %s --recode A --out %s',
-                 shQuote(plink1), shQuote("Conti_subset"), shQuote("Conti_subset"))
+                 shQuote(plink1), shQuote(out_prefix), shQuote(out_prefix))
 } else {
   stop("PLINK binaries not found. Run ukbrapR:::prep_tools() or adjust paths.")
 }
 
 status <- system(sprintf('%s 2>&1 | tee plink_export.log', cmd))
 if (status != 0L) stop("PLINK failed (exit ", status, "). See plink_export.log.")
-stopifnot(file.exists("Conti_subset.raw"))
+stopifnot(file.exists(raw_export_file))
 
 ############################################################
 # Step 4: Read BIM + RAW and align to Conti effect alleles #
 ############################################################
 
-bim <- readr::read_tsv("Conti_subset.bim",
+bim <- readr::read_tsv(bim_file,
                        col_names = c("chr","id","null","pos","a1","a2"),
                        show_col_types = FALSE)
 
-raw <- read.table("Conti_subset.raw", header = TRUE, check.names = FALSE)
+raw <- read.table(raw_export_file, header = TRUE, check.names = FALSE)
 
 normalize_chr_to_int <- function(x) {
   x <- as.character(x); x <- trimws(x)
@@ -215,7 +286,8 @@ Conti_key <- base_data %>%
     chr_join = normalize_chr_to_int(CHR),
     pos_join = as.integer(POS),
     effect_allele, other_allele,
-    OR_MULTI, OR_EUR, OR_AFR, OR_EAS, OR_HIS
+    OR_MULTI, OR_EUR, OR_AFR, OR_EAS, OR_HIS,
+    effect_weight
   ) %>%
   distinct(chr_join, pos_join, .keep_all = TRUE)
 
@@ -284,43 +356,62 @@ if (any(flip_to_eff, na.rm = TRUE)) {
   dosage_mat[, flip_to_eff] <- 2 - dosage_mat[, flip_to_eff]
 }
 
-###############################################################
-# Step 5: Build betas from a single OR column and compute GRS #
-###############################################################
+########################################################################
+# Step 5: Build SNP weights (OR-derived or direct effect weight) and GRS #
+########################################################################
 
-if (!OR_column %in% c("OR_MULTI","OR_EUR","OR_AFR","OR_EAS","OR_HIS")) {
-  stop("OR_column must be one of: OR_MULTI, OR_EUR, OR_AFR, OR_EAS, OR_HIS")
+if (source %in% c("Conti", "Wang")) {
+  if (!OR_column %in% c("OR_MULTI","OR_EUR","OR_AFR","OR_EAS","OR_HIS")) {
+    stop("OR_column must be one of: OR_MULTI, OR_EUR, OR_AFR, OR_EAS, OR_HIS")
+  }
+
+  source_vec <- panel[[OR_column]]
+  ok_weight  <- is.finite(source_vec) & (source_vec > 0)
+  weight_desc <- paste0("OR column ", OR_column)
+} else {
+  source_vec <- panel$effect_weight
+  ok_weight  <- is.finite(source_vec)
+  weight_desc <- paste0(source, " effect_weight")
 }
 
-# 1) Take the chosen ORs and keep only valid, positive values
-or_vec <- panel[[OR_column]]
-ok_or  <- is.finite(or_vec) & (or_vec > 0)
-
 # If none are usable, write NAs and exit gracefully
-if (!any(ok_or)) {
-  warning("No usable SNPs (all OR missing/non-positive) for ", OR_column,
-          ". Writing NA scores.")
+if (!any(ok_weight)) {
+  warning("No usable SNP weights for ", weight_desc, ". Writing NA scores.")
   raw_ids <- raw_sub$IID
   sum_scores <- rep(NA_real_, length(raw_ids))
   avg_scores <- rep(NA_real_, length(raw_ids))
-  tag       <- gsub("^OR_", "", OR_column)
-  col_sum   <- paste0("Conti_GRS_", tag, "_sum")
-  col_avg   <- paste0("Conti_GRS_", tag, "_avg")
-  out_file  <- paste0("GRS_", tag, ".tsv")
+
+  if (source %in% c("Conti", "Wang")) {
+    tag       <- gsub("^OR_", "", OR_column)
+    col_sum   <- paste0("Conti_GRS_", tag, "_sum")
+    col_avg   <- paste0("Conti_GRS_", tag, "_avg")
+    out_file  <- paste0("GRS_", tag, ".tsv")
+  } else {
+    tag       <- source
+    col_sum   <- paste0(source, "_GRS_sum")
+    col_avg   <- paste0(source, "_GRS_avg")
+    out_file  <- paste0("GRS_", source, ".tsv")
+  }
+
   out <- tibble(eid = raw_ids, sum = sum_scores, avg = avg_scores)
   names(out)[2:3] <- c(col_sum, col_avg)
   write.table(out, out_file, sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)
-  message("Finished (no usable SNPs). Wrote: ", out_file)
+  message("Finished (no usable SNP weights). Wrote: ", out_file)
   quit(save = "no")
 }
 
-# 2) Subset to SNPs with valid ORs (keep panel & dosage columns in sync)
-if (sum(!ok_or) > 0) {
-  message("Dropping ", sum(!ok_or), " SNPs with NA/non-positive ORs in ", OR_column, ".")
+# Subset to SNPs with valid weights (keep panel & dosage columns in sync)
+if (sum(!ok_weight) > 0) {
+  message("Dropping ", sum(!ok_weight), " SNPs with unusable weights in ", weight_desc, ".")
 }
-panel      <- panel[ok_or, , drop = FALSE]
-dosage_mat <- dosage_mat[, ok_or, drop = FALSE]
-beta_vec   <- log(or_vec[ok_or])
+panel      <- panel[ok_weight, , drop = FALSE]
+dosage_mat <- dosage_mat[, ok_weight, drop = FALSE]
+
+if (source %in% c("Conti", "Wang")) {
+  beta_vec <- log(source_vec[ok_weight])
+} else {
+  beta_vec <- source_vec[ok_weight]
+}
 
 # 3) Handle missing dosages — keep NA in denominator, 0 for the sum
 non_missing_counts <- rowSums(!is.na(dosage_mat))
@@ -342,10 +433,17 @@ if (ncol(tmp_G) == 0) {
 ########################
 
 raw_ids   <- raw_sub$IID
-tag       <- gsub("^OR_", "", OR_column)  # e.g., MULTI, EUR, AFR...
-col_sum   <- paste0("Conti_GRS_", tag, "_sum")
-col_avg   <- paste0("Conti_GRS_", tag, "_avg")
-out_file  <- paste0("GRS_", tag, ".tsv")
+if (source %in% c("Conti", "Wang")) {
+  tag       <- gsub("^OR_", "", OR_column)  # e.g., MULTI, EUR, AFR...
+  col_sum   <- paste0("Conti_GRS_", tag, "_sum")
+  col_avg   <- paste0("Conti_GRS_", tag, "_avg")
+  out_file  <- paste0("GRS_", tag, ".tsv")
+} else {
+  tag       <- source
+  col_sum   <- paste0(source, "_GRS_sum")
+  col_avg   <- paste0(source, "_GRS_avg")
+  out_file  <- paste0("GRS_", source, ".tsv")
+}
 
 out <- tibble(
   eid = raw_ids,
