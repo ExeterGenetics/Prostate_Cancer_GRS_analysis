@@ -11,6 +11,8 @@
 ## - Wang_multiethnicGRS_450.tsv
 ## - Wang_EuropeanGRS_445.tsv
 ## - Wang_AfricanGRS_444.tsv
+## - Wang_East_AsianGRS_379.tsv
+## - Wang_HispanicGRS_446.tsv
 
 install.packages("remotes")
 remotes::install_github("lcpilling/ukbrapR@v0.3.10",
@@ -27,7 +29,7 @@ library(tibble)
 ## Choose which OR column to use
 
 # Options: "OR_MULTI", "OR_EUR", "OR_AFR", "OR_EAS", "OR_HIS"
-OR_column <- "OR_EAS"
+OR_column <- "OR_MULTI"
 
 ## Choose the source GWAS: "Conti" or "Wang" (note: if changing source, restart the R session to clear old data as bgenix reuses temporary files between runs)
 source <- "Wang" 
