@@ -26,17 +26,23 @@ dxdownload("Callum/GRSs/Conti_African.pgs.tsv")			# Calculated Conti GRS for all
 dxdownload("Callum/GRSs/Conti_East_Asian.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "East Asian...22"
 dxdownload("Callum/GRSs/Conti_Hispanic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Hispanic...25"
 
-dxdownload("Callum/GRSs/Conti_multiethnicGRS_267.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI"
-dxdownload("Callum/GRSs/Conti_EuropeanGRS_265.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR"
-dxdownload("Callum/GRSs/Conti_AfricanGRS_246.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR"
-dxdownload("Callum/GRSs/Conti_East_AsianGRS_222.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS"
-dxdownload("Callum/GRSs/Conti_HispanicGRS_253.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS"
+dxdownload("Callum/GRSs/Conti_multiethnicGRS_267.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_EuropeanGRS_265.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_AfricanGRS_246.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_East_AsianGRS_222.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_HispanicGRS_253.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Conti"
 
 dxdownload("Callum/GRSs/Wang_multi_ethnic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
 dxdownload("Callum/GRSs/Wang_European.pgs.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_script" 
 dxdownload("Callum/GRSs/Wang_African.pgs.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_script"
 dxdownload("Callum/GRSs/Wang_East_Asian.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
 dxdownload("Callum/GRSs/Wang_Hispanic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+
+dxdownload("Callum/GRSs/Wang_multiethnicGRS_450.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_EuropeanGRS_445.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_AfricanGRS_444.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_East_AsianGRS_379.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_HispanicGRS_446.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Wang"
 
 dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
 
@@ -584,10 +590,47 @@ WangHispanicGRS <- WangHispanicGRS %>%
   dplyr::rename('WangHispanicGRS' = 'Wang') %>%
   dplyr::mutate(top10_all_WangHispanicGRS = WangHispanicGRS >= quantile(WangHispanicGRS, probs = 0.9))
 
+WangmultiethnicGRS450 <- read_delim("Wang_multiethnicGRS_450.tsv")
+WangmultiethnicGRS450 <- WangmultiethnicGRS450 %>%
+  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
+  dplyr::rename('WangmultiethnicGRS450' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::mutate(top10_all_WangmultiethnicGRS450 = WangmultiethnicGRS450 >= quantile(WangmultiethnicGRS450, probs = 0.9))
+
+WangEuropeanGRS445 <- read_delim("Wang_EuropeanGRS_445.tsv")
+WangEuropeanGRS445 <- WangEuropeanGRS445 %>%
+  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
+  dplyr::rename('WangEuropeanGRS445' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::mutate(top10_all_WangEuropeanGRS445 = WangEuropeanGRS445 >= quantile(WangEuropeanGRS445, probs = 0.9))
+
+WangAfricanGRS444 <- read_delim("Wang_AfricanGRS_444.tsv")
+WangAfricanGRS444 <- WangAfricanGRS444 %>%
+  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
+  dplyr::rename('WangAfricanGRS444' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::mutate(top10_all_WangAfricanGRS444 = WangAfricanGRS444 >= quantile(WangAfricanGRS444, probs = 0.9))
+
+WangEast_AsianGRS379 <- read_delim("Wang_East_AsianGRS_379.tsv")
+WangEast_AsianGRS379 <- WangEast_AsianGRS379 %>%
+  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
+  dplyr::rename('WangEast_AsianGRS379' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::mutate(top10_all_WangEast_AsianGRS379 = WangEast_AsianGRS379 >= quantile(WangEast_AsianGRS379, probs = 0.9))
+
+WangHispanicGRS446 <- read_delim("Wang_HispanicGRS_446.tsv")
+WangHispanicGRS446 <- WangHispanicGRS446 %>%
+  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
+  dplyr::rename('WangHispanicGRS446' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::mutate(top10_all_WangHispanicGRS446 = WangHispanicGRS446 >= quantile(WangHispanicGRS446, probs = 0.9))
+
+
 All_Wang_GRS <- merge(WangmultiethnicGRS, WangEuropeanGRS, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS, by = "eid")
+
+All_Wang_GRS <- merge(All_Wang_GRS, WangmultiethnicGRS450, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEuropeanGRS445, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS444, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS379, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS446, by = "eid")
 
 ## Merge all GRSs into one
 
@@ -1423,12 +1466,18 @@ logreg_table <- function(
       "ContiEast_AsianGRS222",
       "ContiHispanicGRS253",
       "ContiORadjustedGRS",
-      # Wang GRSs
+      # Wang GRSs (Conti_script.R version)
       "WangmultiethnicGRS",
       "WangEuropeanGRS",
       "WangAfricanGRS",
       "WangEast_AsianGRS",
-      "WangHispanicGRS"
+      "WangHispanicGRS",
+      # Wang GRSs (Conti_GRS_267.R version)
+      "WangmultiethnicGRS450",
+      "WangEuropeanGRS445",
+      "WangAfricanGRS444",
+      "WangEast_AsianGRS379",
+      "WangHispanicGRS446"
     )
   }
   
@@ -1584,6 +1633,13 @@ logreg_table <- function(
 #   - WangEuropeanGRS (Wang's GRS with European-specific weights)
 #   - WangAfricanGRS (Wang's GRS with African-specific weights)
 #   - WangEast_AsianGRS (Wang's GRS with East Asian-specific weights)
+#   - WangHispanicGRS (Wang's GRS with Hispanic-specific weights)
+#
+#   - WangmultiethnicGRS450 (Wang's GRS with pan-Ancestry weights, all 450 available SNPs)
+#   - WangEuropeanGRS445 (Wang's GRS with European-specific weights, all 445 available SNPs)
+#   - WangAfricanGRS444 (Wang's GRS with African-specific weights, all 444 available SNPs)
+#   - WangEast_AsianGRS379 (Wang's GRS with East Asian-specific weights, all 379 available SNPs)
+#   - WangHispanicGRS446 (Wang's GRS with Hispanic-specific weights, all 446 available SNPs)
 #
 # Set "covariates" to either: (or add multiple using + between covariates)
 #   - (without quote marks) NULL
@@ -1640,4 +1696,4 @@ subset <- bulk %>%                        ## View a subset. Change filter to inv
     GRS == "ContimultiethnicGRS",
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
-    )    
+  )    
