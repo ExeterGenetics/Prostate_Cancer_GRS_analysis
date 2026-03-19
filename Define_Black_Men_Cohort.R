@@ -1,6 +1,12 @@
-## Create dataframe of Black men only ##
+#==========================================#
+#=== Create dataframe of Black men only ===#
+#==========================================#
 
 ## Note: Requires running "Logistic_Regressions_testing_Conti_GRS" down to creation of "PCa_iv_covariates_GRS_severity"
+
+## This is stored as "BlackMen.tsv.gz" in Callum/Derived_datasets
+
+## To create "AllMen.tsv.gz" as found in Callum/Derived_datasets, comment out "ethnicity_group_narrow == "Black"" in the filter below and run the code again. Change any dataframe names if needed.
 
 BlackMen <- PCa_iv_covariates_GRS_severity %>%
   dplyr::filter(
