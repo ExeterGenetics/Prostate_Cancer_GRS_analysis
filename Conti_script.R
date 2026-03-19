@@ -11,6 +11,8 @@ library(tidyr)
 
 system('dx download Callum/ContiGWAS/Conti2021supplementarytables.xlsx') # This is the supplementary table file from Conti et al. (2021), downloadable at: https://www.nature.com/articles/s41588-020-00748-0
 system('dx download Callum/WangGWAS/Wang2023supplementarytables.xlsx') # This is the supplementary table file from Wang et al. (2023), downloadable at: https://pmc.ncbi.nlm.nih.gov/articles/PMC10841479/
+system('dx download Callum/SchumacherGWAS/Schumacher.txt') # This is the list of SNPs and weights from Schumacher et al. (2018), downloadable at: https://www.pgscatalog.org/publication/PGP000019/ 
+system('dx download Callum/SchumacherGWAS/BARCODE1.txt') # This is the list of SNPs and weights from BARCODE1 (2021), downloadable at: https://www.pgscatalog.org/publication/PGP000726/ 
 
 ############################
 # Define withdrawal filter #
@@ -350,7 +352,7 @@ Wang <- Wang %>%
 
 Wang2 <- Wang %>%
   dplyr::filter(!is.na(`Wang et al., 451 SNPs`)) #%>%
-  #dplyr::filter(Pvalue_Multiethnic_Marginal <= 0.05)
+#dplyr::filter(Pvalue_Multiethnic_Marginal <= 0.05)
 
 ## Prepare for bgenix GRS calculation
 
@@ -407,7 +409,7 @@ system(paste("dx upload", "Wang_multi_ethnic.pgs.tsv"))
 
 Wang2 <- Wang %>%
   dplyr::filter(!is.na(`Wang et al., 451 SNPs`)) #%>%
-  #dplyr::filter(Pvalue_EUR <= 0.05)
+#dplyr::filter(Pvalue_EUR <= 0.05)
 
 ## Prepare for bgenix GRS calculation
 
@@ -626,3 +628,105 @@ write.table(GRS, "Wang_Hispanic.pgs.tsv", quote=FALSE, sep='\t',row.names = FALS
 ## Upload to project
 
 system(paste("dx upload", "Wang_Hispanic.pgs.tsv"))
+
+
+
+
+
+#------------------------------------------#
+# -- New section: Schumacher (2018) GRS -- #
+#------------------------------------------#
+
+########################################
+# Option #11 - Schumacher (147-SNP) GRS #
+########################################
+
+Schumacher <- read.delim("~/Schumacher.txt", comment.char="#")
+Schumacher=arrange(Schumacher,chr_name,chr_position)
+Schumacher=Schumacher%>%rename(
+  rsID=`rsID`,
+  CHR=chr_name,
+  POS=chr_position,
+  effect_allele=`effect_allele`,
+  effect_weight=`effect_weight`
+)%>%mutate(
+  other_allele=NA_character_  # Reference alleles will be looked up from reference genome
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+Schumacher2=Schumacher%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+Schumacher2$CHR[is.na(Schumacher2$CHR)]="X"
+write.table(Schumacher2,'Schumacher.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+conti_out=ukbrapR:::create_pgs(
+  in_file='Schumacher.tsv',
+  out_file='Schumacher.pgs',
+  pgs_name='Schumacher',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('Schumacher.pgs.bim')
+#outscore=read.table('Schumacher.pgs.profile',header=T)
+
+GRS <- read.table("Schumacher.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "Schumacher"))
+
+write.table(GRS, "Schumacher.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "Schumacher.pgs.tsv"))
+
+
+#######################################################
+# Option #12 - Schumacher (130-SNP) GRS from BARCODE1 #
+#######################################################
+
+BARCODE1 <- read.delim("~/BARCODE1.txt", comment.char="#")
+BARCODE1=arrange(BARCODE1,chr_name,chr_position)
+BARCODE1=BARCODE1%>%rename(
+  rsID=`rsID`,
+  CHR=chr_name,
+  POS=chr_position,
+  effect_allele=`effect_allele`,
+  other_allele=`other_allele`,
+  effect_weight=`effect_weight`
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+BARCODE1_2=BARCODE1%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+BARCODE1_2$CHR[is.na(BARCODE1_2$CHR)]="X"
+write.table(BARCODE1_2,'BARCODE1.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+conti_out=ukbrapR:::create_pgs(
+  in_file='BARCODE1.tsv',
+  out_file='BARCODE1.pgs',
+  pgs_name='BARCODE1',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('BARCODE1.pgs.bim')
+#outscore=read.table('BARCODE1.pgs.profile',header=T)
+
+GRS <- read.table("BARCODE1.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "BARCODE1"))
+
+write.table(GRS, "BARCODE1.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "BARCODE1.pgs.tsv"))
