@@ -1,6 +1,6 @@
 ######### Logistic Regression Application - testing Conti's GRSs #########
 
-## Note: this script requires first running "functions.r" in its entirity
+## Note: this script requires first running "functions.r"
 
 ## Setup ##
 
