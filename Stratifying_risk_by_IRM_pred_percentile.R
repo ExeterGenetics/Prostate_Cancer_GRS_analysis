@@ -2,6 +2,9 @@
 # Visually inspecting how well top 10% of pred stratifies prostate cancer risk #
 ################################################################################
 
+## Step 1: Run "Logistic_Regressions_testing_Conti_GRS.R" script all the way
+##         down to running a model
+
 install.packages("tidyverse")
 library(tidyverse)
 install.packages("extrafont")
@@ -14,9 +17,6 @@ library(showtext)
 library(devtools)
 source_url("https://raw.githubusercontent.com/hdg204/exeteR/main/ex_theme.R")
 
-## Step 1: Run "Logistic_Regressions_testing_Conti_GRS.R" script all the way
-##         down to running a model
-
 ## Step 2: Set variables and labels
 
 dataframe <- model$data %>%
@@ -27,7 +27,7 @@ top_segment <- 10                                                               
 
 xlabel <- "Group"
 ylabel <- "% with prostate cancer (10 yrs)"
-title_choice <- "Prostate Cancer in Top 10% of IRM vs. Bottom 90% (White participants)"
+title_choice <- "Prostate Cancer in Top 10% of IRM vs. Bottom 90% (Black participants)"
 
 use_general_top_group = TRUE                                                    # If TRUE, this is the top 10% of predictor among ALL participants, not just the subgroup tested
 
