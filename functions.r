@@ -604,4 +604,141 @@ RRtable <- function(data,
 }
 
 
+## Function to calculate the Net Reclassification Improvement (NRI)
+## Compares a new prediction model against a reference model.
+## Method: continuous NRI (Pencina et al. 2008, Stat Med).
+##   - Cases:    NRI_cases    = P(up | event)   - P(down | event)
+##   - Controls: NRI_controls = P(down | non-event) - P(up | non-event)
+##   - Overall:  NRI          = NRI_cases + NRI_controls
+## SE from Pencina 2008; 95% CIs and z-test p-values from normal approximation.
 
+nri <- function(data,
+                outcome,
+                pred_new = "pred2",
+                pred_old = "pred",
+                positive_level = 1,
+                digits = 3) {
+  
+  stopifnot(outcome  %in% names(data))
+  stopifnot(pred_new %in% names(data))
+  stopifnot(pred_old %in% names(data))
+  
+  # Drop rows with any missing values in the three key columns
+  complete <- !is.na(data[[outcome]]) &
+    !is.na(data[[pred_new]]) &
+    !is.na(data[[pred_old]])
+  d <- data[complete, ]
+  
+  is_case <- d[[outcome]] == positive_level
+  
+  delta <- d[[pred_new]] - d[[pred_old]]
+  
+  # ── Cases ──────────────────────────────────────────────────────────────────
+  n_cases         <- sum(is_case)
+  n_up_cases      <- sum(delta[is_case]  > 0)
+  n_down_cases    <- sum(delta[is_case]  < 0)
+  p_up_cases      <- n_up_cases   / n_cases
+  p_down_cases    <- n_down_cases / n_cases
+  NRI_cases       <- p_up_cases - p_down_cases
+  SE_NRI_cases    <- sqrt((p_up_cases + p_down_cases -
+                             (p_up_cases - p_down_cases)^2) / n_cases)
+  CI_low_cases    <- NRI_cases - 1.96 * SE_NRI_cases
+  CI_high_cases   <- NRI_cases + 1.96 * SE_NRI_cases
+  z_cases         <- NRI_cases / SE_NRI_cases
+  p_cases         <- 2 * pnorm(-abs(z_cases))
+  
+  # ── Controls ───────────────────────────────────────────────────────────────
+  n_controls      <- sum(!is_case)
+  n_up_controls   <- sum(delta[!is_case] > 0)
+  n_down_controls <- sum(delta[!is_case] < 0)
+  p_up_controls   <- n_up_controls   / n_controls
+  p_down_controls <- n_down_controls / n_controls
+  NRI_controls    <- p_down_controls - p_up_controls   # down is good for controls
+  SE_NRI_controls <- sqrt((p_up_controls + p_down_controls -
+                             (p_up_controls - p_down_controls)^2) / n_controls)
+  CI_low_controls  <- NRI_controls - 1.96 * SE_NRI_controls
+  CI_high_controls <- NRI_controls + 1.96 * SE_NRI_controls
+  z_controls       <- NRI_controls / SE_NRI_controls
+  p_controls       <- 2 * pnorm(-abs(z_controls))
+  
+  # ── Overall NRI ────────────────────────────────────────────────────────────
+  NRI             <- NRI_cases + NRI_controls
+  SE_NRI          <- sqrt(SE_NRI_cases^2 + SE_NRI_controls^2)
+  CI_low_NRI      <- NRI - 1.96 * SE_NRI
+  CI_high_NRI     <- NRI + 1.96 * SE_NRI
+  z_NRI           <- NRI / SE_NRI
+  p_NRI           <- 2 * pnorm(-abs(z_NRI))
+  
+  # ── Formatting helpers ─────────────────────────────────────────────────────
+  fmt  <- function(x) formatC(x, format = "f", digits = digits)
+  fmtp <- function(x) formatC(x, format = "g", digits = 3)
+  pct  <- function(x) paste0(formatC(x * 100, format = "f", digits = 1), "%")
+  
+  ci_str <- function(est, lo, hi)
+    paste0(fmt(est), " [", fmt(lo), ", ", fmt(hi), "]")
+  
+  # ── Results table ──────────────────────────────────────────────────────────
+  results <- data.frame(
+    Component = c(
+      "Cases: % reclassified up",
+      "Cases: % reclassified down",
+      "NRI (Cases)",
+      "",
+      "Controls: % reclassified up",
+      "Controls: % reclassified down",
+      "NRI (Controls)",
+      "",
+      "Overall NRI"
+    ),
+    N = c(
+      n_cases, n_cases, n_cases,
+      NA,
+      n_controls, n_controls, n_controls,
+      NA,
+      n_cases + n_controls
+    ),
+    Estimate_95CI = c(
+      pct(p_up_cases),
+      pct(p_down_cases),
+      ci_str(NRI_cases, CI_low_cases, CI_high_cases),
+      "",
+      pct(p_up_controls),
+      pct(p_down_controls),
+      ci_str(NRI_controls, CI_low_controls, CI_high_controls),
+      "",
+      ci_str(NRI, CI_low_NRI, CI_high_NRI)
+    ),
+    p_value = c(
+      NA, NA, fmtp(p_cases),
+      NA,
+      NA, NA, fmtp(p_controls),
+      NA,
+      fmtp(p_NRI)
+    ),
+    stringsAsFactors = FALSE
+  )
+  
+  print(results, row.names = FALSE, na.print = "")
+  
+  invisible(list(
+    NRI          = NRI,
+    CI_low_NRI   = CI_low_NRI,
+    CI_high_NRI  = CI_high_NRI,
+    p_NRI        = p_NRI,
+    NRI_cases    = NRI_cases,
+    CI_low_cases = CI_low_cases,
+    CI_high_cases = CI_high_cases,
+    p_cases      = p_cases,
+    p_up_cases   = p_up_cases,
+    p_down_cases = p_down_cases,
+    NRI_controls    = NRI_controls,
+    CI_low_controls = CI_low_controls,
+    CI_high_controls = CI_high_controls,
+    p_controls       = p_controls,
+    p_up_controls    = p_up_controls,
+    p_down_controls  = p_down_controls,
+    n_cases      = n_cases,
+    n_controls   = n_controls,
+    table        = results
+  ))
+}

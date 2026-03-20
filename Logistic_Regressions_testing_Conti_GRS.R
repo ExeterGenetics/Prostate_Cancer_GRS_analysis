@@ -1147,19 +1147,28 @@ logreg_table <- function(
 #   - rs72725854_T (carrier status of rs72725854 risk allele)
 #
 
+# Logistic Regression
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
-                    predictor = "ContimultiethnicGRS",
-                    covariates = "Age",
+                    predictor = "Age",
+                    covariates = NULL,
                     plot_roc = TRUE)
 
+model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
+                     outcome = "PrCa_10yrs",
+                     predictor = "ContimultiethnicGRS",
+                     covariates = "Age",
+                     plot_roc = TRUE)
 
+# Confusion Matrix
 
 matrix <- confusion_matrix(data = model$data, 
                            outcome = "PrCa_10yrs", 
                            cutoff_value = 0.20, 
                            positive_level = 1, negative_level = 0)
+
+# Odds Ratio Table
 
 OR_table <- ORtable(
   data = model$data,
@@ -1171,6 +1180,7 @@ OR_table <- ORtable(
 
 print(OR_table$wide_formatted)
 
+# Risk Ratio Table
 
 RR_table <- RRtable(
   data = model$data,
@@ -1180,9 +1190,17 @@ RR_table <- RRtable(
   use_existing_cols = TRUE
 )
 
-# View formatted RR table
 print(RR_table$wide_formatted)
 
+
+# NRI Calculation to compare two models
+
+nri_result <- nri(
+  data = model$data %>% dplyr::mutate(pred2 = model2$data$pred),
+  outcome = "PrCa_10yrs",
+)
+
+print(nri_result)
 
 ######################################################################################
 # Step 11 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
