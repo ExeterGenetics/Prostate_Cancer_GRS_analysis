@@ -61,8 +61,13 @@ dxdownload("Callum/GRSs/Wang_HispanicGRS_446.tsv")		# Calculated Wang GRS for al
 
 dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
 
+dxdownload("Callum/GRSs/Schumacher.pgs.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/SchumacherGRS_145.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
 
-system("dx download Callum/LUTS/Green2022supplementarytable1.csv") # This is the supplementary table 1 from Harry's LUTS paper, converted to .csv format using excel. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC9553867/
+dxdownload("Callum/GRSs/BARCODE1.pgs.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/BARCODE1GRS_129.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
+
+system("dx download Callum/LUTS/Green2022supplementarytable1.csv") # This is the supplementary table 1 from Harry Green's LUTS paper, converted to .csv format using excel. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC9553867/
 Green2022supplementarytable1 <- read.csv("Green2022supplementarytable1.csv")
 
 
@@ -779,6 +784,7 @@ covariates <- merge(covariates, principal_components, by = "eid", all = T)
 covariates <- merge(covariates, family_history, by = "eid", all.x = T)
 
 
+## Load in Conti GRSs, rename columns, and create "top 10%" variables for each GRS (where "top 10%" is defined as being above the 90th percentile of the GRS distribution in the entire eligible UKB population, not just within each ancestry group)
 
 ContimultiethnicGRS <- read_delim("Conti_multi_ethnic.pgs.tsv")
 ContimultiethnicGRS <- ContimultiethnicGRS %>%
@@ -809,7 +815,7 @@ ContimultiethnicGRS267 <- read_delim("Conti_multiethnicGRS_267.tsv")
 ContimultiethnicGRS267 <- ContimultiethnicGRS267 %>%
   dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
   dplyr::rename('ContimultiethnicGRS267' = 'Conti_GRS_MULTI_avg') %>%
-  dplyr::mutate(top10_all_ContimultiethnicGRS267 = ContimultiethnicGRS267 >= quantile(ContimultiethnicGRS267, probs = 0.9))
+  dplyr::mutate(top10_all_ContimultiethnicGRS267 = ContimultiethnicGRS267 >= quantile(ContimultiethnicGRS267, probs = 0.9)) 
 
 ContiEuropeanGRS265 <- read_delim("Conti_EuropeanGRS_265.tsv")
 ContiEuropeanGRS265 <- ContiEuropeanGRS265 %>%
@@ -858,7 +864,7 @@ AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%
   dplyr::select(c("IID", "AMR", "AFR", "CSA", "EAS", "EUR", "MID")) %>%
   dplyr::rename("eid" = "IID")
 
-GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability or AncestryProbability 2 depending on preference
+GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability1 or AncestryProbability 2 depending on preference
 GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
   dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
 
@@ -878,7 +884,7 @@ ContiORadjustedGRS <- read.table("OR_adjustedGRS_267.tsv", header = T) %>%
 
 All_Conti_GRS <- merge(All_Conti_GRS, ContiORadjustedGRS, by = "eid", all.x = T)
 
-### Now repeat for Wang GRSs
+##################### Now repeat for Wang GRSs
 
 WangmultiethnicGRS <- read_delim("Wang_multi_ethnic.pgs.tsv")
 WangmultiethnicGRS <- WangmultiethnicGRS %>%
@@ -947,9 +953,37 @@ All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS444, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS379, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS446, by = "eid")
 
+## Add Schumacher and BARCODE1 GRSs
+
+SchumacherGRS <- read_delim("Schumacher.pgs.tsv")
+SchumacherGRS <- SchumacherGRS %>%
+  dplyr::rename('SchumacherGRS' = 'Schumacher') %>%
+  dplyr::mutate(top10_all_SchumacherGRS = SchumacherGRS >= quantile(SchumacherGRS, probs = 0.9))
+
+BARCODE1GRS <- read_delim("BARCODE1.pgs.tsv")
+BARCODE1GRS <- BARCODE1GRS %>%
+  dplyr::rename('BARCODE1GRS' = 'BARCODE1') %>%
+  dplyr::mutate(top10_all_BARCODE1GRS = BARCODE1GRS >= quantile(BARCODE1GRS, probs = 0.9))
+
+SchumacherGRS145 <- read.delim("SchumacherGRS_145.tsv")
+SchumacherGRS145 <- SchumacherGRS145 %>%
+  dplyr::select(c("eid", "Schumacher_GRS_avg")) %>%
+  dplyr::rename('SchumacherGRS145' = 'Schumacher_GRS_avg') %>%
+  dplyr::mutate(top10_all_SchumacherGRS145 = SchumacherGRS145 >= quantile(SchumacherGRS145, probs = 0.9))
+
+BARCODE1GRS129 <- read.delim("BARCODE1GRS_129.tsv")
+BARCODE1GRS129 <- BARCODE1GRS129 %>%
+  dplyr::select(c("eid", "BARCODE1_GRS_avg")) %>%
+  dplyr::rename('BARCODE1GRS129' = 'BARCODE1_GRS_avg') %>%
+  dplyr::mutate(top10_all_BARCODE1GRS129 = BARCODE1GRS129 >= quantile(BARCODE1GRS129, probs = 0.9))
+
+## Merge all GRSs into one
+
 All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
-
-
+All_GRS <- merge(All_GRS, SchumacherGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS145, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS129, by = "eid", all = T)
 
 #########################################################################################
 # Step 5 - Merge all variables/covariates into one dataframe with Prostate Cancer cases #
@@ -1798,7 +1832,12 @@ logreg_table <- function(
       "WangEuropeanGRS445",
       "WangAfricanGRS444",
       "WangEast_AsianGRS379",
-      "WangHispanicGRS446"
+      "WangHispanicGRS446",
+      # Schumacher and BARCODE1 GRSs
+      "SchumacherGRS",
+      "BARCODE1GRS",
+      "SchumacherGRS145",
+      "BARCODE1GRS129"
     )
   }
   
@@ -1939,8 +1978,14 @@ logreg_table <- function(
 #   - WangEast_AsianGRS (Wang's GRS with East Asian-specific weights)
 #   - WangHispanicGRS (Wang's GRS with Hispanic-specific weights)
 #
+#   - SchumacherGRS (Schumacher's GRS (2018)))
+#   - BARCODE1GRS (BARCODE1 GRS (2021)))
+#   - SchumacherGRS145 (Schumacher's GRS with 145 available SNPs)
+#   - BARCODE1GRS129 (BARCODE1 GRS with 129 available SNPs)
 #
 # Set "covariates" to either: (or add multiple using + between covariates)
+#
+#   - (without quote marks) NULL
 #   - event_age (Age at symptom presentation)
 #   - rs72725854_T (carrier status of rs72725854 risk allele)
 #

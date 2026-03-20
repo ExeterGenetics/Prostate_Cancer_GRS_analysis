@@ -46,6 +46,12 @@ dxdownload("Callum/GRSs/Wang_HispanicGRS_446.tsv")		# Calculated Wang GRS for al
 
 dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
 
+dxdownload("Callum/GRSs/Schumacher.pgs.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/SchumacherGRS_145.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
+
+dxdownload("Callum/GRSs/BARCODE1.pgs.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/BARCODE1GRS_129.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
+
 ######################################################################
 # Step 1 - Fetch PrCa Cases and collapse into earliest epistart/date #
 ######################################################################
@@ -632,9 +638,37 @@ All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS444, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS379, by = "eid")
 All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS446, by = "eid")
 
+## Add Schumacher and BARCODE1 GRSs
+
+SchumacherGRS <- read_delim("Schumacher.pgs.tsv")
+SchumacherGRS <- SchumacherGRS %>%
+  dplyr::rename('SchumacherGRS' = 'Schumacher') %>%
+  dplyr::mutate(top10_all_SchumacherGRS = SchumacherGRS >= quantile(SchumacherGRS, probs = 0.9))
+
+BARCODE1GRS <- read_delim("BARCODE1.pgs.tsv")
+BARCODE1GRS <- BARCODE1GRS %>%
+  dplyr::rename('BARCODE1GRS' = 'BARCODE1') %>%
+  dplyr::mutate(top10_all_BARCODE1GRS = BARCODE1GRS >= quantile(BARCODE1GRS, probs = 0.9))
+
+SchumacherGRS145 <- read.delim("SchumacherGRS_145.tsv")
+SchumacherGRS145 <- SchumacherGRS145 %>%
+  dplyr::select(c("eid", "Schumacher_GRS_avg")) %>%
+  dplyr::rename('SchumacherGRS145' = 'Schumacher_GRS_avg') %>%
+  dplyr::mutate(top10_all_SchumacherGRS145 = SchumacherGRS145 >= quantile(SchumacherGRS145, probs = 0.9))
+
+BARCODE1GRS129 <- read.delim("BARCODE1GRS_129.tsv")
+BARCODE1GRS129 <- BARCODE1GRS129 %>%
+  dplyr::select(c("eid", "BARCODE1_GRS_avg")) %>%
+  dplyr::rename('BARCODE1GRS129' = 'BARCODE1_GRS_avg') %>%
+  dplyr::mutate(top10_all_BARCODE1GRS129 = BARCODE1GRS129 >= quantile(BARCODE1GRS129, probs = 0.9))
+
 ## Merge all GRSs into one
 
 All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS145, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS129, by = "eid", all = T)
 
 #########################################################################################
 # Step 4 - Merge all variables/covariates into one dataframe with Prostate Cancer cases #
@@ -1477,7 +1511,12 @@ logreg_table <- function(
       "WangEuropeanGRS445",
       "WangAfricanGRS444",
       "WangEast_AsianGRS379",
-      "WangHispanicGRS446"
+      "WangHispanicGRS446",
+      # Schumacher and BARCODE1 GRSs
+      "SchumacherGRS",
+      "BARCODE1GRS",
+      "SchumacherGRS145",
+      "BARCODE1GRS129"
     )
   }
   
@@ -1640,6 +1679,11 @@ logreg_table <- function(
 #   - WangAfricanGRS444 (Wang's GRS with African-specific weights, all 444 available SNPs)
 #   - WangEast_AsianGRS379 (Wang's GRS with East Asian-specific weights, all 379 available SNPs)
 #   - WangHispanicGRS446 (Wang's GRS with Hispanic-specific weights, all 446 available SNPs)
+#
+#   - SchumacherGRS (Schumacher's GRS (2018)))
+#   - BARCODE1GRS (BARCODE1 GRS (2021)))
+#   - SchumacherGRS145 (Schumacher's GRS with 145 available SNPs)
+#   - BARCODE1GRS129 (BARCODE1 GRS with 129 available SNPs)
 #
 # Set "covariates" to either: (or add multiple using + between covariates)
 #   - (without quote marks) NULL
