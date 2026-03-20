@@ -1441,29 +1441,40 @@ logreg_table <- function(
 #
 
 
-model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
-                    outcome = "PrCa",
-                    predictor = "multiethnicGRS",
-                    covariates = "event_age",
+# Logistic Regression
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+                    outcome = "PrCa_10yrs",
+                    predictor = "event_age",
+                    covariates = NULL,
                     plot_roc = TRUE)
 
+model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
+                     outcome = "PrCa_10yrs",
+                     predictor = "ContimultiethnicGRS",
+                     covariates = "event_age",
+                     plot_roc = TRUE)
 
+# Confusion Matrix
 
 matrix <- confusion_matrix(data = model$data, 
                            outcome = "PrCa_10yrs", 
                            cutoff_value = 0.20, 
                            positive_level = 1, negative_level = 0)
 
+# Odds Ratio Table
+
 OR_table <- ORtable(
   data = model$data,
   outcome = "PrCa_10yrs",
   group_col = "ethnicity_group_narrow",       # <- your 6-level grouping variable
   positive_level = 1,        # 1 denotes positive outcome
-  use_existing_cols = TRUE   # rely on predtop10..predtop90 already in data
+  use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
 )
 
 print(OR_table$wide_formatted)
 
+# Risk Ratio Table
 
 RR_table <- RRtable(
   data = model$data,
@@ -1473,6 +1484,28 @@ RR_table <- RRtable(
   use_existing_cols = TRUE
 )
 
-# View formatted RR table
 print(RR_table$wide_formatted)
 
+
+# NRI Calculation to compare two models
+
+nri_result <- nri(
+  data = model$data %>% dplyr::mutate(pred2 = model2$data$pred),
+  outcome = "PrCa_10yrs",
+)
+
+print(nri_result)
+
+######################################################################################
+# Step 11 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
+######################################################################################
+
+bulk <- logreg_table()
+
+subset <- bulk %>%                        ## View a subset. Change filter to investigate 
+  dplyr::filter(                          ## specific populations, GRSs, Prediction Horizons, etc.
+    Population == "Black",
+    GRS == "ContimultiethnicGRS",
+    Outcome == "PrCa_10yrs",
+    Covariates == "event_age"
+  )    
