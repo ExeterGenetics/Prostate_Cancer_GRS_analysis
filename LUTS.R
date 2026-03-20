@@ -3,6 +3,8 @@
 # ------------------- symptomatic participants? ----------------------------#
 #############################################################################
 
+## Note: this script requires first running "functions.r"
+
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
 install.packages("RMySQL")
@@ -774,7 +776,8 @@ ethnicity <- ethnicity %>% # stricter ethnicity grouping
   ))
 
 principal_components<-read_csv("HGDP_1KG_PCs_UKB2_scaled.csv") %>%
-  dplyr::rename("eid" = "IID")
+  dplyr::rename("eid" = "IID") %>%
+  dplyr::select("eid", "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11", "PC12", "PC13", "PC14", "PC15", "PC16", "PC17", "PC18", "PC19", "PC20")
 
 family_history <- read.csv("FH_PrCa_BrCa.csv") %>%
   dplyr::select(c("eid", "FH_Prostate_cancer", "FH_Breast_cancer", "FH_PrCa_BrCa"))
@@ -1002,7 +1005,7 @@ PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criter
 PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
   dplyr::filter(
     Sex == 'Male',
-    !is.na(multiethnicGRS),
+    !is.na(ContimultiethnicGRS),
     pre_diagnosed == FALSE | is.na(pre_diagnosed) ## to remove pre-diagnosed patients
   )
 
@@ -1011,7 +1014,7 @@ PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
 PCa_iv_covariates_GRS_severity %>%
   filter(
     Sex == "Female" |
-      is.na(multiethnicGRS) |
+      is.na(ContimultiethnicGRS) |
       pre_diagnosed == TRUE
   ) %>%
   summarise(n = n())
@@ -1206,19 +1209,19 @@ PCa_iv_covariates_GRS_predhorizon_AMROnly <- PCa_iv_covariates_GRS_predhorizon %
 # Step 8 (optional) - Visually inspect GRS distribution for cases vs. controls #
 ################################################################################
 
-ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=multiethnicGRS,colour=as.factor(PrCa)))+ # PrCa in general
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa)))+ # PrCa in general
   geom_density()+
   theme_bw()
 
-ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=multiethnicGRS,colour=as.factor(PrCa_2yrs)))+ # PrCa within 2 years
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_2yrs)))+ # PrCa within 2 years
   geom_density()+
   theme_bw()
 
-ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=multiethnicGRS,colour=as.factor(PrCa_5yrs)))+ # PrCa within 5 years
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_5yrs)))+ # PrCa within 5 years
   geom_density()+
   theme_bw()
 
-ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=multiethnicGRS,colour=as.factor(PrCa_10yrs)))+ # PrCa within 10 years
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_10yrs)))+ # PrCa within 10 years
   geom_density()+
   theme_bw()
 
@@ -1381,9 +1384,9 @@ logreg_table <- function(
   return(results)
 }
 
-##########################################################################
-# Step 9 - Model Logistic Regression, Confusion Matrix, and OR/RR tables #
-##########################################################################
+###########################################################################
+# Step 10 - Model Logistic Regression, Confusion Matrix, and OR/RR tables #
+###########################################################################
 
 # Set "data" to either: 
 #   - PCa_iv_covariates_GRS_predhorizon (all participants)
@@ -1400,33 +1403,51 @@ logreg_table <- function(
 # 
 # 
 # Set "outcome" to either: 
-#   - PrCa (Prostate Cancer diagnosis after assessment centre)
-#   - PrCa_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre)
-#   - PrCa_5yrs (Prostate Cancer diagnosis within 2 years after assessment centre)
-#   - PrCa_10yrs (Prostate Cancer diagnosis within 2 years after assessment centre)
+#   - PrCa (Prostate Cancer diagnosis after symptom presentation)
+#   - PrCa_2yrs (Prostate Cancer diagnosis within 2 years after symptom presentation)
+#   - PrCa_5yrs (Prostate Cancer diagnosis within 5 years after symptom presentation)
+#   - PrCa_10yrs (Prostate Cancer diagnosis within 10 years after symptom presentation)
 #
-#   - PrCa_actionable (Prostate Cancer diagnosis after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
-#   - PrCa_actionable_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
-#   - PrCa_actionable_5yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
-#   - PrCa_actionable_10yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable (Prostate Cancer diagnosis after symptom presentation that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_2yrs (Prostate Cancer diagnosis within 2 years after symptom presentation that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_5yrs (Prostate Cancer diagnosis within 5 years after symptom presentation that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_10yrs (Prostate Cancer diagnosis within 10 years after symptom presentation that satisfies "Actionable" criteria within 2 years of diagnosis)
 #
-#   - PrCa_severe (Prostate Cancer diagnosis after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
-#   - PrCa_severe_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
-#   - PrCa_severe_5yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
-#   - PrCa_severe_10yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe (Prostate Cancer diagnosis after symptom presentation that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_2yrs (Prostate Cancer diagnosis within 2 years after symptom presentation that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_5yrs (Prostate Cancer diagnosis within 5 years after symptom presentation that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_10yrs (Prostate Cancer diagnosis within 10 years after symptom presentation that satisfies "Severe" criteria within 2 years of diagnosis)
 #
 # Set "predictor" to either: 
-#   - multiethnicGRS (Conti's GRS with pan-Ancestry weights)
-#   - EuropeanGRS (Conti's GRS with European-specific weights)
-#   - AfricanGRS (Conti's GRS with African-specific weights)
-#   - East_AsianGRS (Conti's GRS with East Asian-specific weights)
-#   - HispanicGRS (Conti's GRS with Hispanic-specific weights)
-#   - adjustedGRS (Conti's GRS adjusted for ancestry probability)
-#   - WangmultiethnicGRS (Wang's GRS with multi-ethnic weights)
+#
+#    Note: these top 6 GRSs use "Conti_script.R", which drops 4 SNPs by default. The numbered GRSs below only drop 2 SNPs
+#
+#   - ContimultiethnicGRS (Conti's GRS with pan-Ancestry weights)
+#   - ContiEuropeanGRS (Conti's GRS with European-specific weights)
+#   - ContiAfricanGRS (Conti's GRS with African-specific weights)
+#   - ContiEast_AsianGRS (Conti's GRS with East Asian-specific weights)
+#   - ContiHispanicGRS (Conti's GRS with Hispanic-specific weights)
+#   - ContiadjustedGRS (Conti's GRS adjusted for ancestry probability at the Beta level)
+#
+#   - ContimultiethnicGRS267 (Conti's GRS with pan-Ancestry weights, all 267 available SNPs)
+#   - ContiEuropeanGRS265 (Conti's GRS with European-specific weights, all 265 available SNPs)
+#   - ContiAfricanGRS246 (Conti's GRS with African-specific weights, all 246 available SNPs)
+#   - ContiEast_AsianGRS222 (Conti's GRS with East Asian-specific weights)
+#   - ContiHispanicGRS253 (Conti's GRS with Hispanic-specific weights)
+#
+#   - ContiORadjustedGRS (Conti's GRS adjusted for ancestry probability at the Odds Ratio level)
+#
+#   - WangmultiethnicGRS (Wang's GRS with pan-Ancestry weights)
 #   - WangEuropeanGRS (Wang's GRS with European-specific weights)
 #   - WangAfricanGRS (Wang's GRS with African-specific weights)
 #   - WangEast_AsianGRS (Wang's GRS with East Asian-specific weights)
 #   - WangHispanicGRS (Wang's GRS with Hispanic-specific weights)
+#
+#   - WangmultiethnicGRS450 (Wang's GRS with pan-Ancestry weights, all 450 available SNPs)
+#   - WangEuropeanGRS445 (Wang's GRS with European-specific weights, all 445 available SNPs)
+#   - WangAfricanGRS444 (Wang's GRS with African-specific weights, all 444 available SNPs)
+#   - WangEast_AsianGRS379 (Wang's GRS with East Asian-specific weights, all 379 available SNPs)
+#   - WangHispanicGRS446 (Wang's GRS with Hispanic-specific weights, all 446 available SNPs)
 #
 #   - SchumacherGRS (Schumacher's GRS (2018)))
 #   - BARCODE1GRS (BARCODE1 GRS (2021)))
@@ -1437,7 +1458,7 @@ logreg_table <- function(
 #
 #   - (without quote marks) NULL
 #   - event_age (Age at symptom presentation)
-#   - rs72725854_T (carrier status of rs72725854 risk allele)
+#   - rs72725854_T (carrier status of rs72725854 risk allele) (currently not working)
 #
 
 

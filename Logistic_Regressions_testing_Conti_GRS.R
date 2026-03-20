@@ -1072,7 +1072,7 @@ logreg_table <- function(
 
 
 ####################################################################################
-# Step 10 - Model Logistic Regression, Confusion Matrix, and OR/RR tables          #
+# Step 9 - Model Logistic Regression, Confusion Matrix, and OR/RR tables          #
 ####################################################################################
 
 # Set "data" to either: 
@@ -1092,18 +1092,18 @@ logreg_table <- function(
 # Set "outcome" to either: 
 #   - PrCa (Prostate Cancer diagnosis after assessment centre)
 #   - PrCa_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre)
-#   - PrCa_5yrs (Prostate Cancer diagnosis within 2 years after assessment centre)
-#   - PrCa_10yrs (Prostate Cancer diagnosis within 2 years after assessment centre)
+#   - PrCa_5yrs (Prostate Cancer diagnosis within 5 years after assessment centre)
+#   - PrCa_10yrs (Prostate Cancer diagnosis within 10 years after assessment centre)
 #
 #   - PrCa_actionable (Prostate Cancer diagnosis after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
 #   - PrCa_actionable_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
-#   - PrCa_actionable_5yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
-#   - PrCa_actionable_10yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_5yrs (Prostate Cancer diagnosis within 5 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_10yrs (Prostate Cancer diagnosis within 10 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
 #
 #   - PrCa_severe (Prostate Cancer diagnosis after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
 #   - PrCa_severe_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
-#   - PrCa_severe_5yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
-#   - PrCa_severe_10yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_5yrs (Prostate Cancer diagnosis within 5 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_10yrs (Prostate Cancer diagnosis within 10 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
 #
 # Set "predictor" to either: 
 #
@@ -1144,7 +1144,7 @@ logreg_table <- function(
 # Set "covariates" to either: (or add multiple using + between covariates)
 #   - (without quote marks) NULL
 #   - Age (Age at assessment centre visit)
-#   - rs72725854_T (carrier status of rs72725854 risk allele)
+#   - rs72725854_T (carrier status of rs72725854 risk allele) (currently not working)
 #
 
 # Logistic Regression
@@ -1203,7 +1203,7 @@ nri_result <- nri(
 print(nri_result)
 
 ######################################################################################
-# Step 11 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
+# Step 10 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
 ######################################################################################
 
 bulk <- logreg_table()
