@@ -1320,57 +1320,85 @@ ORtable <- function(data,
                     group_col = "Group",
                     positive_level = 1,
                     pred_var = "pred",
-                    bins = c(10, 20, 30, 40, 50, 60, 70, 80, 90),
-                    use_existing_cols = TRUE,
+                    bins = c(10, 20, 30, 40, 60, 70, 80, 90, 100),
+                    use_existing_cols = FALSE,
                     digits = 2) {
   # Basic checks
   stopifnot(outcome %in% names(data))
   stopifnot(group_col %in% names(data))
-  if (!pred_var %in% names(data) && !use_existing_cols) {
-    stop("`pred_var` not found and `use_existing_cols = FALSE`.")
+  if (!pred_var %in% names(data)) {
+    stop("`pred_var` not found in `data`.")
+  }
+  if (use_existing_cols) {
+    message("`use_existing_cols` is ignored in this ORtable version; percentile bands are computed from `pred_var`.")
   }
   
   # Make Group a factor (preserve order if already set)
   data[[group_col]] <- as.factor(data[[group_col]])
   
-  # Helper: retrieve (or compute) bin membership vector
-  get_bin_vector <- function(bin_pct) {
-    colname <- paste0("predtop", bin_pct)
-    if (use_existing_cols && colname %in% names(data)) {
-      v <- data[[colname]]
-      # Coerce to logical if it came as numeric/integer
-      if (!is.logical(v)) v <- as.logical(v)
-      return(v)
-    } else {
-      # Compute threshold from pred quantile if not present
-      if (!pred_var %in% names(data)) {
-        stop("Missing `pred` column to compute quantile thresholds; either supply it or set `use_existing_cols = TRUE` with existing predtopXX columns.")
-      }
-      thr <- stats::quantile(data[[pred_var]], probs = 1 - bin_pct/100, na.rm = TRUE, names = FALSE)
-      return(data[[pred_var]] >= thr)
+  # Percentile cut points for pred_var
+  q <- stats::quantile(data[[pred_var]], probs = seq(0, 1, 0.1), na.rm = TRUE, names = FALSE)
+  
+  # Define requested percentile bands and the reference band
+  band_defs <- list(
+    c(0.0, 0.1),
+    c(0.1, 0.2),
+    c(0.2, 0.3),
+    c(0.3, 0.4),
+    c(0.4, 0.6),
+    c(0.6, 0.7),
+    c(0.7, 0.8),
+    c(0.8, 0.9),
+    c(0.9, 1.0)
+  )
+  band_labels <- c(
+    "0-10th percentile",
+    "10-20th percentile",
+    "20-30th percentile",
+    "30-40th percentile",
+    "40-60th percentile",
+    "60-70th percentile",
+    "70-80th percentile",
+    "80-90th percentile",
+    "90-100th percentile"
+  )
+  ref_label <- "40-60th percentile"
+  
+  # Build a membership vector for each percentile band
+  make_band_vector <- function(lo_prob, hi_prob) {
+    lo_idx <- as.integer(lo_prob * 10) + 1
+    hi_idx <- as.integer(hi_prob * 10) + 1
+    lo_val <- q[lo_idx]
+    hi_val <- q[hi_idx]
+    x <- data[[pred_var]]
+    if (hi_prob < 1.0) {
+      return(x >= lo_val & x < hi_val)
     }
+    return(x >= lo_val & x <= hi_val)
   }
+  band_vectors <- lapply(band_defs, function(b) make_band_vector(b[1], b[2]))
+  names(band_vectors) <- band_labels
+  ref_vec <- band_vectors[[ref_label]]
   
   # Containers
   groups <- levels(data[[group_col]])
-  bin_labels <- paste0("Top ", bins, "%")
   
   # Long results accumulator
   res_long <- list()
   
-  # Iterate over bins and groups
-  for (i in seq_along(bins)) {
-    bin_pct <- bins[i]
-    bin_label <- bin_labels[i]
-    inbin_vec <- get_bin_vector(bin_pct)
+  # Iterate over requested percentile bands and groups
+  for (i in seq_along(band_labels)) {
+    bin_label <- band_labels[i]
+    inbin_vec <- band_vectors[[bin_label]]
     
     for (g in groups) {
-      # Subset to group g and non-missing outcomes and bin flags
-      keep <- !is.na(data[[group_col]]) & !is.na(data[[outcome]]) & !is.na(inbin_vec)
-      keep <- keep & (data[[group_col]] == g)
+      # Subset to group g and non-missing outcomes/predictions
+      keep <- !is.na(data[[group_col]]) &
+        !is.na(data[[outcome]]) &
+        !is.na(data[[pred_var]]) &
+        (data[[group_col]] == g)
       
       if (!any(keep)) {
-        # No data for this group
         res_long[[length(res_long) + 1]] <- data.frame(
           bin = bin_label, group = g,
           n_in = NA_integer_, events_in = NA_integer_, rate_in = NA_real_,
@@ -1384,43 +1412,67 @@ ORtable <- function(data,
       
       y <- data[[outcome]][keep]
       inbin <- inbin_vec[keep]
+      refbin <- ref_vec[keep]
       y_pos <- y == positive_level
       
-      # 2x2 counts inside the group:
-      #          Outcome+
-      # inbin=1     a       (in & pos)
-      # inbin=1     b       (in & neg)
-      # inbin=0     c       (out & pos)
-      # inbin=0     d       (out & neg)
+      # Current band counts
       a <- sum(inbin & y_pos, na.rm = TRUE)
       b <- sum(inbin & !y_pos, na.rm = TRUE)
-      c <- sum(!inbin & y_pos, na.rm = TRUE)
-      d <- sum(!inbin & !y_pos, na.rm = TRUE)
+      n_in <- a + b
       
-      n_in  <- a + b
-      n_out <- c + d
+      # Reference (40-60th percentile) counts
+      c <- sum(refbin & y_pos, na.rm = TRUE)
+      d <- sum(refbin & !y_pos, na.rm = TRUE)
+      n_ref <- c + d
       
-      # If no one falls in or out of the bin for this group, OR is undefined
-      if (n_in == 0L || n_out == 0L) {
+      # Force reference band OR to 1 by definition
+      if (identical(bin_label, ref_label)) {
         res_long[[length(res_long) + 1]] <- data.frame(
-          bin = bin_label, group = g,
-          n_in = n_in, events_in = a, rate_in = ifelse(n_in > 0, a / n_in, NA_real_),
-          n_out = n_out, events_out = c, rate_out = ifelse(n_out > 0, c / n_out, NA_real_),
-          OR_pos = NA_real_, CI_low = NA_real_, CI_high = NA_real_,
+          bin = bin_label,
+          group = g,
+          n_in = n_in,
+          events_in = a,
+          rate_in = ifelse(n_in > 0, a / n_in, NA_real_),
+          n_out = n_ref,
+          events_out = c,
+          rate_out = ifelse(n_ref > 0, c / n_ref, NA_real_),
+          OR_pos = 1,
+          CI_low = 1,
+          CI_high = 1,
           p_value = NA_real_,
           stringsAsFactors = FALSE
         )
         next
       }
       
-      # Haldaneâ€“Anscombe correction if any zero cells
+      # OR undefined if either current band or reference band has no observations
+      if (n_in == 0L || n_ref == 0L) {
+        res_long[[length(res_long) + 1]] <- data.frame(
+          bin = bin_label,
+          group = g,
+          n_in = n_in,
+          events_in = a,
+          rate_in = ifelse(n_in > 0, a / n_in, NA_real_),
+          n_out = n_ref,
+          events_out = c,
+          rate_out = ifelse(n_ref > 0, c / n_ref, NA_real_),
+          OR_pos = NA_real_,
+          CI_low = NA_real_,
+          CI_high = NA_real_,
+          p_value = NA_real_,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      
+      # Haldane-Anscombe correction if any zero cells
       zero_cell <- any(c(a, b, c, d) == 0L)
       a2 <- if (zero_cell) a + 0.5 else a
       b2 <- if (zero_cell) b + 0.5 else b
       c2 <- if (zero_cell) c + 0.5 else c
       d2 <- if (zero_cell) d + 0.5 else d
       
-      # OR (positive outcome): (a/b) / (c/d) = (a*d) / (b*c)
+      # OR (positive outcome): odds in current band vs odds in reference band
       OR <- (a2 * d2) / (b2 * c2)
       
       # Wald CI on log OR
@@ -1428,7 +1480,7 @@ ORtable <- function(data,
       CI_low <- exp(log(OR) - 1.96 * se_logOR)
       CI_high <- exp(log(OR) + 1.96 * se_logOR)
       
-      # Fisher's exact p-value (uses uncorrected counts)
+      # Fisher's exact p-value for current band vs reference band
       pval <- tryCatch(
         stats::fisher.test(matrix(c(a, b, c, d), nrow = 2))$p.value,
         error = function(e) NA_real_
@@ -1437,7 +1489,7 @@ ORtable <- function(data,
       res_long[[length(res_long) + 1]] <- data.frame(
         bin = bin_label, group = g,
         n_in = n_in, events_in = a, rate_in = a / n_in,
-        n_out = n_out, events_out = c, rate_out = c / n_out,
+        n_out = n_ref, events_out = c, rate_out = c / n_ref,
         OR_pos = OR, CI_low = CI_low, CI_high = CI_high,
         p_value = pval,
         stringsAsFactors = FALSE
@@ -1465,7 +1517,7 @@ ORtable <- function(data,
   # Build a wide table with one column per group using the formatted string
   # (Rows ordered by bin sequence)
   # We'll keep just one row per (bin, group) with the formatted metric.
-  bins_order <- unique(res_long$bin)
+  bins_order <- band_labels
   groups_order <- levels(data[[group_col]])
   
   wide_format <- do.call(
@@ -1498,8 +1550,9 @@ ORtable <- function(data,
   # Add helpful attributes
   attr(res_long, "note") <- paste0(
     "Within each Group, OR compares odds of ", outcome, " == ", positive_level,
-    " for IN-bin vs OUT-of-bin. 95% CI via Wald on log-OR; p-value via Fisher's exact test. ",
-    "Haldaneâ€“Anscombe +0.5 applied when a zero cell occurs."
+    " in each percentile band of `", pred_var, "` against the 40-60th percentile reference band. ",
+    "Reference band OR is fixed at 1 [1, 1]. 95% CI via Wald on log-OR; p-value via Fisher's exact test. ",
+    "Haldane-Anscombe +0.5 applied when a zero cell occurs."
   )
   
   list(
@@ -1508,6 +1561,7 @@ ORtable <- function(data,
     wide_OR = wide_OR         # numeric ORs only
   )
 }
+
 
 
 
