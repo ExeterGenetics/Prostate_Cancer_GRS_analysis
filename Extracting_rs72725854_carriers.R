@@ -1,8 +1,9 @@
 ## Extracting rs72725854 carriers
 
 remotes::install_github("lcpilling/ukbrapR")
-varlist <- data.frame(rsid=c("rs72725854"), chr=c(8))
-imputed_genotypes <- ukbrapR:::extract_variants(varlist)
+varlist <- data.frame(rsid=c("rs72725854_T", "rs72725854_G"), pos=c("128074815"), chr=c(8))
+imputed_genotypes <- ukbrapR:::extract_variants(varlist, use_imp_pos=TRUE, overwrite=TRUE, 
+                                                progress=TRUE, verbose=TRUE, very_verbose=TRUE)
 
 #############################################
 # Important - remove withdrawn participants #
