@@ -955,6 +955,15 @@ run_logreg <- function(data,
     data = data,
     roc = roc_obj
   ))
+}
+
+
+confusion_matrix <- function(data,
+                             outcome,
+                             cutoff_value = 0.5,
+                             positive_level = 1,
+                             negative_level = 0,
+                             print_epi = TRUE) {
   
   data$predbin <- factor(
     data$pred > cutoff_value,
