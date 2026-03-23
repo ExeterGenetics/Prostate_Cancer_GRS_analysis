@@ -15,7 +15,7 @@ imputed_genotypes <- ukbrapR:::extract_variants(varlist, overwrite=TRUE,
 #remotes::install_github("lcpilling/ukbrapR", force = TRUE)
 #varlist <- data.frame(rsid=c("rs72725854"), pos = "128074815", chr=c(8))
 #imputed_genotypes <- ukbrapR:::extract_variants(varlist, use_imp_pos=TRUE, overwrite=TRUE, 
-                                                progress=TRUE, verbose=TRUE, very_verbose=TRUE)
+#                                                progress=TRUE, verbose=TRUE, very_verbose=TRUE)
 
 #############################################
 # Important - remove withdrawn participants #
