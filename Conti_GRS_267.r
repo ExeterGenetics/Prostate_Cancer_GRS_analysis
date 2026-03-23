@@ -15,6 +15,8 @@
 ## - Wang_HispanicGRS_446.tsv
 ## - SchumacherGRS_145.tsv
 ## - BARCODE1GRS_129.tsv
+## - SeibertGRS_52.tsv
+## - PagadalaGRS_285.tsv
 
 install.packages("remotes")
 remotes::install_github("lcpilling/ukbrapR@v0.3.10",
@@ -34,7 +36,7 @@ library(tibble)
 OR_column <- "OR_MULTI"
 
 ## Choose the source GWAS: "Conti", "Wang", "Schumacher", "BARCODE1", "Seibert", or "Pagadala"
-source <- "Wang" 
+source <- "Pagadala" 
 
 
 ##########
