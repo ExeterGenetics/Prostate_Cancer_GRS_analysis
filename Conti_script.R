@@ -9,10 +9,17 @@ library(readxl)
 library(stringr)
 library(tidyr)
 
+## GRSs trained to predict general prostate cancer diagnosis
+
 system('dx download Callum/ContiGWAS/Conti2021supplementarytables.xlsx') # This is the supplementary table file from Conti et al. (2021), downloadable at: https://www.nature.com/articles/s41588-020-00748-0
 system('dx download Callum/WangGWAS/Wang2023supplementarytables.xlsx') # This is the supplementary table file from Wang et al. (2023), downloadable at: https://pmc.ncbi.nlm.nih.gov/articles/PMC10841479/
 system('dx download Callum/SchumacherGWAS/Schumacher.txt') # This is the list of SNPs and weights from Schumacher et al. (2018), downloadable at: https://www.pgscatalog.org/publication/PGP000019/ 
 system('dx download Callum/SchumacherGWAS/BARCODE1.txt') # This is the list of SNPs and weights from BARCODE1 (2021), downloadable at: https://www.pgscatalog.org/publication/PGP000726/ 
+
+## GRSs trained to predict aggressive prostate cancer diagnosis
+
+system('dx download Callum/SeibertGWAS/Seibert.txt') # This is the list of SNPs and weights from Seibert et al. (2018), downloadable at: https://www.pgscatalog.org/publication/PGP000047/ 
+system('dx download Callum/SeibertGWAS/Pagadala.txt') # This is the list of SNPs and weights from Pagadala et al. (2022), downloadable at: https://www.pgscatalog.org/publication/PGP000400/
 
 ############################
 # Define withdrawal filter #
@@ -633,9 +640,9 @@ system(paste("dx upload", "Wang_Hispanic.pgs.tsv"))
 
 
 
-#------------------------------------------#
-# -- New section: Schumacher (2018) GRS -- #
-#------------------------------------------#
+#------------------------------#
+# -- Schumacher (2018) GRSs -- #
+#------------------------------#
 
 ########################################
 # Option #11 - Schumacher (147-SNP) GRS #
@@ -730,3 +737,102 @@ write.table(GRS, "BARCODE1.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
 ## Upload to project
 
 system(paste("dx upload", "BARCODE1.pgs.tsv"))
+
+
+
+#------------------------------------#
+# -- Seibert (2018 and 2022) GRSs -- #
+#------------------------------------#
+
+#####################################
+# Option #13 - Seibert (54-SNP) GRS #
+#####################################
+
+Seibert <- read.delim("~/Seibert.txt", comment.char="#")
+Seibert=arrange(Seibert,chr_name,chr_position)
+Seibert=Seibert%>%rename(
+  rsID=`rsID`,
+  CHR=chr_name,
+  POS=chr_position,
+  effect_allele=`effect_allele`,
+  other_allele=`other_allele`,
+  effect_weight=`effect_weight`
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+Seibert2=Seibert%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+Seibert2$CHR[is.na(Seibert2$CHR)]="X"
+write.table(Seibert2,'Seibert.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+conti_out=ukbrapR:::create_pgs(
+  in_file='Seibert.tsv',
+  out_file='Seibert.pgs',
+  pgs_name='Seibert',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('Seibert.pgs.bim')
+#outscore=read.table('Seibert.pgs.profile',header=T)
+
+GRS <- read.table("Seibert.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "Seibert"))
+
+write.table(GRS, "Seibert.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "Seibert.pgs.tsv"))
+
+
+#######################################
+# Option #14 - Pagadala (290-SNP) GRS #
+#######################################
+
+Pagadala <- read.delim("~/Pagadala.txt", comment.char="#")
+Pagadala=arrange(Pagadala,chr_name,chr_position)
+Pagadala=Pagadala%>%rename(
+  rsID=`rsID`,
+  CHR=chr_name,
+  POS=chr_position,
+  effect_allele=`effect_allele`,
+  other_allele=`other_allele`,
+  effect_weight=`effect_weight`
+)%>%select(
+  rsID,CHR,POS,effect_allele,other_allele,effect_weight
+)
+
+Pagadala2=Pagadala%>%mutate(CHR=as.numeric(CHR))%>%arrange(CHR,POS)
+
+Pagadala2$CHR[is.na(Pagadala2$CHR)]="X"
+write.table(Pagadala2,'Pagadala.tsv',quote=FALSE,sep='\t',row.names = FALSE)
+
+
+conti_out=ukbrapR:::create_pgs(
+  in_file='Pagadala.tsv',
+  out_file='Pagadala.pgs',
+  pgs_name='Pagadala',
+  use_imp_pos=TRUE,
+  very_verbose=TRUE, # can probably remove
+  overwrite=TRUE # overwrites files with same name
+)
+
+outbim=read.table('Pagadala.pgs.bim')
+#outscore=read.table('Pagadala.pgs.profile',header=T)
+
+GRS <- read.table("Pagadala.pgs.tsv", header = TRUE)
+
+GRS <- exclude_withdrawn(GRS) %>%
+  dplyr::select(c("eid", "Pagadala"))
+
+write.table(GRS, "Pagadala.pgs.tsv", quote=FALSE, sep='\t',row.names = FALSE)
+
+## Upload to project
+
+system(paste("dx upload", "Pagadala.pgs.tsv"))

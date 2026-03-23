@@ -33,7 +33,7 @@ library(tibble)
 # Options: "OR_MULTI", "OR_EUR", "OR_AFR", "OR_EAS", "OR_HIS"
 OR_column <- "OR_MULTI"
 
-## Choose the source GWAS: "Conti", "Wang", "Schumacher", or "BARCODE1"
+## Choose the source GWAS: "Conti", "Wang", "Schumacher", "BARCODE1", "Seibert", or "Pagadala"
 source <- "Wang" 
 
 
@@ -41,10 +41,17 @@ source <- "Wang"
 # Inputs #
 ##########
 
+## GRSs trained to predict general prostate cancer diagnosis
+
 system('dx download Callum/ContiGWAS/Conti2021supplementarytables.xlsx') # This is the supplementary table file from Conti et al. (2021), downloadable at: https://www.nature.com/articles/s41588-020-00748-0
 system('dx download Callum/WangGWAS/Wang2023supplementarytables.xlsx') # This is the supplementary table file from Wang et al. (2023), downloadable at: https://pmc.ncbi.nlm.nih.gov/articles/PMC10841479/
-system('dx download Callum/SchumacherGWAS/Schumacher.txt') # This is the list of SNPs and weights from Schumacher et al. (2018), downloadable at: https://www.pgscatalog.org/publication/PGP000019/
-system('dx download Callum/SchumacherGWAS/BARCODE1.txt') # This is the list of SNPs and weights from BARCODE1 (2021), downloadable at: https://www.pgscatalog.org/publication/PGP000726/
+system('dx download Callum/SchumacherGWAS/Schumacher.txt') # This is the list of SNPs and weights from Schumacher et al. (2018), downloadable at: https://www.pgscatalog.org/publication/PGP000019/ 
+system('dx download Callum/SchumacherGWAS/BARCODE1.txt') # This is the list of SNPs and weights from BARCODE1 (2021), downloadable at: https://www.pgscatalog.org/publication/PGP000726/ 
+
+## GRSs trained to predict aggressive prostate cancer diagnosis
+
+system('dx download Callum/SeibertGWAS/Seibert.txt') # This is the list of SNPs and weights from Seibert et al. (2018), downloadable at: https://www.pgscatalog.org/publication/PGP000047/ 
+system('dx download Callum/SeibertGWAS/Pagadala.txt') # This is the list of SNPs and weights from Pagadala et al. (2022), downloadable at: https://www.pgscatalog.org/publication/PGP000400/
 
 #########################################################################
 # Step 1: Load sheet 4 from Supplementary tables and extract OR columns #
@@ -167,8 +174,8 @@ if (source == "Conti") {
       CHR = ifelse(CHR %in% c("X","x"), "X", as.character(as.integer(CHR)))
     )
   
-} else if (source == "BARCODE1") {
-  raw_data <- read.delim("BARCODE1.txt", comment.char = "#")
+} else if (source == "BARCODE1" | source == "Seibert" | source == "Pagadala") {
+  raw_data <- read.delim(paste0(source, ".txt"), comment.char = "#")
   
   base_data <- raw_data %>%
     arrange(chr_name, chr_position) %>%
@@ -190,7 +197,7 @@ if (source == "Conti") {
     )
   
 } else {
-  stop("Invalid source. Choose 'Conti', 'Wang', 'Schumacher', or 'BARCODE1'.")
+  stop("Invalid source. Choose 'Conti', 'Wang', 'Schumacher', 'BARCODE1', 'Seibert', or 'Pagadala'.")
 }
 
 #######################################################
