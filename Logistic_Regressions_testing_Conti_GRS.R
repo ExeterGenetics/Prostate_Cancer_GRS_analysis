@@ -428,7 +428,7 @@ severity_criteria <- death_chemo
 
 iv <- read_csv("imputed_rs72725854.csv") # loads independent variable dataset
 iv <- iv %>%
-  select(c("eid", "rs72725854_G"))
+  select(c("eid", "rs72725854_G", "rs72725854_T")) 
 
 covariates <- read_csv("Age_Sex_PRS_GA.csv")
 covariates <- covariates %>% 
@@ -920,7 +920,7 @@ logreg_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
-    covariates_list = list(NULL, "Age"),  # use list() so NULL is preserved as a distinct option
+    covariates_list = list(NULL, "Age", "rs72725854_T"),  # uses list() so NULL is preserved as a distinct option
     plot_roc = FALSE,
     verbose = TRUE
 ) {
@@ -1144,15 +1144,15 @@ logreg_table <- function(
 # Set "covariates" to either: (or add multiple using + between covariates)
 #   - (without quote marks) NULL
 #   - Age (Age at assessment centre visit)
-#   - rs72725854_T (carrier status of rs72725854 risk allele) (currently not working)
+#   - rs72725854_T (carrier status of rs72725854 risk allele) 
 #
 
 # Logistic Regression
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
-                    predictor = "Age",
-                    covariates = NULL,
+                    predictor = "WangmultiethnicGRS",
+                    covariates = "Age",
                     plot_roc = TRUE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
