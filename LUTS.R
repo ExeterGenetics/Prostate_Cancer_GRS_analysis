@@ -35,8 +35,8 @@ dxdownload("Callum/Derived_datasets/ethnicity.csv")		# Dataset of self-reported 
 dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs_UKB2_scaled.csv")	# Projected Principal Components of UKB participants in the principal components space of the HGDP+1000 Genomes reference panel, calculated using "AncestryProbability2calculation.R" in AncestryProbability2_plink folder
 dxdownload("Callum/Derived_datasets/AncestryProbability1.csv")	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
 dxdownload("Callum/Derived_datasets/AncestryProbability2.csv") 	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability2_plink folder script
-
 dxdownload("Callum/Derived_datasets/FH_PrCa_BrCa.csv")		# Dataset of Family History of Prostate Cancer and Breast Cancer, created using "Family_history.R" script
+
 dxdownload("Callum/GRSs/Conti_multi_ethnic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Multiethnic Analysis"
 dxdownload("Callum/GRSs/Conti_European.pgs.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "European...16"
 dxdownload("Callum/GRSs/Conti_African.pgs.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "African...19"
@@ -64,10 +64,16 @@ dxdownload("Callum/GRSs/Wang_HispanicGRS_446.tsv")		# Calculated Wang GRS for al
 dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
 
 dxdownload("Callum/GRSs/Schumacher.pgs.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
-dxdownload("Callum/GRSs/SchumacherGRS_145.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/SchumacherGRS_145.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Schumacher"
 
 dxdownload("Callum/GRSs/BARCODE1.pgs.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
-dxdownload("Callum/GRSs/BARCODE1GRS_129.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/BARCODE1GRS_129.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "BARCODE1"
+
+dxdownload("Callum/GRSs/Seibert.pgs.tsv")    # Calculated Seibert (2018) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/SeibertGRS_52.tsv")    # Calculated Seibert (2018) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Seibert"
+
+dxdownload("Callum/GRSs/Pagadala.pgs.tsv")    # Calculated Pagadala (2022) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/PagadalaGRS_285.tsv")    # Calculated Pagadala (2022) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Pagadala"
 
 system("dx download Callum/LUTS/Green2022supplementarytable1.csv") # This is the supplementary table 1 from Harry Green's LUTS paper, converted to .csv format using excel. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC9553867/
 Green2022supplementarytable1 <- read.csv("Green2022supplementarytable1.csv")
@@ -980,6 +986,42 @@ BARCODE1GRS129 <- BARCODE1GRS129 %>%
   dplyr::rename('BARCODE1GRS129' = 'BARCODE1_GRS_avg') %>%
   dplyr::mutate(top10_all_BARCODE1GRS129 = BARCODE1GRS129 >= quantile(BARCODE1GRS129, probs = 0.9))
 
+## Add Seibert and Pagadala GRSs
+
+SeibertGRS <- read_delim("Seibert.pgs.tsv")
+SeibertGRS <- SeibertGRS %>%
+  dplyr::rename('SeibertGRS' = 'Seibert') %>%
+  dplyr::mutate(top10_all_SeibertGRS = SeibertGRS >= quantile(SeibertGRS, probs = 0.9))
+
+PagadalaGRS <- read_delim("Pagadala.pgs.tsv")
+PagadalaGRS <- PagadalaGRS %>%
+  dplyr::rename('PagadalaGRS' = 'Pagadala') %>%
+  dplyr::mutate(top10_all_PagadalaGRS = PagadalaGRS >= quantile(PagadalaGRS, probs = 0.9))
+
+SeibertGRS52 <- read_delim("SeibertGRS_52.tsv")
+SeibertGRS52 <- SeibertGRS52 %>%
+  dplyr::select(c("eid", "Seibert_GRS_avg")) %>%
+  dplyr::rename('SeibertGRS52' = 'Seibert_GRS_avg') %>%
+  dplyr::mutate(top10_all_SeibertGRS52 = SeibertGRS52 >= quantile(SeibertGRS52, probs = 0.9))
+
+PagadalaGRS285 <- read_delim("PagadalaGRS_285.tsv")
+PagadalaGRS285 <- PagadalaGRS285 %>%
+  dplyr::select(c("eid", "Pagadala_GRS_avg")) %>%
+  dplyr::rename('PagadalaGRS285' = 'Pagadala_GRS_avg') %>%
+  dplyr::mutate(top10_all_PagadalaGRS285 = PagadalaGRS285 >= quantile(PagadalaGRS285, probs = 0.9))
+
+## Merge all GRSs into one
+
+All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS145, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS129, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SeibertGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, PagadalaGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SeibertGRS52, by = "eid", all = T)
+All_GRS <- merge(All_GRS, PagadalaGRS285, by = "eid", all = T)
+
 ## Merge all GRSs into one
 
 All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
@@ -1290,7 +1332,12 @@ logreg_table <- function(
       "SchumacherGRS",
       "BARCODE1GRS",
       "SchumacherGRS145",
-      "BARCODE1GRS129"
+      "BARCODE1GRS129",
+      # Seibert and Pagadala GRSs
+      "SeibertGRS",
+      "PagadalaGRS",
+      "SeibertGRS52",
+      "PagadalaGRS285"
     )
   }
   
@@ -1453,6 +1500,11 @@ logreg_table <- function(
 #   - BARCODE1GRS (BARCODE1 GRS (2021)))
 #   - SchumacherGRS145 (Schumacher's GRS with 145 available SNPs)
 #   - BARCODE1GRS129 (BARCODE1 GRS with 129 available SNPs)
+#
+#    - SeibertGRS (Seibert's GRS (2018))
+#    - PagadalaGRS (Pagadala's GRS (2022))
+#    - SeibertGRS52 (Seibert's GRS with 52 available SNPs)
+#    - PagadalaGRS285 (Pagadala's GRS with 285 available SNPs)
 #
 # Set "covariates" to either: (or add multiple using + between covariates)
 #
