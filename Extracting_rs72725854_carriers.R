@@ -1,8 +1,20 @@
 ## Extracting rs72725854 carriers
 
-remotes::install_github("lcpilling/ukbrapR")
-varlist <- data.frame(rsid=c("rs72725854_T", "rs72725854_G"), pos=c("128074815"), chr=c(8))
-imputed_genotypes <- ukbrapR:::extract_variants(varlist, use_imp_pos=TRUE, overwrite=TRUE, 
+library(dplyr)
+library(readr)
+
+## Old version - successfully extracts rs72725854_G AND rs72725854_T
+
+remotes::install_github("lcpilling/ukbrapR@v0.3.9", force = TRUE)
+varlist <- data.frame(rsid=c("rs72725854"), chr=c(8))
+imputed_genotypes <- ukbrapR:::extract_variants(varlist, overwrite=TRUE, 
+                                                progress=TRUE, verbose=TRUE, very_verbose=TRUE)
+
+## New version - only extracts rs72725854_G. If you've already run the old version, restart R before running this
+
+#remotes::install_github("lcpilling/ukbrapR", force = TRUE)
+#varlist <- data.frame(rsid=c("rs72725854"), pos = "128074815", chr=c(8))
+#imputed_genotypes <- ukbrapR:::extract_variants(varlist, use_imp_pos=TRUE, overwrite=TRUE, 
                                                 progress=TRUE, verbose=TRUE, very_verbose=TRUE)
 
 #############################################
@@ -21,8 +33,8 @@ exclude_withdrawn=function(df){
   return(df2)
 }
 
-imputed_genotypes <- exclude_withdrawn(imputed_genotypes)
+imputed_genotypes <- exclude_withdrawn(imputed_genotypes) %>%
+  dplyr::select("eid", "rs72725854_G", "rs72725854_T")
 
 write.csv(imputed_genotypes, file = "imputed_rs72725854.csv")
 system(paste("dx upload", "imputed_rs72725854.csv"))
-
