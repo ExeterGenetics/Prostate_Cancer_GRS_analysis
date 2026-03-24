@@ -745,3 +745,445 @@ nri <- function(data,
     table        = results
   ))
 }
+
+## Function to compute NRI for each GRS added to an Age-only reference model ─────────────────────
+## 
+## How it works:
+##   For each combination of (outcome, population):
+##     1. Fit an Age-only model (reference) → generates pred column
+##     2. For each GRS in grs_list:
+##        - Fit Age + GRS model → generates pred2 column
+##        - Calculate NRI(Age+GRS vs Age only)
+##        - Store in results dataframe
+##
+## Returns: dataframe with columns:
+##   - Outcome, Population, GRS
+##   - N_Cases, N_Controls
+##   - NRI, NRI_CI_Lower, NRI_CI_Upper, p_NRI
+##   - NRI_Cases, NRI_Controls (component NRIs)
+
+nri_table <- function(
+    populations = NULL,
+    grs_list = NULL,
+    outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
+                 "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
+                 "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    verbose = TRUE
+) {
+  
+  # Default populations if not specified
+  if (is.null(populations)) {
+    populations <- list(
+      "All" = PCa_iv_covariates_GRS_predhorizon,
+      "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+      "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+      "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+      "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+      "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+      "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+      "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+      "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+      "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+      "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+    )
+  }
+  
+  # Default GRS list if not specified
+  if (is.null(grs_list)) {
+    grs_list <- c(
+      # Conti GRSs (Conti_script.R version)
+      "ContimultiethnicGRS",
+      "ContiEuropeanGRS",
+      "ContiAfricanGRS",
+      "ContiEast_AsianGRS",
+      "ContiHispanicGRS",
+      "ContiadjustedGRS",
+      # Conti GRSs (Conti_GRS_267.R version)
+      "ContimultiethnicGRS267",
+      "ContiEuropeanGRS265",
+      "ContiAfricanGRS246",
+      "ContiEast_AsianGRS222",
+      "ContiHispanicGRS253",
+      "ContiORadjustedGRS",
+      # Wang GRSs (Conti_script.R version)
+      "WangmultiethnicGRS",
+      "WangEuropeanGRS",
+      "WangAfricanGRS",
+      "WangEast_AsianGRS",
+      "WangHispanicGRS",
+      # Wang GRSs (Conti_GRS_267.R version)
+      "WangmultiethnicGRS450",
+      "WangEuropeanGRS445",
+      "WangAfricanGRS444",
+      "WangEast_AsianGRS379",
+      "WangHispanicGRS446",
+      # Schumacher and BARCODE1 GRSs
+      "SchumacherGRS",
+      "BARCODE1GRS",
+      "SchumacherGRS145",
+      "BARCODE1GRS129",
+      # Seibert and Pagadala GRSs
+      "SeibertGRS",
+      "PagadalaGRS",
+      "SeibertGRS52",
+      "PagadalaGRS285"
+    )
+  }
+  
+  grs_list <- setdiff(grs_list, "Age")
+  
+  # Initialize results dataframe
+  results <- data.frame(
+    Outcome = character(),
+    Population = character(),
+    GRS = character(),
+    N_Cases = integer(),
+    N_Controls = integer(),
+    NRI = numeric(),
+    NRI_CI_Lower = numeric(),
+    NRI_CI_Upper = numeric(),
+    p_NRI = numeric(),
+    NRI_Cases = numeric(),
+    NRI_Controls = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Total combinations to process
+  total_combos <- length(outcomes) * length(populations) * length(grs_list)
+  combo_count <- 0
+  
+  # Loop over all combinations
+  for (current_outcome in outcomes) {
+    for (pop_name in names(populations)) {
+      pop_data <- populations[[pop_name]]
+      
+      # ── Fit Age-only reference model ───────────────────────────────────────
+      if (verbose) {
+        cat(sprintf("\n=== %s | %s ===\n", current_outcome, pop_name))
+        cat("Fitting Age-only reference model...\n")
+      }
+      
+      if (!"Age" %in% colnames(pop_data)) {
+        if (verbose) cat(sprintf("Skipping (Age not in %s)\n", pop_name))
+        next
+      }
+      
+      tryCatch({
+        # Fit Age-only model
+        age_model <- run_logreg(
+          data = pop_data,
+          outcome = current_outcome,
+          predictor = "Age",
+          covariates = NULL,
+          plot_roc = FALSE
+        )
+        
+        reference_data <- age_model$data  # Has pred column (Age-only predictions)
+        
+        # ── For each GRS, fit Age+GRS model and calculate NRI ─────────────────
+        for (grs_pred in grs_list) {
+          combo_count <- combo_count + 1
+          
+          # Check if GRS exists in data
+          if (!grs_pred %in% colnames(pop_data)) {
+            if (verbose) cat(sprintf("[%d/%d] Skipping %s (not in %s)\n", 
+                                     combo_count, total_combos, grs_pred, pop_name))
+            next
+          }
+          
+          if (verbose) {
+            cat(sprintf("[%d/%d] %s + %s\n", 
+                        combo_count, total_combos, current_outcome, grs_pred))
+          }
+          
+          tryCatch({
+            # Fit Age + GRS model on the reference_data (which already has predictions)
+            grs_model <- run_logreg(
+              data = reference_data,
+              outcome = current_outcome,
+              predictor = grs_pred,
+              covariates = "Age",
+              plot_roc = FALSE
+            )
+            
+            # grs_model$data now has pred column (Age+GRS predictions)
+            # reference_data$pred has Age-only predictions
+            # Rename pred columns for NRI calculation
+            nri_data <- grs_model$data
+            names(nri_data)[names(nri_data) == "pred"] <- "pred2"  # Age+GRS predictions
+            
+            # Add the Age-only predictions as pred_old
+            nri_data$pred <- reference_data$pred
+            
+            # Calculate NRI
+            nri_result <- nri(
+              data = nri_data,
+              outcome = current_outcome,
+              pred_new = "pred2",
+              pred_old = "pred",
+              digits = 3
+            )
+            
+            # Count cases and controls
+            n_cases <- nri_result$n_cases
+            n_controls <- nri_result$n_controls
+            
+            # Append to results
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              GRS = grs_pred,
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              NRI = nri_result$NRI,
+              NRI_CI_Lower = nri_result$CI_low_NRI,
+              NRI_CI_Upper = nri_result$CI_high_NRI,
+              p_NRI = nri_result$p_NRI,
+              NRI_Cases = nri_result$NRI_cases,
+              NRI_Controls = nri_result$NRI_controls,
+              stringsAsFactors = FALSE
+            ))
+            
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
+        
+      }, error = function(e) {
+        if (verbose) cat(sprintf("  ERROR fitting Age model: %s\n", e$message))
+      })
+    }
+  }
+  
+  return(results)
+}
+
+## Function to compute logistic regression for all outcome × GRS × population × covariate combinations ───
+## 
+## How it works:
+##   For each combination of (outcome, population, GRS, covariates):
+##     - Fit a logistic regression model
+##     - Compute ROC AUC with 95% CI
+##     - Store outcome, population, GRS, covariates, sample sizes, AUC, and 95% CI in results dataframe
+##
+## Optionally includes Age-only baseline models for comparison.
+##
+## Returns: dataframe with columns:
+##   - Outcome, Population, Predictor, Covariates
+##   - N_Cases, N_Controls
+##   - ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper
+
+logreg_table <- function(
+    populations = NULL,
+    grs_list = NULL,
+    outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
+                 "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
+                 "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    covariates_list = list(NULL, "Age", "rs72725854_T"),  # uses list() so NULL is preserved as a distinct option
+    include_age_only = TRUE,
+    plot_roc = FALSE,
+    verbose = TRUE
+) {
+  
+  # Default populations if not specified
+  
+  if (is.null(populations)) {
+    populations <- list(
+      "All" = PCa_iv_covariates_GRS_predhorizon,
+      "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+      "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+      "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+      "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+      "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+      "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+      "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+      "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+      "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+      "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+    )
+  }
+  
+  # Default GRS list if not specified
+  if (is.null(grs_list)) {
+    grs_list <- c(
+      # Conti GRSs (Conti_script.R version)
+      "ContimultiethnicGRS",
+      "ContiEuropeanGRS",
+      "ContiAfricanGRS",
+      "ContiEast_AsianGRS",
+      "ContiHispanicGRS",
+      "ContiadjustedGRS",
+      # Conti GRSs (Conti_GRS_267.R version)
+      "ContimultiethnicGRS267",
+      "ContiEuropeanGRS265",
+      "ContiAfricanGRS246",
+      "ContiEast_AsianGRS222",
+      "ContiHispanicGRS253",
+      "ContiORadjustedGRS",
+      # Wang GRSs (Conti_script.R version)
+      "WangmultiethnicGRS",
+      "WangEuropeanGRS",
+      "WangAfricanGRS",
+      "WangEast_AsianGRS",
+      "WangHispanicGRS",
+      # Wang GRSs (Conti_GRS_267.R version)
+      "WangmultiethnicGRS450",
+      "WangEuropeanGRS445",
+      "WangAfricanGRS444",
+      "WangEast_AsianGRS379",
+      "WangHispanicGRS446",
+      # Schumacher and BARCODE1 GRSs
+      "SchumacherGRS",
+      "BARCODE1GRS",
+      "SchumacherGRS145",
+      "BARCODE1GRS129",
+      # Seibert and Pagadala GRSs
+      "SeibertGRS",
+      "PagadalaGRS",
+      "SeibertGRS52",
+      "PagadalaGRS285"
+    )
+  }
+  
+  grs_list <- setdiff(grs_list, "Age")
+  
+  # Initialize results dataframe
+  results <- data.frame(
+    Outcome = character(),
+    Population = character(),
+    Predictor = character(),
+    Covariates = character(),
+    N_Cases = integer(),
+    N_Controls = integer(),
+    ROC_AUC = numeric(),
+    ROC_AUC_CI_Lower = numeric(),
+    ROC_AUC_CI_Upper = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Total combinations to process
+  total_combos <- length(outcomes) * length(populations) * length(grs_list) * length(covariates_list)
+  if (include_age_only) {
+    total_combos <- total_combos + length(outcomes) * length(populations)
+  }
+  combo_count <- 0
+  
+  # Loop over all combinations
+  for (current_outcome in outcomes) {
+    for (pop_name in names(populations)) {
+      pop_data <- populations[[pop_name]]
+      
+      for (grs_pred in grs_list) {
+        
+        # Check if GRS exists in data
+        if (!grs_pred %in% colnames(pop_data)) {
+          if (verbose) cat(sprintf("Skipping %s (not in %s)\n", grs_pred, pop_name))
+          next
+        }
+        
+        for (cov in covariates_list) {
+          combo_count <- combo_count + 1
+          
+          # Progress indicator
+          if (verbose) {
+            cov_label <- ifelse(is.null(cov), "NULL", cov)
+            cat(sprintf("[%d/%d] %s | %s | %s | %s\n", 
+                        combo_count, total_combos, current_outcome, pop_name, grs_pred, cov_label))
+          }
+          
+          # Run logistic regression
+          tryCatch({
+            model <- run_logreg(
+              data = pop_data,
+              outcome = current_outcome,
+              predictor = grs_pred,
+              covariates = cov,
+              plot_roc = plot_roc
+            )
+            
+            # Extract ROC AUC and CI
+            roc_obj <- model$roc
+            auc_val <- as.numeric(roc_obj$auc)
+            auc_ci <- as.numeric(roc_obj$ci)  # Returns [lower, AUC, upper]
+            auc_lower <- auc_ci[1]
+            auc_upper <- auc_ci[3]
+            
+            # Count cases and controls in the dataset used
+            n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
+            n_controls <- sum(model$data[[current_outcome]] == 0, na.rm = TRUE)
+            
+            # Covariate label
+            cov_label <- ifelse(is.null(cov), "None", cov)
+            
+            # Append to results
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              Predictor = grs_pred,
+              Covariates = cov_label,
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              ROC_AUC = auc_val,
+              ROC_AUC_CI_Lower = auc_lower,
+              ROC_AUC_CI_Upper = auc_upper,
+              stringsAsFactors = FALSE
+            ))
+            
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
+      }
+      
+      if (include_age_only) {
+        combo_count <- combo_count + 1
+        
+        if (verbose) {
+          cat(sprintf("[%d/%d] %s | %s | %s | %s\n",
+                      combo_count, total_combos, current_outcome, pop_name, "Age", "None"))
+        }
+        
+        if (!"Age" %in% colnames(pop_data)) {
+          if (verbose) cat(sprintf("Skipping Age (not in %s)\n", pop_name))
+        } else {
+          tryCatch({
+            model <- run_logreg(
+              data = pop_data,
+              outcome = current_outcome,
+              predictor = "Age",
+              covariates = NULL,
+              plot_roc = plot_roc
+            )
+            
+            roc_obj <- model$roc
+            auc_val <- as.numeric(roc_obj$auc)
+            auc_ci <- as.numeric(roc_obj$ci)
+            auc_lower <- auc_ci[1]
+            auc_upper <- auc_ci[3]
+            
+            n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
+            n_controls <- sum(model$data[[current_outcome]] == 0, na.rm = TRUE)
+            
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              Predictor = "Age",
+              Covariates = "None",
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              ROC_AUC = auc_val,
+              ROC_AUC_CI_Lower = auc_lower,
+              ROC_AUC_CI_Upper = auc_upper,
+              stringsAsFactors = FALSE
+            ))
+            
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
+      }
+    }
+  }
+  
+  return(results)
+}
