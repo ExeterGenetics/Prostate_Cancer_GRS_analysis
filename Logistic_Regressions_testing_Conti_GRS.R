@@ -1249,8 +1249,8 @@ logreg_table <- function(
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
-                    predictor = "WangmultiethnicGRS",
-                    covariates = "Age",
+                    predictor = "Age",
+                    covariates = NULL,
                     plot_roc = TRUE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
@@ -1339,7 +1339,7 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
     )
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "GRS+Age > Age?"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
 
 ## This block is to view a subset of the bulk logistic regression table. Change
 ## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
