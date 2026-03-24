@@ -1467,6 +1467,16 @@ subset <- formatted %>%
 
 nri_bulk <- nri_table()
 
+nri_bulk <- nri_bulk %>%
+  dplyr::mutate(
+    NRI_significant = dplyr::case_when(
+      is.na(p_NRI) ~ NA_character_,
+      p_NRI < 0.05 ~ "YES",
+      p_NRI >= 0.05 ~ "NO"
+    )
+  )
+
+
 ## This block is to view a subset of the bulk NRI table. Change the filter to investigate a specific Population, Predictor, or Outcome
 
 nri_subset <- nri_bulk %>%
