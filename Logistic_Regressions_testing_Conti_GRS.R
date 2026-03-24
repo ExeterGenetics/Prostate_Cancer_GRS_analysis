@@ -1252,6 +1252,21 @@ print(nri_result)
 
 bulk <- logreg_table()
 
+formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
+  dplyr::mutate(
+    ROC_AUC_4dp = dplyr::if_else(
+      is.na(ROC_AUC),
+      NA_character_,
+      sprintf("%.4f", ROC_AUC)
+    ),
+    ROC_AUC_CI_95_4dp = dplyr::if_else(
+      is.na(ROC_AUC_CI_Lower) | is.na(ROC_AUC_CI_Upper),
+      NA_character_,
+      sprintf("%.4f (%.4f to %.4f)", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
+    )
+  ) %>%
+  dplyr::select(c("Outcome", "Population", "GRS", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp"))
+
 subset <- bulk %>%                        ## View a subset. Change filter to investigate 
   dplyr::filter(                          ## specific populations, GRSs, Prediction Horizons, etc.
     Population == "Black",
