@@ -1629,20 +1629,21 @@ print(nri_result)
 
 ## By default, logreg_table() will compute all combinations of population, outcome, GRS, and covariates
 
-bulk <- logreg_table(grs_list = c("SeibertGRS", "SeibertGRS52", "PagadalaGRS", "PagadalaGRS285", "ContimultiethnicGRS"), 
-                     outcomes = c("PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
-                                      "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"))
+bulk <- logreg_table()
 
-event_age_only_reference <- bulk %>%
+## The below block adds, for each row that represents a GRS + Age model, the
+## equivalent Age-only model, and compares confidence intervals between them
+
+age_only_reference <- bulk %>%
   dplyr::filter(Predictor == "event_age", Covariates == "None") %>%
   dplyr::select(
     Outcome,
     Population,
-    event_age_only_ROC_AUC_CI_Upper = ROC_AUC_CI_Upper
+    Age_only_ROC_AUC_CI_Upper = ROC_AUC_CI_Upper
   )
 
 formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
-  dplyr::left_join(event_age_only_reference, by = c("Outcome", "Population")) %>%
+  dplyr::left_join(age_only_reference, by = c("Outcome", "Population")) %>%
   dplyr::mutate(
     ROC_AUC_4dp = dplyr::if_else(
       is.na(ROC_AUC),
@@ -1654,19 +1655,22 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       NA_character_,
       sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
     ),
-    `GRS+event_age > event_age?` = dplyr::case_when(
+    `GRS+Age > Age?` = dplyr::case_when(
       Covariates != "event_age" | Predictor == "event_age" ~ NA_character_,
-      is.na(ROC_AUC_CI_Lower) | is.na(event_age_only_ROC_AUC_CI_Upper) ~ NA_character_,
-      ROC_AUC_CI_Lower > event_age_only_ROC_AUC_CI_Upper ~ "YES",
-      ROC_AUC_CI_Lower <= event_age_only_ROC_AUC_CI_Upper ~ "NO"
+      is.na(ROC_AUC_CI_Lower) | is.na(Age_only_ROC_AUC_CI_Upper) ~ NA_character_,
+      ROC_AUC_CI_Lower > Age_only_ROC_AUC_CI_Upper ~ "YES",
+      ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
     )
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "GRS+event_age > event_age?"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "GRS+Age > Age?"))
 
-subset <- formatted %>%                        ## View a subset. Change filter to investigate 
-  dplyr::filter(                          ## specific populations, GRSs, Prediction Horizons, etc.
-    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "PagadalaGRS",
-    Outcome == "PrCa_severe_10yrs",
-    Covariates == "event_age" #| Covariates == "None"
+## This block is to view a subset of the bulk logistic regression table. Change
+## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
+
+subset <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "Black",
+    #Predictor == "PagadalaGRS",
+    #Outcome == "PrCa_severe_10yrs",
+    #Covariates == "event_age" #| Covariates == "None"
   )    

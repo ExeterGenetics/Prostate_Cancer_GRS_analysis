@@ -1306,9 +1306,10 @@ print(nri_result)
 
 ## By default, logreg_table() will compute all combinations of population, outcome, GRS, and covariates
 
-bulk <- logreg_table(grs_list = c("SeibertGRS", "SeibertGRS52", "PagadalaGRS", "PagadalaGRS285", "ContimultiethnicGRS"), 
-                     outcomes = c("PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
-                                      "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"))
+bulk <- logreg_table()
+
+## The below block adds, for each row that represents a GRS + Age model, the
+## equivalent Age-only model, and compares confidence intervals between them
 
 age_only_reference <- bulk %>%
   dplyr::filter(Predictor == "Age", Covariates == "None") %>%
@@ -1340,10 +1341,13 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "GRS+Age > Age?"))
 
-subset <- formatted %>%                        ## View a subset. Change filter to investigate 
-  dplyr::filter(                          ## specific populations, GRSs, Prediction Horizons, etc.
-    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "PagadalaGRS",
-    Outcome == "PrCa_severe_10yrs",
-    Covariates == "Age" #| Covariates == "None"
+## This block is to view a subset of the bulk logistic regression table. Change
+## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
+
+subset <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "Black",
+    #Predictor == "PagadalaGRS",
+    #Outcome == "PrCa_severe_10yrs",
+    #Covariates == "Age" #| Covariates == "None"
   )    
