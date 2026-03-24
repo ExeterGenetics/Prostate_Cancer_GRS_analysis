@@ -1457,3 +1457,10 @@ subset <- formatted %>%
     #Outcome == "PrCa_severe_10yrs",
     #Covariates == "Age" #| Covariates == "None"
   )    
+
+
+######################################################################################
+# Step 11 - Generate comprehensive NRI table for all GRSs, populations, and outcomes # 
+######################################################################################
+
+nri_bulk <- nri_table()
