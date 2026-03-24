@@ -1463,4 +1463,15 @@ subset <- formatted %>%
 # Step 11 - Generate comprehensive NRI table for all GRSs, populations, and outcomes # 
 ######################################################################################
 
+## By default, nri_table() will compute all combinations of population, outcome, and GRS for the NRI comparison between a GRS+Age model vs. an Age-only model
+
 nri_bulk <- nri_table()
+
+## This block is to view a subset of the bulk NRI table. Change the filter to investigate a specific Population, Predictor, or Outcome
+
+nri_subset <- nri_bulk %>%
+  dplyr::filter(
+    Population == "Black",
+    #GRS == "PagadalaGRS",
+    #Outcome == "PrCa_severe_10yrs"
+  )
