@@ -1278,6 +1278,7 @@ logreg_table <- function(
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
     covariates_list = list(NULL, "event_age", "rs72725854_T"),  # event_age is the relevant covariate here
+    include_event_age_only = TRUE,
     plot_roc = FALSE,
     verbose = TRUE
 ) {
@@ -1341,11 +1342,13 @@ logreg_table <- function(
     )
   }
   
+  grs_list <- setdiff(grs_list, "event_age")
+  
   # Initialize results dataframe
   results <- data.frame(
     Outcome = character(),
     Population = character(),
-    GRS = character(),
+    Predictor = character(),
     Covariates = character(),
     N_Cases = integer(),
     N_Controls = integer(),
@@ -1357,6 +1360,9 @@ logreg_table <- function(
   
   # Total combinations to process
   total_combos <- length(outcomes) * length(populations) * length(grs_list) * length(covariates_list)
+  if (include_event_age_only) {
+    total_combos <- total_combos + length(outcomes) * length(populations)
+  }
   combo_count <- 0
   
   # Loop over all combinations
@@ -1410,8 +1416,56 @@ logreg_table <- function(
             results <- rbind(results, data.frame(
               Outcome = current_outcome,
               Population = pop_name,
-              GRS = grs_pred,
+              Predictor = grs_pred,
               Covariates = cov_label,
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              ROC_AUC = auc_val,
+              ROC_AUC_CI_Lower = auc_lower,
+              ROC_AUC_CI_Upper = auc_upper,
+              stringsAsFactors = FALSE
+            ))
+            
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
+      }
+      
+      if (include_event_age_only) {
+        combo_count <- combo_count + 1
+        
+        if (verbose) {
+          cat(sprintf("[%d/%d] %s | %s | %s | %s\n",
+                      combo_count, total_combos, current_outcome, pop_name, "event_age", "None"))
+        }
+        
+        if (!"event_age" %in% colnames(pop_data)) {
+          if (verbose) cat(sprintf("Skipping event_age (not in %s)\n", pop_name))
+        } else {
+          tryCatch({
+            model <- run_logreg(
+              data = pop_data,
+              outcome = current_outcome,
+              predictor = "event_age",
+              covariates = NULL,
+              plot_roc = plot_roc
+            )
+            
+            roc_obj <- model$roc
+            auc_val <- as.numeric(roc_obj$auc)
+            auc_ci <- as.numeric(roc_obj$ci)
+            auc_lower <- auc_ci[1]
+            auc_upper <- auc_ci[3]
+            
+            n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
+            n_controls <- sum(model$data[[current_outcome]] == 0, na.rm = TRUE)
+            
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              Predictor = "event_age",
+              Covariates = "None",
               N_Cases = n_cases,
               N_Controls = n_controls,
               ROC_AUC = auc_val,
@@ -1579,7 +1633,16 @@ bulk <- logreg_table(grs_list = c("SeibertGRS", "SeibertGRS52", "PagadalaGRS", "
                      outcomes = c("PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                                       "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"))
 
+event_age_only_reference <- bulk %>%
+  dplyr::filter(Predictor == "event_age", Covariates == "None") %>%
+  dplyr::select(
+    Outcome,
+    Population,
+    event_age_only_ROC_AUC_CI_Upper = ROC_AUC_CI_Upper
+  )
+
 formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
+  dplyr::left_join(event_age_only_reference, by = c("Outcome", "Population")) %>%
   dplyr::mutate(
     ROC_AUC_4dp = dplyr::if_else(
       is.na(ROC_AUC),
@@ -1590,14 +1653,20 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       is.na(ROC_AUC_CI_Lower) | is.na(ROC_AUC_CI_Upper),
       NA_character_,
       sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
+    ),
+    `GRS+event_age > event_age?` = dplyr::case_when(
+      Covariates != "event_age" | Predictor == "event_age" ~ NA_character_,
+      is.na(ROC_AUC_CI_Lower) | is.na(event_age_only_ROC_AUC_CI_Upper) ~ NA_character_,
+      ROC_AUC_CI_Lower > event_age_only_ROC_AUC_CI_Upper ~ "YES",
+      ROC_AUC_CI_Lower <= event_age_only_ROC_AUC_CI_Upper ~ "NO"
     )
   ) %>%
-  dplyr::select(c("Outcome", "Population", "GRS", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "GRS+event_age > event_age?"))
 
 subset <- formatted %>%                        ## View a subset. Change filter to investigate 
   dplyr::filter(                          ## specific populations, GRSs, Prediction Horizons, etc.
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    GRS == "PagadalaGRS",
+    Predictor == "PagadalaGRS",
     Outcome == "PrCa_severe_10yrs",
     Covariates == "event_age" #| Covariates == "None"
   )    
