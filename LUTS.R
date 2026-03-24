@@ -1573,7 +1573,11 @@ print(nri_result)
 # Step 11 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
 ######################################################################################
 
-bulk <- logreg_table()
+## By default, logreg_table() will compute all combinations of population, outcome, GRS, and covariates
+
+bulk <- logreg_table(grs_list = c("SeibertGRS", "SeibertGRS52", "PagadalaGRS", "PagadalaGRS285", "ContimultiethnicGRS"), 
+                     outcomes = c("PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
+                                      "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"))
 
 formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
   dplyr::mutate(
@@ -1585,16 +1589,15 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
     ROC_AUC_CI_95_4dp = dplyr::if_else(
       is.na(ROC_AUC_CI_Lower) | is.na(ROC_AUC_CI_Upper),
       NA_character_,
-      sprintf("%.4f (%.4f to %.4f)", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
+      sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
     )
   ) %>%
   dplyr::select(c("Outcome", "Population", "GRS", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp"))
 
-
-subset <- bulk %>%                        ## View a subset. Change filter to investigate 
+subset <- formatted %>%                        ## View a subset. Change filter to investigate 
   dplyr::filter(                          ## specific populations, GRSs, Prediction Horizons, etc.
-    Population == "Black",
-    GRS == "ContimultiethnicGRS",
-    Outcome == "PrCa_10yrs",
-    Covariates == "event_age"
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    GRS == "PagadalaGRS",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "event_age" #| Covariates == "None"
   )    
