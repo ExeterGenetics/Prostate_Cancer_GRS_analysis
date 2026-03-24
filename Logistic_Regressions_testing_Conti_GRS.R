@@ -1262,7 +1262,7 @@ model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## mode
 # Confusion Matrix
 
 matrix <- confusion_matrix(data = model$data, 
-                           outcome = "PrCa_10yrs", 
+                           outcome = model$outcome, 
                            cutoff_value = 0.20, 
                            positive_level = 1, negative_level = 0)
 
@@ -1270,7 +1270,7 @@ matrix <- confusion_matrix(data = model$data,
 
 OR_table <- ORtable(
   data = model$data,
-  outcome = "PrCa_10yrs",
+  outcome = model$outcome,
   group_col = "ethnicity_group_narrow",       # <- your 6-level grouping variable
   positive_level = 1,        # 1 denotes positive outcome
   use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
@@ -1282,7 +1282,7 @@ print(OR_table$wide_formatted)
 
 RR_table <- RRtable(
   data = model$data,
-  outcome = "PrCa_10yrs",
+  outcome = model$outcome,
   group_col = "ethnicity_group_narrow",
   positive_level = 1,
   use_existing_cols = TRUE
@@ -1295,7 +1295,7 @@ print(RR_table$wide_formatted)
 
 nri_result <- nri(
   data = model$data %>% dplyr::mutate(pred2 = model2$data$pred),
-  outcome = "PrCa_10yrs",
+  outcome = model$outcome,
 )
 
 print(nri_result)
