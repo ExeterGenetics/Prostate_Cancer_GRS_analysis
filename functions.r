@@ -44,6 +44,9 @@ run_logreg <- function(data,
   return(list(
     model = logreg,
     data = data,
+    outcome = outcome,
+    predictor = predictor,
+    covariates = covariates,
     roc = roc_obj
   ))
 }
