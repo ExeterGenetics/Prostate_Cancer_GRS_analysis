@@ -64,9 +64,11 @@ dxdownload("Callum/GRSs/PagadalaGRS_285.tsv")    # Calculated Pagadala (2022) GR
 # Step 1 - Fetch PrCa Cases and collapse into earliest epistart/date #
 ######################################################################
 
-PCaCases_HES<-read_ICD10('C61') # Creates a dataframe of *almost* all recorded prostate cancer diagnoses in HES records
+PCaCases_HES<-read_ICD10(c('C61', 'Z85.46', 'R97.21')) # Creates a dataframe of *almost* all recorded prostate cancer diagnoses in HES records
+# Z85.46 is "Personal history of malignant neoplasm of prostate" and R97.21 is "Elevated prostate specific antigen (PSA)". Adding these to read_ICD10 does not add any cases, so we are not missing any cases by excluding these codes. 
 
-PCaCases_ICD9<-read_ICD9(185)
+PCaCases_ICD9<-read_ICD9(c(185, 'V10.46')) 
+# V10.46 is "Personal history of malignant neoplasm of prostate". Adding this to read_ICD9 does not add any cases
 PCaCases_ICD9 <- PCaCases_ICD9 %>%
   mutate(
     diag_icd10 = case_when(
@@ -180,7 +182,13 @@ PCaCases_death_earliest %>%
 PCaCases_earliest <- merge(PCaCases_HES_earliest, PCaCases_cancerregistry_earliest, by="eid", all = T)
 PCaCases_earliest <- merge(PCaCases_earliest, PCaCases_death_earliest, by="eid", all = T)
 PCaCases_earliest <- PCaCases_earliest %>%
-  rename("assess_date_initial_ICD10" = "assess_date_initial.x", "assess_date_initial_cr" = "assess_date_initial.y", "assess_date_initial_death" = "assess_date_initial")
+  rename("assess_date_initial_ICD10" = "assess_date_initial.x", 
+         "assess_date_initial_cr" = "assess_date_initial.y", 
+         "assess_date_initial_death" = "assess_date_initial",
+         "icd10_HES" = "diag_icd10",
+         "icd10_cr" = "ICD10",
+         "icd10_death" = "cause_icd10"
+  )
 
 
 # Sanity check - are the assessment centre dates the same in both HES and cancer registry, unless NA on either side?
@@ -208,6 +216,32 @@ PCaCases_prediagnosis <- PCaCases_earliest %>%
 
 Earliest_PrCa_diagnosis <- PCaCases_prediagnosis %>%
   select('eid', 'earliest_PrCa_date')
+
+# Tag participants who had a prostate cancer record in HES but not in cancer registry or death records as "HES-only" (these will be excluded later) 
+
+PCaCases_prediagnosis <- PCaCases_prediagnosis %>%
+  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
+
+# Tag participants who had a radical prostatectomy record at any point, but NOT a prostate cancer record in HES, cancer registry, or death records as "Prostatectomy-only" (these will be excluded later)
+
+prostatectomy <- read_OPCS(c('M61', 'M611', 'M612', 'M613')) %>%
+  dplyr::select(c("eid", "opdate", "oper4")) %>%
+  dplyr::rename(c("prostatectomy_opdate" = "opdate"))
+
+prostatectomy_earliest <- prostatectomy %>%
+  dplyr::mutate(prostatectomy_opdate = as.Date(prostatectomy_opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    prostatectomy_opdate = if (all(is.na(prostatectomy_opdate))) NA else min(prostatectomy_opdate, na.rm = TRUE),
+    oper4 = first(oper4),
+    .groups = "drop"
+  )
+
+PCaCases_prediagnosis <- merge(PCaCases_prediagnosis, prostatectomy_earliest, by = "eid", all.x = T) %>%
+  dplyr::mutate(Prostatectomy_only = !is.na(oper4) & is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
+
+
+
 
 
 ##################################################################################################
@@ -718,13 +752,21 @@ PCa_iv_covariates_GRS <- merge(PCa_iv_covariates, All_GRS, by = "eid", all.x = T
 
 PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all = T)
 
-# Remove anybody who is female or who lacks GRS data (optionally, also remove anyone pre-diagnosed)
+## Just in case - extra exclusion criteria (will wait to see if these actually return any records before excluding controls based on these)
+
+exclusions_ICD9 <- read_ICD9(c(233.4, 'V84.03', 236.5, 602.3, 60.21, 60.29, 60.3, 60.4, 60.5, 60.61, 60.62, 60.69))
+
+exclusions_ICD10 <- read_ICD10(c('D07.5', 'Z15.03', 'D40.0', 'N42.30', 'N42.31', 'N42.32', 'N42.39'))
+
+# Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis, and anyone with prostatectomy but no PrCa diagnosis
 
 PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
   dplyr::filter(
     Sex == 'Male',
     !is.na(ContimultiethnicGRS),
-    pre_diagnosed == FALSE | is.na(pre_diagnosed) ## to remove pre-diagnosed patients
+    pre_diagnosed == FALSE | is.na(pre_diagnosed), ## to remove pre-diagnosed == TRUE patients
+    HES_only == FALSE | is.na(HES_only), ## to remove patients with HES-only PrCa diagnoses
+    Prostatectomy_only == FALSE | is.na(Prostatectomy_only) ## to remove patients with prostatectomy but no PrCa diagnosis
   )
 
 # Sanity Check - how many patients in PCa_iv_covariates were female or lacked GRS data? Does it match the difference in n between PCa_iv_covariates and PCa_iv_covariates_clean ?
@@ -733,7 +775,9 @@ PCa_iv_covariates_GRS_severity %>%
   filter(
     Sex == "Female" |
       is.na(ContimultiethnicGRS) |
-      pre_diagnosed == TRUE
+      pre_diagnosed == TRUE |
+      HES_only == TRUE |
+      Prostatectomy_only == TRUE
   ) %>%
   summarise(n = n())
 
