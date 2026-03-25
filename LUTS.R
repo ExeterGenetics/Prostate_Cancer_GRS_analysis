@@ -530,23 +530,7 @@ Earliest_PrCa_diagnosis <- PrCa_symptoms_diagnosis %>%
 PrCa_symptoms_diagnosis <- PrCa_symptoms_diagnosis %>%
   dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
 
-# Tag participants who had a radical prostatectomy record at any point, but NOT a prostate cancer record in HES, cancer registry, or death records as "Prostatectomy-only" (these will be excluded later)
 
-prostatectomy <- read_OPCS(c('M61', 'M611', 'M612', 'M613')) %>%
-  dplyr::select(c("eid", "opdate", "oper4")) %>%
-  dplyr::rename(c("prostatectomy_opdate" = "opdate"))
-
-prostatectomy_earliest <- prostatectomy %>%
-  dplyr::mutate(prostatectomy_opdate = as.Date(prostatectomy_opdate)) %>%
-  dplyr::group_by(eid) %>%
-  dplyr::summarise(
-    prostatectomy_opdate = if (all(is.na(prostatectomy_opdate))) NA else min(prostatectomy_opdate, na.rm = TRUE),
-    oper4 = first(oper4),
-    .groups = "drop"
-  )
-
-PrCa_symptoms_diagnosis <- merge(PrCa_symptoms_diagnosis, prostatectomy_earliest, by = "eid", all.x = T) %>%
-  dplyr::mutate(Prostatectomy_only = !is.na(oper4) & is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
 
 
 
@@ -1102,6 +1086,7 @@ exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                'M611',      # M61.1: Radical prostatectomy
                                'M612',      # M61.2: Retropubic Prostatectomy
                                'M613',      # M61.3: Transvesical Prostatectomy
+                               'M614',     # M61.4: Perineal Prostatectomy
                                'X65',       # X65: Radiotherapy Delivery
                                'X67',       # X67: Preparation of radiotherapy
                                'X68',       # X68: Brachytherapy preparation
@@ -1130,7 +1115,7 @@ possible_PrCa_cases <- possible_PrCa_cases %>%
 PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS_severity, possible_PrCa_cases, by = "eid", all.x = TRUE) %>%
   dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & is.na(pre_diagnosed), 1L, 0L, missing = 0L))
 
-# Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis, and anyone with prostatectomy but no PrCa diagnosis
+# Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis
 
 PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
   dplyr::filter(
@@ -1138,11 +1123,10 @@ PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
     !is.na(ContimultiethnicGRS),
     pre_diagnosed == FALSE | is.na(pre_diagnosed), ## to remove pre-diagnosed == TRUE patients
     HES_only == FALSE | is.na(HES_only), ## to remove patients with HES-only PrCa diagnoses
-    Prostatectomy_only == FALSE | is.na(Prostatectomy_only), ## to remove patients with prostatectomy but no PrCa diagnosis
     exclude == 0L | is.na(exclude) ## to remove controls who meet any of the exclusion criteria for controls
   )
 
-# Sanity Check - how many patients in PCa_iv_covariates_GRS_severity were female, pre-diagnosed, HES-only diagnoses, prostatectomy-only diagnoses, met control-exclusion criteria, or lacked GRS data? Does it match the difference in n between PCa_iv_covariates_GRS_severity and PCa_iv_covariates_GRS_clean ?
+# Sanity Check - how many patients in PCa_iv_covariates_GRS_severity were female, pre-diagnosed, HES-only diagnoses, or met control-exclusion criteria? Does it match the difference in n between PCa_iv_covariates_GRS_severity and PCa_iv_covariates_GRS_clean ?
 
 PCa_iv_covariates_GRS_severity %>%
   filter(
@@ -1150,7 +1134,6 @@ PCa_iv_covariates_GRS_severity %>%
       is.na(ContimultiethnicGRS) |
       pre_diagnosed == TRUE |
       HES_only == TRUE |
-      Prostatectomy_only == TRUE |
       exclude == 1L
   ) %>%
   summarise(n = n())

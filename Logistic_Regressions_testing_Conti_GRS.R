@@ -770,6 +770,7 @@ exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                 'M611',     # M61.1: Radical prostatectomy
                                 'M612',     # M61.2: Retropubic Prostatectomy
                                 'M613',     # M61.3: Transvesical Prostatectomy
+                                'M614',     # M61.4: Perineal Prostatectomy
                                 'X65',      # X65: Radiotherapy Delivery
                                 'X67',      # X67: Preparation of radiotherapy
                                 'X68',      # X68: Brachytherapy preparation
