@@ -370,10 +370,10 @@ test_df %>%
 ################################################################################
 
 
-PCaCases_HES<-read_ICD10(c('C61', 'Z85.46', 'R97.21')) # Creates a dataframe of *almost* all recorded prostate cancer diagnoses in HES records
-# Z85.46 is "Personal history of malignant neoplasm of prostate" and R97.21 is "Elevated prostate specific antigen (PSA)". Adding these to read_ICD10 does not add any cases, so we are not missing any cases by excluding these codes.
+PCaCases_HES<-read_ICD10(c('C61', 'Z8546', 'R9721')) # Creates a dataframe of *almost* all recorded prostate cancer diagnoses in HES records
+# Z85.46 is "Personal history of malignant neoplasm of prostate" and R97.21 is "Elevated prostate specific antigen (PSA)". Adding these to read_ICD10 does not add any cases
 
-PCaCases_ICD9<-read_ICD9(c(185, 'V10.46'))
+PCaCases_ICD9<-read_ICD9(c(185, 'V1046'))
 # V10.46 is "Personal history of malignant neoplasm of prostate". Adding this to read_ICD9 does not add any cases
 PCaCases_ICD9 <- PCaCases_ICD9 %>%
   mutate(
@@ -1068,11 +1068,67 @@ PCa_iv_covariates_GRS <- merge(PCa_iv_covariates, All_GRS, by = "eid", all.x = T
 
 PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all.x = T)
 
-## Just in case - extra exclusion criteria (will wait to see if these actually return any records before excluding controls based on these)
+## Extra exclusion criteria for controls 
+## (derived from https://phekb.org/phenotype/prostate-cancer-0 see tables: https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fphekb.org%2Fsites%2Fphenotype%2Ffiles%2FPrCa%2520Phenotyping%2520Algorithm%2520codes.xlsx&wdOrigin=BROWSELINK
+## with alterations to remove ICD9: V84.03 and ICD10: Z15.03 since these describe genetic susceptibility to prostate cancer)
+## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
 
-exclusions_ICD9 <- read_ICD9(c(233.4, 'V84.03', 236.5, 602.3, 60.21, 60.29, 60.3, 60.4, 60.5, 60.61, 60.62, 60.69))
+exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostate
+                              'V104',       # V10.4: Personal history of malignant neoplasm of genital organs
+                               2334,        # 233.4: Carcinoma in situ of the prostate
+                               2365,        # 236.5: Neoplasm of uncertain behavior of the prostate
+                               6023,        # 602.3: Dysplasia of the prostate
+                               6021,        # 60.21: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
+                               6029,        # 60.29: Other transurethral prostatectomy
+                               603,         # 60.3: Suprapubic prostatectomy
+                               604,         # 60.4: Retropubic prostatectomy
+                               605,         # 60.5: Radical prostatectomy
+                               6061,        # 60.61: Local excision of lesion of prostate
+                               6062,        # 60.62: Perineal prostatectomy
+                               6069)        # 60.69: Other prostatectomy
+                               ) %>%
+  dplyr::select("eid", "diag_icd9")
 
-exclusions_ICD10 <- read_ICD10(c('D07.5', 'Z15.03', 'D40.0', 'N42.30', 'N42.31', 'N42.32', 'N42.39'))
+exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
+                                'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
+                                'R972',     # R97.2: Elevated prostate specific antigen [PSA]
+                                'D075',     # D07.5: Carcinoma in situ of prostate
+                                'D400',     # D40.0: Neoplasm of uncertain behavior of prostate
+                                'N423')     # N42.3: Dysplasia of prostate
+                                )%>%
+  dplyr::select("eid", "diag_icd10")
+
+exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
+                               'M611',      # M61.1: Radical prostatectomy
+                               'M612',      # M61.2: Retropubic Prostatectomy
+                               'M613',      # M61.3: Transvesical Prostatectomy
+                               'X65',       # X65: Radiotherapy Delivery
+                               'X67',       # X67: Preparation of radiotherapy
+                               'X68',       # X68: Brachytherapy preparation
+                               'M706',      # M70.6 Radioactive seed implantation into prostate
+                               'Y35',       # Y35: Introduction Material Radioactive Removable NOC
+                               'Y36',       # Y36: Introduction Material Non-removable NOC
+                               'T856',      # T85.6: Block dissection of pelvic lymph nodes
+                               'M702',      # M70.2: Perineal needle biopsy of prostate
+                               'M703',      # M70.3: Rectal needle biopsy of prostate
+                               'N04',       # N04: Orchidectomy
+                               'M65',       # Endoscopic resection of prostate
+                               'M68')       # Endoscopic insertion of prosthesis into prostate
+                               ) %>%
+  dplyr::select("eid", "oper4")
+
+possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
+
+# Collapse exclusions to one row per participant, leaving only eids
+possible_PrCa_cases <- possible_PrCa_cases %>%
+  group_by(eid) %>%
+  dplyr::summarise(possible_PrCa_case = 1)
+
+# Join onto main dataframe
+
+PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS_severity, possible_PrCa_cases, by = "eid", all.x = TRUE) %>%
+  dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & is.na(pre_diagnosed), 1L, 0L, missing = 0L))
 
 # Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis, and anyone with prostatectomy but no PrCa diagnosis
 
@@ -1082,10 +1138,11 @@ PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
     !is.na(ContimultiethnicGRS),
     pre_diagnosed == FALSE | is.na(pre_diagnosed), ## to remove pre-diagnosed == TRUE patients
     HES_only == FALSE | is.na(HES_only), ## to remove patients with HES-only PrCa diagnoses
-    Prostatectomy_only == FALSE | is.na(Prostatectomy_only) ## to remove patients with prostatectomy but no PrCa diagnosis
+    Prostatectomy_only == FALSE | is.na(Prostatectomy_only), ## to remove patients with prostatectomy but no PrCa diagnosis
+    exclude == 0L | is.na(exclude) ## to remove controls who meet any of the exclusion criteria for controls
   )
 
-# Sanity Check - how many patients in PCa_iv_covariates_GRS_severity were female, pre-diagnosed, HES-only diagnoses, prostatectomy-only diagnoses, or lacked GRS data? Does it match the difference in n between PCa_iv_covariates_GRS_severity and PCa_iv_covariates_GRS_clean ?
+# Sanity Check - how many patients in PCa_iv_covariates_GRS_severity were female, pre-diagnosed, HES-only diagnoses, prostatectomy-only diagnoses, met control-exclusion criteria, or lacked GRS data? Does it match the difference in n between PCa_iv_covariates_GRS_severity and PCa_iv_covariates_GRS_clean ?
 
 PCa_iv_covariates_GRS_severity %>%
   filter(
@@ -1093,7 +1150,8 @@ PCa_iv_covariates_GRS_severity %>%
       is.na(ContimultiethnicGRS) |
       pre_diagnosed == TRUE |
       HES_only == TRUE |
-      Prostatectomy_only == TRUE
+      Prostatectomy_only == TRUE |
+      exclude == 1L
   ) %>%
   summarise(n = n())
 
@@ -1101,7 +1159,7 @@ PCa_iv_covariates_GRS_severity %>%
 
 PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
   dplyr::mutate(
-    PrCa = if_else(!is.na(epistart) | !is.na(date) | !is.na(date_of_death), 1L, 0L, missing = 0L),
+    PrCa = if_else(!is.na(pre_diagnosed) & HES_only == FALSE, 1L, 0L, missing = 0L),
   ) %>%
   dplyr::rename(Age = event_age)
 
