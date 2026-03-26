@@ -76,6 +76,7 @@ PCaCases_ICD9 <- PCaCases_ICD9 %>%
       TRUE ~ NA_character_
     )
   )
+
 PCaCases_ICD9 <- PCaCases_ICD9 %>%
   select(c("eid", "diag_icd10", "assess_date_initial", "epistart", "epiend"))
 
@@ -203,7 +204,10 @@ any(mismatched_assessdates)
 
 PCaCases_earliest$assess_date_initial <- coalesce(PCaCases_earliest$assess_date_initial_ICD10, PCaCases_earliest$assess_date_initial_cr, PCaCases_earliest$assess_date_initial_death)
 
-# Tag patients who already had prostate cancer at assessment centre as "pre-diagnosed". Also make "earliest PrCa diagnosis date" which is the earliest of epistart and date
+# Tag patients who already had prostate cancer at assessment centre as "pre-diagnosed". These will be filtered out later 
+# (any death-only PrCa cases will be treated as pre_diagnosed, as we don't have HES or Cancer Registry dates to prove that they were diagnosed post-assessment centre)
+
+# Also make "earliest PrCa diagnosis date" which is the earliest of epistart and date. date_of_death will not be included as this is not strictly a diagnosis date
 
 PCaCases_prediagnosis <- PCaCases_earliest %>%
   dplyr::mutate(
@@ -282,9 +286,9 @@ death_chemo <- death_chemo %>%
 
 
 
-# Dataframe for radical prostatectomy
+# Dataframe for prostatectomy
 
-surgery <- read_OPCS(c('M61', 'M611', 'M612', 'M613'))
+surgery <- read_OPCS(c('M61', "M611", "M612", "M613"))
 surgery <- merge(surgery, Earliest_PrCa_diagnosis, by = 'eid')
 surgery <- surgery %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -742,59 +746,72 @@ PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criter
 ## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
 
 exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostate
-                              'V104',       # V10.4: Personal history of malignant neoplasm of genital organs
-                               2334,        # 233.4: Carcinoma in situ of the prostate
-                               2365,        # 236.5: Neoplasm of uncertain behavior of the prostate
-                               6023,        # 602.3: Dysplasia of the prostate
+                               'V104',      # V10.4: Personal history of malignant neoplasm of genital organs
+                               2334,        # 233.4: Carcinoma in situ of the prostate (note: no results returned)
+                               2365,        # 236.5: Neoplasm of uncertain behavior of the prostate (note: no results returned)
+                               6023,        # 602.3: Dysplasia of the prostate (note: no results returned)
                                6021,        # 60.21: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
-                               6029,        # 60.29: Other transurethral prostatectomy
+                               6029,        # 60.29: Other transurethral prostatectomy (note: no results returned)
                                603,         # 60.3: Suprapubic prostatectomy
                                604,         # 60.4: Retropubic prostatectomy
                                605,         # 60.5: Radical prostatectomy
-                               6061,        # 60.61: Local excision of lesion of prostate
-                               6062,        # 60.62: Perineal prostatectomy
+                               6061,        # 60.61: Local excision of lesion of prostate (note: no results returned)
+                               6062,        # 60.62: Perineal prostatectomy (note: no results returned)
                                6069)        # 60.69: Other prostatectomy
-                               ) %>%
+) %>%
   dplyr::select("eid", "diag_icd9")
 
 exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
-                                'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
-                                'R972',     # R97.2: Elevated prostate specific antigen [PSA]
-                                'D075',     # D07.5: Carcinoma in situ of prostate
-                                'D400',     # D40.0: Neoplasm of uncertain behavior of prostate
-                                'N423')     # N42.3: Dysplasia of prostate
-                                )%>%
+                                 'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
+                                 'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+                                 'D075',    # D07.5: Carcinoma in situ of prostate
+                                 'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+                                 'N423')    # N42.3: Dysplasia of prostate
+)%>%
   dplyr::select("eid", "diag_icd10")
 
-exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
-                                'M611',     # M61.1: Radical prostatectomy
-                                'M612',     # M61.2: Retropubic Prostatectomy
-                                'M613',     # M61.3: Transvesical Prostatectomy
-                                'M614',     # M61.4: Perineal Prostatectomy
-                                'X65',      # X65: Radiotherapy Delivery
-                                'X67',      # X67: Preparation of radiotherapy
-                                'X68',      # X68: Brachytherapy preparation
-                                'M706',     # M70.6 Radioactive seed implantation into prostate
-                                'Y35',      # Y35: Introduction Material Radioactive Removable NOC
-                                'Y36',      # Y36: Introduction Material Non-removable NOC
-                                'T856',     # T85.6: Block dissection of pelvic lymph nodes
-                                'M702',     # M70.2: Perineal needle biopsy of prostate
-                                'M703',     # M70.3: Rectal needle biopsy of prostate
-                                'N04',      # N04: Orchidectomy
-                                'M65',      # Endoscopic resection of prostate
-                                'M68')      # Endoscopic insertion of prosthesis into prostate
-                                ) %>%
+exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
+                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
+                                           'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+                                           'D075',    # D07.5: Carcinoma in situ of prostate
+                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
+)%>%
+  dplyr::select("eid", "ICD10")
+
+exclusions_OPCS <- read_OPCS(c('M61',      # M61: Prostatectomy
+                               'M611',     # M61.1: Radical prostatectomy
+                               'M612',     # M61.2: Retropubic Prostatectomy
+                               'M613',     # M61.3: Transvesical Prostatectomy
+                               'M614',     # M61.4: Perineal Prostatectomy
+                               'X65',      # X65: Radiotherapy Delivery
+                               'X67',      # X67: Preparation of radiotherapy
+                               'X68',      # X68: Brachytherapy preparation
+                               'M706',     # M70.6 Radioactive seed implantation into prostate
+                               'Y35',      # Y35: Introduction Material Radioactive Removable NOC
+                               'Y36',      # Y36: Introduction Material Non-removable NOC
+                               'T856',     # T85.6: Block dissection of pelvic lymph nodes
+                               'M702',     # M70.2: Perineal needle biopsy of prostate
+                               'M703',     # M70.3: Rectal needle biopsy of prostate
+                               'N04',      # N04: Orchidectomy
+                               'M65',      # M65: Endoscopic resection of prostate
+                               'M68',      # M68: Endoscopic insertion of prosthesis into prostate
+                               'M671',     # M67.1: Endoscopic cryotherapy to lesion of prostate
+                               'M711',     # M71.1: High intensity focused ultrasound of prostate
+                               'M712')     # M71.2: Implantation of radioactive substance into prostate
+) %>%
   dplyr::select("eid", "oper4")
 
 possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
 possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry, by = "eid", all = T)
 
 # Collapse exclusions to one row per participant, leaving only eids
 possible_PrCa_cases <- possible_PrCa_cases %>%
   group_by(eid) %>%
   dplyr::summarise(possible_PrCa_case = 1)
 
-# Join onto main dataframe
+# Join onto main dataframe and create "exclude" variable to exclude controls who meet any of the exclusion criteria for controls (i.e. those with possible PrCa diagnoses but no evidence of prostate cancer diagnosis)
 
 PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS_severity, possible_PrCa_cases, by = "eid", all.x = TRUE) %>%
   dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & is.na(pre_diagnosed), 1L, 0L, missing = 0L))
@@ -1039,7 +1056,7 @@ ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=
 
 # Set "data" to either: 
 #   - PCa_iv_covariates_GRS_predhorizon (all participants)
-#   - PCa_iv_covariates_GRS_predhorizon_EurOnly (White participants)
+#   - PCa_iv_covariates_GRS_predhorizon_WhiteOnly (White participants)
 #   - PCa_iv_covariates_GRS_predhorizon_BlackOnly (Black participants)
 #   - PCa_iv_covariates_GRS_predhorizon_Mixed (Mixed White and Black participants)
 #   - PCa_iv_covariates_GRS_predhorizon_BlackMixed (Black + Mixed White and Black participants)
