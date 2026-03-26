@@ -589,7 +589,7 @@ death_chemo <- death_chemo %>%
 
 
 
-# Dataframe for radical prostatectomy
+# Dataframe for prostatectomy
 
 surgery <- read_OPCS(c('M61', 'M611', 'M612', 'M613'))
 surgery <- merge(surgery, Earliest_PrCa_diagnosis, by = 'eid')
@@ -1032,14 +1032,6 @@ All_GRS <- merge(All_GRS, PagadalaGRS, by = "eid", all = T)
 All_GRS <- merge(All_GRS, SeibertGRS52, by = "eid", all = T)
 All_GRS <- merge(All_GRS, PagadalaGRS285, by = "eid", all = T)
 
-## Merge all GRSs into one
-
-All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
-All_GRS <- merge(All_GRS, SchumacherGRS, by = "eid", all = T)
-All_GRS <- merge(All_GRS, BARCODE1GRS, by = "eid", all = T)
-All_GRS <- merge(All_GRS, SchumacherGRS145, by = "eid", all = T)
-All_GRS <- merge(All_GRS, BARCODE1GRS129, by = "eid", all = T)
-
 #########################################################################################
 # Step 5 - Merge all variables/covariates into one dataframe with Prostate Cancer cases #
 #########################################################################################
@@ -1050,7 +1042,7 @@ PCa_iv_covariates <- merge(iv_covariates, PrCa_symptoms_diagnosis, by = "eid", a
 
 PCa_iv_covariates_GRS <- merge(PCa_iv_covariates, All_GRS, by = "eid", all.x = TRUE)
 
-PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all.x = T)
+PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all = T)
 
 ## Extra exclusion criteria for controls 
 ## (derived from https://phekb.org/phenotype/prostate-cancer-0 see tables: https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fphekb.org%2Fsites%2Fphenotype%2Ffiles%2FPrCa%2520Phenotyping%2520Algorithm%2520codes.xlsx&wdOrigin=BROWSELINK
@@ -1097,25 +1089,38 @@ exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                'M702',      # M70.2: Perineal needle biopsy of prostate
                                'M703',      # M70.3: Rectal needle biopsy of prostate
                                'N04',       # N04: Orchidectomy
-                               'M65',       # Endoscopic resection of prostate
-                               'M68')       # Endoscopic insertion of prosthesis into prostate
+                               'M65',       # M65: Endoscopic resection of prostate
+                               'M68',       # M68: Endoscopic insertion of prosthesis into prostate
+                               'M671',      # M67.1: Endoscopic cryotherapy to lesion of prostate
+                               'M711',      # M71.1: High intensity focused ultrasound of prostate
+                               'M712')      # M71.2: Implantation of radioactive substance into prostate
                                ) %>%
   dplyr::select("eid", "oper4")
 
+exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
+                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
+                                           'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+                                           'D075',    # D07.5: Carcinoma in situ of prostate
+                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
+)%>
+  dplyr::select("eid", "ICD10")
+
 possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
 possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry, by = "eid", all = T)
 
 # Collapse exclusions to one row per participant, leaving only eids
 possible_PrCa_cases <- possible_PrCa_cases %>%
   group_by(eid) %>%
   dplyr::summarise(possible_PrCa_case = 1)
 
-# Join onto main dataframe
+# Join onto main dataframe and create "exclude" variable to exclude controls who meet any of the exclusion criteria for controls (i.e. those with possible PrCa diagnoses but no evidence of prostate cancer diagnosis)
 
 PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS_severity, possible_PrCa_cases, by = "eid", all.x = TRUE) %>%
   dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & is.na(pre_diagnosed), 1L, 0L, missing = 0L))
 
-# Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis
+## Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis
 
 PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
   dplyr::filter(
@@ -1126,7 +1131,7 @@ PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
     exclude == 0L | is.na(exclude) ## to remove controls who meet any of the exclusion criteria for controls
   )
 
-# Sanity Check - how many patients in PCa_iv_covariates_GRS_severity were female, pre-diagnosed, HES-only diagnoses, or met control-exclusion criteria? Does it match the difference in n between PCa_iv_covariates_GRS_severity and PCa_iv_covariates_GRS_clean ?
+# Sanity Check - how many patients in PCa_iv_covariates were female or lacked GRS data? Does it match the difference in n between PCa_iv_covariates and PCa_iv_covariates_clean ?
 
 PCa_iv_covariates_GRS_severity %>%
   filter(
@@ -1146,9 +1151,9 @@ PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
   ) %>%
   dplyr::rename(Age = event_age)
 
-#############################################
-# Important - remove withdrawn participants #
-#############################################
+############################################# (these should have already been filtered out,
+# Important - remove withdrawn participants #  since the withdrawn participants no longer have 
+#############################################  a GRS calculated, but still worth making sure)
 
 exclude_withdrawn=function(df){
   system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite')  ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
