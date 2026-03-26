@@ -1,0 +1,312 @@
+(note: you must first run "functions.r" then "Logistic_Regressions_testing_Conti_GRS.R" then "LUTS.R" to generate this document)
+
+## Part 1: Asymptomatic Screening ##
+
+Can the GRS predict which men in the UKB will be diagnosed with prostate cancer in a given timeframe after the assessment centre?
+
+# Exclusion Criteria #
+
+*General:*
+
+Females (based on self-report of “Sex”. Using “Genetic Sex” did not alter the results)
+
+Anyone without linked genetic data (imputed genotypes)
+
+Anyone with a record of prostate cancer diagnosis before initial assessment centre visit
+
+*Controls:*
+
+Anyone with any of the following ICD9 codes in their Hospital Episode Statistics (HES) records: 
+
+185: Malignant neoplasm of prostate
+V10.4: Personal history of malignant neoplasm of genital organs
+233.4: Carcinoma in situ of the prostate 
+236.5: Neoplasm of uncertain behavior of the prostate 
+602.3: Dysplasia of the prostate 
+602.1: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
+602.9: Other transurethral prostatectomy 
+603: Suprapubic prostatectomy
+604: Retropubic prostatectomy
+605: Radical prostatectomy
+606.1: Local excision of lesion of prostate 
+606.2: Perineal prostatectomy
+606.9: Other prostatectomy
+
+Anyone with any of the following ICD10 codes in their HES records or in the cancer registry:
+
+C61: Malignant neoplasm of prostate
+Z85.4: Personal History of malignant neoplasm of genital organs
+R97.2: Elevated prostate specific antigen [PSA] 
+D07.5: Carcinoma in situ of prostate
+D40.0: Neoplasm of uncertain behavior of prostate
+N42.3: Dysplasia of prostate
+
+Anyone with any of the following codes in their OPCS records: 
+
+M61: Prostatectomy
+M61.1: Radical prostatectomy
+M61.2: Retropubic Prostatectomy
+M61.3: Transvesical Prostatectomy
+M61.4: Perineal Prostatectomy
+X65: Radiotherapy Delivery
+X67: Preparation of radiotherapy
+X68: Brachytherapy preparation
+M70.6: Radioactive seed implantation into prostate
+Y35: Introduction Material Radioactive Removable NOC
+Y36: Introduction Material Non-removable NOC
+T85.6: Block dissection of pelvic lymph nodes
+M70.2: Perineal needle biopsy of prostate
+M70.3: Rectal needle biopsy of prostate
+N04: Orchidectomy
+M65: Endoscopic resection of prostate
+M68: Endoscopic insertion of prosthesis into prostate
+M67.1: Endoscopic cryotherapy to lesion of prostate
+M71.1: High intensity focused ultrasound of prostate
+M71.2: Implantation of radioactive substance into prostate
+
+# Conditions #
+
+Age = Age at initial assessment centre visit
+
+Genetic similarity* is defined by Pan-UKB study (Karczewski et al., 2025)
+
+4 SNPs missing from GRS calculation, including rs72725854
+
+Prostate cancer cases defined as:
+- At least one “C61” or “185” event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
+- At least one “C61” event in Cancer Registry
+- At least one “C61” event in death records as “Cause of Death”
+
+Ethnicity is based on self-report and clustered as follows:
+
+- White = White, British, Irish, Any other White background
+- Black = African, Caribbean, Any other Black background, Black or Black British
+- Mixed = White and Black African, White and Black Caribbean
+- Black + Mixed = African, Caribbean, Any other Black background, Black or Black British, White and Black African, White and Black Caribbean
+- South Asian = Pakistani, Indian, Bangladeshi
+- East Asian = Chinese
+- Other = Other ethnic group, Any other mixed background, Prefer not to answer, Do not know, Mixed, NA, Any other Asian background, White and Asian, Asian or Asian British
+
+Note: Genetic similarity is the preferred term for what is called “Genomic Ancestry” in the UK Biobank
+
+# Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre? #
+
+```{r, echo=FALSE}
+
+table1 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black + Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
+    Outcome == "PrCa",
+    Covariates == "None"
+  )    
+
+print(table1)
+
+```
+
+# Logistic Regression Table 2: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre when combined with Age? #
+
+```{r, echo=FALSE}
+
+table2 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black + Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  )
+
+print(table2)
+
+```
+
+Conclusion: Age always helps, and using the African-specific weightings makes very little difference
+
+
+
+# Logistic Regression Table 3: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis within 10 years after the assessment centre when combined with Age? #
+
+```{r, echo=FALSE}
+
+table3 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black + Mixed" | Population == "AFR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  )
+
+print(table3)
+
+```
+
+But what does "Genetic Similarity" even mean?
+
+## Genetic Similarity ##
+
+- Defined in Pan-UKB by Karczewski et al. (2025)
+
+- Statistically compared Biobank participants to HGDP + 1000 genomes
+
+- Is now the Biobank’s built-in “Genomic Ancestry” variable
+
+- Problem: strict clustering method that excluded >50,000 participants
+   - Anyone who did not have >50% probability of fitting into a particular cluster (EUR, AFR, EAS, CSA, MID, AMR) was excluded
+
+
+## Principal Components plot 1: HGDP+1KG Reference Panel ##
+
+```{r, echo=FALSE}
+
+library(ggplot2)
+
+dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs.csv") # HGDP+1KG Principal components as calculated using AncestryProbability1_bigsnpr folder scripts
+dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
+dxdownload("Callum/HGDP_1KG/hgdp_tgp_pca_covid19hgi_snps_scores.txt") # can be downloaded from:
+# https://console.cloud.google.com/storage/browser/covid19-hg-public/pca_projection;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
+
+## Working out which column of the HGDP+1KG metadata file to use as ancestry labels
+
+HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv")
+
+## Decided on using "Genetic Region" as it is closest to what we see in UK Biobank "Genomic Ancestry" variable
+
+HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
+  dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
+  dplyr::rename("IID" = "s", "Genomic_ancestry" = "hgdp_tgp_meta.Genetic.region")
+
+HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
+HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
+
+HGDP_1KG_PCs_og <- read.delim("hgdp_tgp_pca_covid19hgi_snps_scores.txt") %>% # Publicly available PCs
+  dplyr::rename("IID" = "s")
+HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylabel, by = "IID")
+
+################################################################################
+#-------------------------------- Setup done ----------------------------------#
+################################################################################
+
+test_population <- HGDP_1KG_PCs_og_w_labels              # Publicly available PCs
+#test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
+#test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
+
+HGDP_1KG_PC_plot <- ggplot(test_population, aes(x = PC1, y = PC2, color = Genomic_ancestry)) +
+  geom_point(size = 0.5) +
+  theme_minimal() +
+  # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
+  labs(
+    x = "Principal Component 1",
+    y = "Principal Component 2",
+    color = "Genomic ancestry"
+  )
+
+print(HGDP_1KG_PC_plot)
+
+```
+
+This is the reference panel (HGDP+1KG)
+
+## Principal Components plot 2: UK Biobank Participants who were successfully clustered ##
+
+```{r, echo=FALSE}
+
+library(ggplot2)
+
+dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs.csv") # HGDP+1KG Principal components as calculated using AncestryProbability1_bigsnpr folder scripts
+dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
+dxdownload("Callum/HGDP_1KG/hgdp_tgp_pca_covid19hgi_snps_scores.txt") # can be downloaded from:
+# https://console.cloud.google.com/storage/browser/covid19-hg-public/pca_projection;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
+
+## Working out which column of the HGDP+1KG metadata file to use as ancestry labels
+
+HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv")
+
+## Decided on using "Genetic Region" as it is closest to what we see in UK Biobank "Genomic Ancestry" variable
+
+HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
+  dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
+  dplyr::rename("IID" = "s", "Genomic_ancestry" = "hgdp_tgp_meta.Genetic.region")
+
+HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
+HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
+
+HGDP_1KG_PCs_og <- read.delim("hgdp_tgp_pca_covid19hgi_snps_scores.txt") %>% # Publicly available PCs
+  dplyr::rename("IID" = "s")
+HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylabel, by = "IID")
+
+################################################################################
+#-------------------------------- Setup done ----------------------------------#
+################################################################################
+
+#test_population <- HGDP_1KG_PCs_og_w_labels              # Publicly available PCs
+#test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
+test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
+
+UKB_PC_plot1 <- ggplot(test_population %>% dplyr::filter(!is.na(Genomic_ancestry)), aes(x = PC1, y = PC2, color = Genomic_ancestry)) +
+  geom_point(size = 0.5) +
+  theme_minimal() +
+  # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
+  labs(
+    x = "Principal Component 1",
+    y = "Principal Component 2",
+    color = "Genomic ancestry"
+  )
+
+print(UKB_PC_plot1)
+
+```
+
+## Principal Components plot 3: all UK Biobank Participants ##
+
+```{r, echo=FALSE}
+
+library(ggplot2)
+
+dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs.csv") # HGDP+1KG Principal components as calculated using AncestryProbability1_bigsnpr folder scripts
+dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
+dxdownload("Callum/HGDP_1KG/hgdp_tgp_pca_covid19hgi_snps_scores.txt") # can be downloaded from:
+# https://console.cloud.google.com/storage/browser/covid19-hg-public/pca_projection;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
+
+## Working out which column of the HGDP+1KG metadata file to use as ancestry labels
+
+HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv")
+
+## Decided on using "Genetic Region" as it is closest to what we see in UK Biobank "Genomic Ancestry" variable
+
+HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
+  dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
+  dplyr::rename("IID" = "s", "Genomic_ancestry" = "hgdp_tgp_meta.Genetic.region")
+
+HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
+HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
+
+HGDP_1KG_PCs_og <- read.delim("hgdp_tgp_pca_covid19hgi_snps_scores.txt") %>% # Publicly available PCs
+  dplyr::rename("IID" = "s")
+HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylabel, by = "IID")
+
+################################################################################
+#-------------------------------- Setup done ----------------------------------#
+################################################################################
+
+#test_population <- HGDP_1KG_PCs_og_w_labels              # Publicly available PCs
+#test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
+test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
+
+UKB_PC_plot1 <- ggplot(test_population), aes(x = PC1, y = PC2, color = Genomic_ancestry)) +
+  geom_point(size = 0.5) +
+  theme_minimal() +
+  # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
+  labs(
+    x = "Principal Component 1",
+    y = "Principal Component 2",
+    color = "Genomic ancestry"
+  )
+
+print(UKB_PC_plot1)
+
+```
+
+This is what it looks like when you include participants who were not successfully clustered.
+
+## 

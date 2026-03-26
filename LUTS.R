@@ -1494,12 +1494,12 @@ print(nri_result)
 
 ## By default, logreg_table() will compute all combinations of population, outcome, GRS, and covariates
 
-bulk <- logreg_table()
+bulk_LUTS <- logreg_table()
 
 ## The below block adds, for each row that represents a GRS + Age model, the
 ## equivalent Age-only model, and compares confidence intervals between them
 
-age_only_reference <- bulk %>%
+age_only_reference <- bulk_LUTS %>%
   dplyr::filter(Predictor == "Age", Covariates == "None") %>%
   dplyr::select(
     Outcome,
@@ -1507,7 +1507,7 @@ age_only_reference <- bulk %>%
     Age_only_ROC_AUC_CI_Upper = ROC_AUC_CI_Upper
   )
 
-formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
+formatted_LUTS <- bulk_LUTS %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
   dplyr::left_join(age_only_reference, by = c("Outcome", "Population")) %>%
   dplyr::mutate(
     ROC_AUC_4dp = dplyr::if_else(
@@ -1532,7 +1532,7 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
 ## This block is to view a subset of the bulk logistic regression table. Change
 ## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
 
-subset <- formatted %>%                        
+subset_LUTS <- formatted_LUTS %>%                        
   dplyr::filter(                          
     Population == "Black",
     #Predictor == "PagadalaGRS",
@@ -1547,9 +1547,9 @@ subset <- formatted %>%
 
 ## By default, nri_table() will compute all combinations of population, outcome, and GRS for the NRI comparison between a GRS+Age model vs. an Age-only model
 
-nri_bulk <- nri_table()
+nri_bulk_LUTS <- nri_table()
 
-nri_bulk <- nri_bulk %>%
+nri_bulk_LUTS <- nri_bulk_LUTS %>%
   dplyr::mutate(
     NRI_significant = dplyr::case_when(
       is.na(p_NRI) ~ NA_character_,
@@ -1561,7 +1561,7 @@ nri_bulk <- nri_bulk %>%
 
 ## This block is to view a subset of the bulk NRI table. Change the filter to investigate a specific Population, Predictor, or Outcome
 
-nri_subset <- nri_bulk %>%
+nri_subset_LUTS <- nri_bulk_LUTS %>%
   dplyr::filter(
     Population == "Black",
     #GRS == "PagadalaGRS",
