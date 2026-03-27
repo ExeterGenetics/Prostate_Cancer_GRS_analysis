@@ -1,121 +1,133 @@
+---
+title: "Summary presentation"
+output: ioslides_presentation
+date: "2026-03-27"
+---
+
 (note: you must first run "functions.r" then "Logistic_Regressions_testing_Conti_GRS.R")
 
-## Part 1: Asymptomatic Screening ##
+# Part 1: Asymptomatic Screening
 
 Can the GRS predict which men in the UKB will be diagnosed with prostate cancer in a given timeframe after the assessment centre?
 
-# Exclusion Criteria #
+## Exclusion Criteria
 
 *General:*
 
-Females (based on self-report of “Sex”. Using “Genetic Sex” did not alter the results)
+-   Females (based on self-report of “Sex”. Using “Genetic Sex” did not alter the results)
 
-Anyone without linked genetic data (imputed genotypes)
+-   Anyone without linked genetic data (imputed genotypes)
 
-Anyone with a record of prostate cancer diagnosis before initial assessment centre visit
+-   Anyone with a record of prostate cancer diagnosis before initial assessment centre visit
 
 *Controls:*
 
-Anyone with any of the following ICD9 codes in their Hospital Episode Statistics (HES) records: 
+Anyone with any of the following ICD9 codes in their Hospital Episode Statistics (HES) records:
 
-185: Malignant neoplasm of prostate
-V10.4: Personal history of malignant neoplasm of genital organs
-233.4: Carcinoma in situ of the prostate 
-236.5: Neoplasm of uncertain behavior of the prostate 
-602.3: Dysplasia of the prostate 
-602.1: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
-602.9: Other transurethral prostatectomy 
-603: Suprapubic prostatectomy
-604: Retropubic prostatectomy
-605: Radical prostatectomy
-606.1: Local excision of lesion of prostate 
-606.2: Perineal prostatectomy
-606.9: Other prostatectomy
+-   185: Malignant neoplasm of prostate
+-   V10.4: Personal history of malignant neoplasm of genital organs
+-   233.4: Carcinoma in situ of the prostate
+-   236.5: Neoplasm of uncertain behavior of the prostate
+-   602.3: Dysplasia of the prostate
+-   602.1: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
+-   602.9: Other transurethral prostatectomy
+-   603: Suprapubic prostatectomy
+-   604: Retropubic prostatectomy
+-   605: Radical prostatectomy
+-   606.1: Local excision of lesion of prostate
+-   606.2: Perineal prostatectomy
+-   606.9: Other prostatectomy
 
 Anyone with any of the following ICD10 codes in their HES records or in the cancer registry:
 
-C61: Malignant neoplasm of prostate
-Z85.4: Personal History of malignant neoplasm of genital organs
-R97.2: Elevated prostate specific antigen [PSA] 
-D07.5: Carcinoma in situ of prostate
-D40.0: Neoplasm of uncertain behavior of prostate
-N42.3: Dysplasia of prostate
+-   C61: Malignant neoplasm of prostate
+-   Z85.4: Personal History of malignant neoplasm of genital organs
+-   R97.2: Elevated prostate specific antigen [PSA]
+-   D07.5: Carcinoma in situ of prostate
+-   D40.0: Neoplasm of uncertain behavior of prostate
+-   N42.3: Dysplasia of prostate
 
-Anyone with any of the following codes in their OPCS records: 
+Anyone with any of the following codes in their OPCS records:
 
-M61: Prostatectomy
-M61.1: Radical prostatectomy
-M61.2: Retropubic Prostatectomy
-M61.3: Transvesical Prostatectomy
-M61.4: Perineal Prostatectomy
-X65: Radiotherapy Delivery
-X67: Preparation of radiotherapy
-X68: Brachytherapy preparation
-M70.6: Radioactive seed implantation into prostate
-Y35: Introduction Material Radioactive Removable NOC
-Y36: Introduction Material Non-removable NOC
-T85.6: Block dissection of pelvic lymph nodes
-M70.2: Perineal needle biopsy of prostate
-M70.3: Rectal needle biopsy of prostate
-N04: Orchidectomy
-M65: Endoscopic resection of prostate
-M68: Endoscopic insertion of prosthesis into prostate
-M67.1: Endoscopic cryotherapy to lesion of prostate
-M71.1: High intensity focused ultrasound of prostate
-M71.2: Implantation of radioactive substance into prostate
+-   M61: Prostatectomy
+-   M61.1: Radical prostatectomy
+-   M61.2: Retropubic Prostatectomy
+-   M61.3: Transvesical Prostatectomy
+-   M61.4: Perineal Prostatectomy
+-   X65: Radiotherapy Delivery
+-   X67: Preparation of radiotherapy
+-   X68: Brachytherapy preparation
+-   M70.6: Radioactive seed implantation into prostate
+-   Y35: Introduction Material Radioactive Removable NOC
+-   Y36: Introduction Material Non-removable NOC
+-   T85.6: Block dissection of pelvic lymph nodes
+-   M70.2: Perineal needle biopsy of prostate
+-   M70.3: Rectal needle biopsy of prostate
+-   N04: Orchidectomy
+-   M65: Endoscopic resection of prostate
+-   M68: Endoscopic insertion of prosthesis into prostate
+-   M67.1: Endoscopic cryotherapy to lesion of prostate
+-   M71.1: High intensity focused ultrasound of prostate
+-   M71.2: Implantation of radioactive substance into prostate
 
-# Conditions #
+## Conditions
 
 Age = Age at initial assessment centre visit
 
-Genetic similarity* is defined by Pan-UKB study (Karczewski et al., 2025)
+Genetic similarity\* is defined by Pan-UKB study (Karczewski et al., 2025)
 
 4 SNPs missing from GRS calculation, including rs72725854
 
 Prostate cancer cases defined as:
-- At least one “C61” or “185” event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
-- At least one “C61” event in Cancer Registry
-- At least one “C61” event in death records as “Cause of Death”
+
+-   At least one “C61” or “185” event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
+-   At least one “C61” event in Cancer Registry
+-   At least one “C61” event in death records as “Cause of Death”
 
 Ethnicity is based on self-report and clustered as follows:
 
-- White = White, British, Irish, Any other White background
-- Black = African, Caribbean, Any other Black background, Black or Black British
-- Mixed = White and Black African, White and Black Caribbean
-- Black + Mixed = African, Caribbean, Any other Black background, Black or Black British, White and Black African, White and Black Caribbean
-- South Asian = Pakistani, Indian, Bangladeshi
-- East Asian = Chinese
-- Other = Other ethnic group, Any other mixed background, Prefer not to answer, Do not know, Mixed, NA, Any other Asian background, White and Asian, Asian or Asian British
+-   White = White, British, Irish, Any other White background
+-   Black = African, Caribbean, Any other Black background, Black or Black British
+-   Mixed = White and Black African, White and Black Caribbean
+-   Black + Mixed = African, Caribbean, Any other Black background, Black or Black British, White and Black African, White and Black Caribbean
+-   South Asian = Pakistani, Indian, Bangladeshi
+-   East Asian = Chinese
+-   Other = Other ethnic group, Any other mixed background, Prefer not to answer, Do not know, Mixed, NA, Any other Asian background, White and Asian, Asian or Asian British
 
 Note: Genetic similarity is the preferred term for what is called “Genomic Ancestry” in the UK Biobank
 
-# Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre? #
+# Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
 
 ```{r, echo=FALSE}
 
+library(dplyr)
+library(pROC)
+
 table1 <- formatted %>%                        
   dplyr::filter(                          
-    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black + Mixed",
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
     Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
     Outcome == "PrCa",
     Covariates == "None"
-  )    
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 print(table1)
 
 ```
 
-# Logistic Regression Table 2: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre when combined with Age? #
+## Logistic Regression Table 2: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre when combined with Age?
 
 ```{r, echo=FALSE}
 
 table2 <- formatted %>%                        
   dplyr::filter(                          
-    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black + Mixed",
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
     Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
-  )
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 print(table2)
 
@@ -123,19 +135,18 @@ print(table2)
 
 Conclusion: Age always helps, and using the African-specific weightings makes very little difference
 
-
-
-# Logistic Regression Table 3: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis within 10 years after the assessment centre when combined with Age? #
+## Logistic Regression Table 3: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis within 10 years after the assessment centre when combined with Age?
 
 ```{r, echo=FALSE}
 
 table3 <- formatted %>%                        
   dplyr::filter(                          
-    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black + Mixed" | Population == "AFR",
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "AFR",
     Predictor == "ContimultiethnicGRS267",
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
-  )
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 print(table3)
 
@@ -143,19 +154,19 @@ print(table3)
 
 But what does "Genetic Similarity" even mean?
 
-## Genetic Similarity ##
+## Genetic Similarity
 
-- Defined in Pan-UKB by Karczewski et al. (2025)
+-   Defined in Pan-UKB by Karczewski et al. (2025)
 
-- Statistically compared Biobank participants to HGDP + 1000 genomes
+-   Statistically compared Biobank participants to HGDP + 1000 genomes
 
-- Is now the Biobank’s built-in “Genomic Ancestry” variable
+-   Is now the Biobank’s built-in “Genomic Ancestry” variable
 
-- Problem: strict clustering method that excluded >50,000 participants
-   - Anyone who did not have >50% probability of fitting into a particular cluster (EUR, AFR, EAS, CSA, MID, AMR) was excluded
+-   Problem: strict clustering method that excluded \>50,000 participants
 
+    -   Anyone who did not have \>50% probability of fitting into a particular cluster (EUR, AFR, EAS, CSA, MID, AMR) was excluded
 
-## Principal Components plot 1: HGDP+1KG Reference Panel ##
+## Principal Components plot 1: HGDP+1KG Reference Panel
 
 ```{r, echo=FALSE}
 
@@ -207,7 +218,7 @@ print(HGDP_1KG_PC_plot)
 
 This is the reference panel (HGDP+1KG)
 
-## Principal Components plot 2: UK Biobank Participants who were successfully clustered ##
+## Principal Components plot 2: UK Biobank Participants who were successfully clustered
 
 ```{r, echo=FALSE}
 
@@ -257,7 +268,7 @@ print(UKB_PC_plot1)
 
 ```
 
-## Principal Components plot 3: all UK Biobank Participants ##
+## Principal Components plot 3: all UK Biobank Participants
 
 ```{r, echo=FALSE}
 
@@ -309,7 +320,7 @@ print(UKB_PC_plot1)
 
 This is what it looks like when you include participants who were not successfully clustered.
 
-## Principal Components plot 4: UK Biobank Participants by self-reported ethnicity ##
+## Principal Components plot 4: UK Biobank Participants by self-reported ethnicity
 
 ```{r, echo=FALSE}
 
@@ -345,7 +356,7 @@ HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylab
 #test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
 test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
 
-UKB_PC_plot1 <- ggplot(test_population %>% dplyr::filter(ethnicity_group_narrow == "White" | ethnicity_group_narrow == "Black" | ethnicity_group_narrow == "Mixed"), aes(x = PC1, y = PC2, color = ethnicity_group_narrow)) +
+UKB_PC_plot1 <- ggplot(test_population %>% dplyr::filter(ethnicity_group_narrow == "White" | ethnicity_group_narrow == "Black" | ethnicity_group_narrow == "Mixed White and Black"), aes(x = PC1, y = PC2, color = ethnicity_group_narrow)) +
   geom_point(size = 0.5) +
   theme_minimal() +
   # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
@@ -359,4 +370,1239 @@ print(UKB_PC_plot1)
 
 ```
 
+## Karczewski's method
 
+-   Calculate Principal Components of reference panel (HGDP+1KG)
+
+-   Project UKB participants into this Principal Components space
+
+-   Train random forest model on reference panel Principal Components, as predictors of population group (EUR, AFR, EAS, CSA, AMR, MID)
+
+-   Use same random forest model to predict UKB participants’ likelihood of fitting into these population groups
+
+-   Exclude anyone who does not have \>50% probability of fitting any group
+
+-   Everyone else gets a “Genomic Ancestry” (preferred erm: Genetic Similarity”) label
+
+Why not just use the probabilities to weight the GRS?
+
+## Using probabilities to weight GRS
+
+Adjusted GRS =\
+\
+(EUR\*ContiEuropeanGRS265) + (AFR\*ContiAfricanGRS246) + (EAS\*ContiEast_AsianGRS222) + (AMR\*ContiHispanicGRS253) + (CSA\*ContimultiethnicGRS267) + (MID\*ContimultiethnicGRS267)
+
+Where EUR/AFR/EAS/AMR/CSA/MID is the PROBABILITY of fitting in each of the population clusters
+
+So someone who has a 50% AFR and 50% EUR probability will have a GRS that is halfway between the EUR weightings and the AFR weightings
+
+## Does it work?
+
+```{r, echo=FALSE}
+
+table1 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiORadjustedGRS",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table1)
+
+```
+
+Conclusion: No significant difference compared to using multiethnic GRS weightings
+
+Since ROC AUCs were most similar across groups at the 10-year prediction horizon, let’s see how well these integrated risk models can stratify participants:
+
+## Reference (Stratification using GRS alone)
+
+```{r, echo=FALSE}
+
+dxdownload("Callum/External_figures/GRSstratification.png")
+
+```
+
+![](GRSstratification.png)
+
+Risk ratio = \~1.7 Risk ratio \~ 2.7
+
+## Top 10% of Integrated Risk Model “pred” score vs. bottom 90%
+
+(Conti’s Multiethnic GRS + Age)
+
+```{r, echo=FALSE}
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
+                     outcome = "PrCa_10yrs",
+                     predictor = "Age",
+                     covariates = "ContimultiethnicGRS267",
+                     plot_roc = TRUE)
+
+################################################################################
+# Visually inspecting how well top 10% of pred stratifies prostate cancer risk #
+################################################################################
+
+## Step 1: Run "Logistic_Regressions_testing_Conti_GRS.R" script all the way
+##         down to running a model
+
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("extrafont")
+library(extrafont)
+library(dplyr)
+library(ggplot2)
+install.packages("showtext")
+library(showtext)
+
+library(devtools)
+source_url("https://raw.githubusercontent.com/hdg204/exeteR/main/ex_theme.R")
+
+## Step 2: Set variables and labels
+
+dataframe <- model$data %>%
+  dplyr::filter(ethnicity_group_narrow == "White")                              # Change to view specific groups, or comment out filter to see all participants
+outcome <- "PrCa_10yrs"                                                         # Set to same outcome as model
+predictor <- "pred"
+top_segment <- 10                                                               # 10 means top 10% will be treated as a distinct group
+
+xlabel <- "Group"
+ylabel <- "% with prostate cancer (10 yrs)"
+title_choice <- "Prostate Cancer in Top 10% of IRM vs. Bottom 90% (White participants)"
+
+use_general_top_group = TRUE                                                    # If TRUE, this is the top 10% of predictor among ALL participants, not just the subgroup tested
+
+
+## Step 3: Visual inspection
+
+bottom_cutoff <- 0.01*(100-top_segment)
+predef_top <- paste0(predictor, "top", top_segment)                                        # Change number (multiples of 10 only) to see other quantiles
+
+# 1) Summarize: percentage of outcome == 1 by top10_column1
+
+df_bar <- dataframe %>%
+  {
+    if (use_general_top_group) {
+      # Use precomputed flag (assumed logical TRUE/FALSE)
+      dplyr::mutate(., top = .data[[predef_top]])
+    } else {
+      # Recompute top using the subset 'dataframe'
+      thr <- stats::quantile(.[[predictor]], probs = bottom_cutoff, na.rm = TRUE, names = FALSE)
+      dplyr::mutate(., top = .data[[predictor]] >= thr)
+    }
+  } %>%
+  # Optional: enforce logical type if your predefined flag is 0/1
+  # mutate(top = as.logical(top)) %>%
+  filter(!is.na(top)) %>%                           # drop NA flags
+  group_by(top) %>%
+  summarise(
+    # robust to numeric 0/1 or factor/character "0"/"1"
+    n1  = sum(as.character(.data[[outcome]]) == "1", na.rm = TRUE),
+    n   = sum(!is.na(.data[[outcome]])),
+    pct = dplyr::if_else(n > 0, n1 / n, NA_real_),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(scales::percent(pct, accuracy = 0.1),
+                   " (", scales::comma(n1), "/", scales::comma(n), ")")
+  )
+
+
+
+# 2) Plot 
+IRMplot1 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
+                   y = pct)) +
+  geom_col(width = 0.6, fill = ex_bright_green) +
+  geom_text(aes(label = label), vjust = -0.4, size = 3.5) +
+  scale_y_continuous(limits = c(0, 0.25)) +
+  scale_x_discrete(labels = c(`FALSE` = paste0("Bottom ", 100-top_segment, "%"), `TRUE` = paste0("Top ", top_segment, "%"))) +
+  labs(
+    x = xlabel,
+    y = ylabel,
+    title = title_choice
+  ) +
+  scale_fill_manual(values=exeter_full_palette)+scale_colour_manual(values=exeter_full_palette)+
+  ex_green_theme +
+  theme_minimal()
+
+print(IRMplot1)
+
+```
+
+Ratio = (lift ratio from plot output)
+
+```{r, echo=FALSE}
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
+                     outcome = "PrCa_10yrs",
+                     predictor = "Age",
+                     covariates = "ContimultiethnicGRS267",
+                     plot_roc = TRUE)
+
+
+
+## Step 2: Set variables and labels
+
+dataframe <- model$data %>%
+  dplyr::filter(ethnicity_group_narrow == "Black")                              # Change to view specific groups, or comment out filter to see all participants
+outcome <- "PrCa_10yrs"                                                         # Set to same outcome as model
+predictor <- "pred"
+top_segment <- 10                                                               # 10 means top 10% will be treated as a distinct group
+
+xlabel <- "Group"
+ylabel <- "% with prostate cancer (10 yrs)"
+title_choice <- "Prostate Cancer in Top 10% of IRM vs. Bottom 90% (Black participants)"
+
+use_general_top_group = TRUE                                                    # If TRUE, this is the top 10% of predictor among ALL participants, not just the subgroup tested
+
+
+## Step 3: Visual inspection
+
+bottom_cutoff <- 0.01*(100-top_segment)
+predef_top <- paste0(predictor, "top", top_segment)                                        # Change number (multiples of 10 only) to see other quantiles
+
+# 1) Summarize: percentage of outcome == 1 by top10_column1
+
+df_bar <- dataframe %>%
+  {
+    if (use_general_top_group) {
+      # Use precomputed flag (assumed logical TRUE/FALSE)
+      dplyr::mutate(., top = .data[[predef_top]])
+    } else {
+      # Recompute top using the subset 'dataframe'
+      thr <- stats::quantile(.[[predictor]], probs = bottom_cutoff, na.rm = TRUE, names = FALSE)
+      dplyr::mutate(., top = .data[[predictor]] >= thr)
+    }
+  } %>%
+  # Optional: enforce logical type if your predefined flag is 0/1
+  # mutate(top = as.logical(top)) %>%
+  filter(!is.na(top)) %>%                           # drop NA flags
+  group_by(top) %>%
+  summarise(
+    # robust to numeric 0/1 or factor/character "0"/"1"
+    n1  = sum(as.character(.data[[outcome]]) == "1", na.rm = TRUE),
+    n   = sum(!is.na(.data[[outcome]])),
+    pct = dplyr::if_else(n > 0, n1 / n, NA_real_),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(scales::percent(pct, accuracy = 0.1),
+                   " (", scales::comma(n1), "/", scales::comma(n), ")")
+  )
+
+
+
+# 2) Plot 
+IRMplot2 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
+                   y = pct)) +
+  geom_col(width = 0.6, fill = ex_bright_green) +
+  geom_text(aes(label = label), vjust = -0.4, size = 3.5) +
+  scale_y_continuous(limits = c(0, 0.25)) +
+  scale_x_discrete(labels = c(`FALSE` = paste0("Bottom ", 100-top_segment, "%"), `TRUE` = paste0("Top ", top_segment, "%"))) +
+  labs(
+    x = xlabel,
+    y = ylabel,
+    title = title_choice
+  ) +
+  scale_fill_manual(values=exeter_full_palette)+scale_colour_manual(values=exeter_full_palette)+
+  ex_green_theme +
+  theme_minimal()
+
+print(IRMplot2)
+
+```
+
+Ratio = (lift ratio from plot output)
+
+## Top 20% of Integrated Risk Model “pred” score vs. bottom 90%
+
+(Conti’s Multiethnic GRS + Age)
+
+```{r, echo=FALSE}
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
+                     outcome = "PrCa_10yrs",
+                     predictor = "Age",
+                     covariates = "ContimultiethnicGRS267",
+                     plot_roc = TRUE)
+
+## Step 2: Set variables and labels
+
+dataframe <- model$data %>%
+  dplyr::filter(ethnicity_group_narrow == "White")                              # Change to view specific groups, or comment out filter to see all participants
+outcome <- "PrCa_10yrs"                                                         # Set to same outcome as model
+predictor <- "pred"
+top_segment <- 20                                                               # 10 means top 10% will be treated as a distinct group
+
+xlabel <- "Group"
+ylabel <- "% with prostate cancer (10 yrs)"
+title_choice <- "Prostate Cancer in Top 20% of IRM vs. Bottom 80% (White participants)"
+
+use_general_top_group = TRUE                                                    # If TRUE, this is the top 10% of predictor among ALL participants, not just the subgroup tested
+
+
+## Step 3: Visual inspection
+
+bottom_cutoff <- 0.01*(100-top_segment)
+predef_top <- paste0(predictor, "top", top_segment)                                        # Change number (multiples of 10 only) to see other quantiles
+
+# 1) Summarize: percentage of outcome == 1 by top10_column1
+
+df_bar <- dataframe %>%
+  {
+    if (use_general_top_group) {
+      # Use precomputed flag (assumed logical TRUE/FALSE)
+      dplyr::mutate(., top = .data[[predef_top]])
+    } else {
+      # Recompute top using the subset 'dataframe'
+      thr <- stats::quantile(.[[predictor]], probs = bottom_cutoff, na.rm = TRUE, names = FALSE)
+      dplyr::mutate(., top = .data[[predictor]] >= thr)
+    }
+  } %>%
+  # Optional: enforce logical type if your predefined flag is 0/1
+  # mutate(top = as.logical(top)) %>%
+  filter(!is.na(top)) %>%                           # drop NA flags
+  group_by(top) %>%
+  summarise(
+    # robust to numeric 0/1 or factor/character "0"/"1"
+    n1  = sum(as.character(.data[[outcome]]) == "1", na.rm = TRUE),
+    n   = sum(!is.na(.data[[outcome]])),
+    pct = dplyr::if_else(n > 0, n1 / n, NA_real_),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(scales::percent(pct, accuracy = 0.1),
+                   " (", scales::comma(n1), "/", scales::comma(n), ")")
+  )
+
+
+
+# 2) Plot 
+IRMplot3 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
+                   y = pct)) +
+  geom_col(width = 0.6, fill = ex_bright_green) +
+  geom_text(aes(label = label), vjust = -0.4, size = 3.5) +
+  scale_y_continuous(limits = c(0, 0.25)) +
+  scale_x_discrete(labels = c(`FALSE` = paste0("Bottom ", 100-top_segment, "%"), `TRUE` = paste0("Top ", top_segment, "%"))) +
+  labs(
+    x = xlabel,
+    y = ylabel,
+    title = title_choice
+  ) +
+  scale_fill_manual(values=exeter_full_palette)+scale_colour_manual(values=exeter_full_palette)+
+  ex_green_theme +
+  theme_minimal()
+
+print(IRMplot3)
+
+```
+
+Ratio = (lift ratio from plot output)
+
+```{r, echo=FALSE}
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
+                     outcome = "PrCa_10yrs",
+                     predictor = "Age",
+                     covariates = "ContimultiethnicGRS267",
+                     plot_roc = TRUE)
+
+
+## Step 2: Set variables and labels
+
+dataframe <- model$data %>%
+  dplyr::filter(ethnicity_group_narrow == "Black")                              # Change to view specific groups, or comment out filter to see all participants
+outcome <- "PrCa_10yrs"                                                         # Set to same outcome as model
+predictor <- "pred"
+top_segment <- 20                                                               # 10 means top 10% will be treated as a distinct group
+
+xlabel <- "Group"
+ylabel <- "% with prostate cancer (10 yrs)"
+title_choice <- "Prostate Cancer in Top 20% of IRM vs. Bottom 80% (Black participants)"
+
+use_general_top_group = TRUE                                                    # If TRUE, this is the top 10% of predictor among ALL participants, not just the subgroup tested
+
+
+## Step 3: Visual inspection
+
+bottom_cutoff <- 0.01*(100-top_segment)
+predef_top <- paste0(predictor, "top", top_segment)                                        # Change number (multiples of 10 only) to see other quantiles
+
+# 1) Summarize: percentage of outcome == 1 by top10_column1
+
+df_bar <- dataframe %>%
+  {
+    if (use_general_top_group) {
+      # Use precomputed flag (assumed logical TRUE/FALSE)
+      dplyr::mutate(., top = .data[[predef_top]])
+    } else {
+      # Recompute top using the subset 'dataframe'
+      thr <- stats::quantile(.[[predictor]], probs = bottom_cutoff, na.rm = TRUE, names = FALSE)
+      dplyr::mutate(., top = .data[[predictor]] >= thr)
+    }
+  } %>%
+  # Optional: enforce logical type if your predefined flag is 0/1
+  # mutate(top = as.logical(top)) %>%
+  filter(!is.na(top)) %>%                           # drop NA flags
+  group_by(top) %>%
+  summarise(
+    # robust to numeric 0/1 or factor/character "0"/"1"
+    n1  = sum(as.character(.data[[outcome]]) == "1", na.rm = TRUE),
+    n   = sum(!is.na(.data[[outcome]])),
+    pct = dplyr::if_else(n > 0, n1 / n, NA_real_),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(scales::percent(pct, accuracy = 0.1),
+                   " (", scales::comma(n1), "/", scales::comma(n), ")")
+  )
+
+
+
+# 2) Plot 
+IRMplot4 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
+                   y = pct)) +
+  geom_col(width = 0.6, fill = ex_bright_green) +
+  geom_text(aes(label = label), vjust = -0.4, size = 3.5) +
+  scale_y_continuous(limits = c(0, 0.25)) +
+  scale_x_discrete(labels = c(`FALSE` = paste0("Bottom ", 100-top_segment, "%"), `TRUE` = paste0("Top ", top_segment, "%"))) +
+  labs(
+    x = xlabel,
+    y = ylabel,
+    title = title_choice
+  ) +
+  scale_fill_manual(values=exeter_full_palette)+scale_colour_manual(values=exeter_full_palette)+
+  ex_green_theme +
+  theme_minimal()
+
+print(IRMplot4)
+
+```
+
+Ratio = (lift ratio from plot output)
+
+## Risk Stratification of Any Prostate Cancer Diagnosis, Any Time after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table4 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table4)
+
+```
+
+## Risk Stratification of Any Prostate Cancer Diagnosis, 2 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table5 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table5)
+
+```
+
+## Risk Stratification of Any Prostate Cancer Diagnosis, 5 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table6 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table6)
+
+```
+
+## Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table7 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table7)
+
+```
+
+## So far, we’ve looked at general prostate cancer diagnoses
+
+But prostate cancer often has an overdiagnosis problem – cancers that are never expected to cause harm in a person’s natural lifespan are unnecessarily treated
+
+```{r, echo=FALSE}
+
+dxdownload("Callum/External_figures/CRUKprostatecancerscreening.png")
+
+```
+
+![](CRUKprostatecancerscreening.png)
+
+Overdiagnosis and overtreatment leads to harmful effects on healthy men: [Dushimova, 2025] - urinary incontinence - erectile dysfunction - bowel dysfunction - sepsis - psychological stress
+
+At best, for every 2 lives saved, 12 would likely be overtreated using a PSA test for screening
+
+Now, repeating the analysis for "actionable" and "severe" prostate cancer, with these phenotypes defined as follows:
+
+-   “Actionable” = radiotherapy, prostate surgery, or anti-androgen treatments, within 2 years of diagnosis, or any of the Severe criteria
+
+-   “Severe” = chemotherapy or death from cancer, within 2 years of diagnosis
+
+## Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table8 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table8)
+
+```
+
+## Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table9 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table9)
+
+```
+
+## Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table10 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table10)
+
+```
+
+## Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table11 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table11)
+
+```
+
+## Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table12 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table12)
+
+```
+
+## Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table13 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table13)
+
+```
+
+## Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table14 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table14)
+
+```
+
+## Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table15 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table15)
+
+```
+
+# Conclusions so far
+
+On a 10-year prediction horizon, Conti’s multiethnicity-weighted GRS, in combination with Age, can stratify diagnosis of prostate cancer effectively
+
+However, on the same 10-year prediction horizon, the same GRS appears to discriminate risk of actionable prostate cancer more accurately in white men compared to black men
+
+Since it is a GRS built to predict diagnosis of prostate cancer (not to predict a certain severity of prostate cancer), it makes sense that it is better at predicting general diagnosis
+
+## Now testing: Seibert (2018) and Pagadala (2022)
+
+Seibert’s GRS was trained on “aggressive” prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following: - Gleason score ≥ 7 - Clinical stage T3–T4 - PSA ≥ 10 ng/mL - Nodal metastasis - Distant metastasis
+
+Pagadala’s GRS was trained on age at death from prostate cancer (“fatal PCa”) and age at diagnosis of metastatic PCa
+
+## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table16 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table16)
+
+```
+
+## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table17 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table17)
+
+```
+
+## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table18 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table18)
+
+```
+
+## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table19 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table19)
+
+```
+
+## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table20 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table20)
+
+```
+
+## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table21 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table21)
+
+```
+
+## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table22 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table22)
+
+```
+
+## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table23 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table23)
+
+```
+
+## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table24 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table24)
+
+```
+
+## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table25 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table25)
+
+```
+
+## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table26 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table26)
+
+```
+
+## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table27 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table27)
+
+```
+
+## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table28 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table28)
+
+```
+
+## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table29 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table29)
+
+```
+
+## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table30 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table30)
+
+```
+
+## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table31 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table31)
+
+```
+
+Both perform either significantly worse or not significantly different from Conti’s cross-ancestry GRS at predicting actionable and severe prostate cancer, across all groups
+
+No evidence to show that the Seibert (2018) or Pagadala (2022) GRSs work better than Conti’s for this purpose
+
+# Other Genetic Risk Scores
+
+Conti’s score looks promising, but are other publicly-available GRSs performing better?
+
+## Conti (2021) vs Schumacher (2018) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table32 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "SchumacherGRS145",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table32)
+
+```
+
+Conclusion: Although Schumacher (2018) built their GRS on a GWAS of \~140,000 individuals of European Ancestry only, there is no significant decrease in performance compared to using Conti’s GRS based on a GWAS of \~234,000 invididuals, \~21,000 of which were of African ancestry
+
+## Conti (2021) vs BARCODE1 (2020) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table33 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "BARCODE1GRS129",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table33)
+
+```
+
+Conclusion: The BARCODE1 GRS is effectively the same as Schumacher’s (minus 17 variants), so same as before: no significant decrease in predictive performance compared to Conti’s cross-ancestry score
+
+## Conti (2021) vs Wang (2023) African GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table34 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "WangAfricanGRS444",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table34)
+
+```
+
+Conclusion: Although Wang (2023) had 19,391 cases and 61,608 controls of African Ancestry men for their GWAS (compared to Conti’s 10,368 cases and 10,986 controls), the UK Biobank is statistically underpowered to detect any significant difference
+
+## Is Age doing the heavy lifting in these models?
+
+If even the Schumacher (2018) GRS produces statistically similar ROC AUCs compared to Conti (2021) in Black and Mixed men, how do we know that the GRS is actually improving the models?
+
+Now, let’s go back and test Age alone as a predictor:
+
+```{r, echo=FALSE}
+
+table35 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | Predictor == "Age" & (Covariates == "None"),
+    Outcome == "PrCa_10yrs",
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+print(table35)
+
+```
+
+Conclusion: The GRS significantly improves prediction in White men, but we are statistically underpowered to determine whether it’s actually an improvement on stratifying by age in Black and Mixed men.
+
+This slide only shows that Age is significantly better an “Any prostate cancer” risk predictor for Black men than White men on a 10-year prediction horizon, but this trend is also true of: - Any prostate cancer, any time after the assessment centre - Any prostate cancer on a 2-year prediction horizon - Any prostate cancer on a 5-year prediction horizon - Actionable prostate cancer, on a 2-year prediction horizon - Severe prostate cancer, on a 10-year prediction horizon
+
+There is no significant difference between white and black men with the following endpoints:
+
+-   Actionable prostate cancer, any time after the assessment centre
+-   Actionable prostate cancer, on a 5-year prediction horizon
+-   Actionable prostate cancer, on a 10-year prediction horizon
+-   Severe prostate cancer, any time after the assessment centre
+-   Severe prostate cancer, on a 2-year prediction horizon
+-   Severe prostate cancer, on a 5-year prediction horizon
+
+So basically, Age is consistently a better predictor of “Any prostate cancer” in Black men compared to White men, and is hit-or-miss for actionable/severe prostate cancer regarding this trend.
+
+## Risk Ratio plots to test GRS+Age vs Age alone - top 10% vs bottom 90%
+
+### GRS + Age
+
+```{r, echo=FALSE}
+
+print(IRMplot2)
+
+```
+
+Ratio = (add to text here directly from ggplot output)
+
+### Age alone
+
+```{r, echo=FALSE}
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
+                     outcome = "PrCa_10yrs",
+                     predictor = "Age",
+                     covariates = NULL,
+                     plot_roc = TRUE)
+
+
+## Step 2: Set variables and labels
+
+dataframe <- model$data %>%
+  dplyr::filter(ethnicity_group_narrow == "Black")                              # Change to view specific groups, or comment out filter to see all participants
+outcome <- "PrCa_10yrs"                                                         # Set to same outcome as model
+predictor <- "pred"
+top_segment <- 10                                                               # 10 means top 10% will be treated as a distinct group
+
+xlabel <- "Group"
+ylabel <- "% with prostate cancer (10 yrs)"
+title_choice <- "Prostate Cancer in Top 10% of IRM vs. Bottom 90% (Black participants)"
+
+use_general_top_group = TRUE                                                    # If TRUE, this is the top 10% of predictor among ALL participants, not just the subgroup tested
+
+
+## Step 3: Visual inspection
+
+bottom_cutoff <- 0.01*(100-top_segment)
+predef_top <- paste0(predictor, "top", top_segment)                                        # Change number (multiples of 10 only) to see other quantiles
+
+# 1) Summarize: percentage of outcome == 1 by top10_column1
+
+df_bar <- dataframe %>%
+  {
+    if (use_general_top_group) {
+      # Use precomputed flag (assumed logical TRUE/FALSE)
+      dplyr::mutate(., top = .data[[predef_top]])
+    } else {
+      # Recompute top using the subset 'dataframe'
+      thr <- stats::quantile(.[[predictor]], probs = bottom_cutoff, na.rm = TRUE, names = FALSE)
+      dplyr::mutate(., top = .data[[predictor]] >= thr)
+    }
+  } %>%
+  # Optional: enforce logical type if your predefined flag is 0/1
+  # mutate(top = as.logical(top)) %>%
+  filter(!is.na(top)) %>%                           # drop NA flags
+  group_by(top) %>%
+  summarise(
+    # robust to numeric 0/1 or factor/character "0"/"1"
+    n1  = sum(as.character(.data[[outcome]]) == "1", na.rm = TRUE),
+    n   = sum(!is.na(.data[[outcome]])),
+    pct = dplyr::if_else(n > 0, n1 / n, NA_real_),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(scales::percent(pct, accuracy = 0.1),
+                   " (", scales::comma(n1), "/", scales::comma(n), ")")
+  )
+
+
+
+# 2) Plot 
+IRMplot5 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
+                   y = pct)) +
+  geom_col(width = 0.6, fill = ex_bright_green) +
+  geom_text(aes(label = label), vjust = -0.4, size = 3.5) +
+  scale_y_continuous(limits = c(0, 0.25)) +
+  scale_x_discrete(labels = c(`FALSE` = paste0("Bottom ", 100-top_segment, "%"), `TRUE` = paste0("Top ", top_segment, "%"))) +
+  labs(
+    x = xlabel,
+    y = ylabel,
+    title = title_choice
+  ) +
+  scale_fill_manual(values=exeter_full_palette)+scale_colour_manual(values=exeter_full_palette)+
+  ex_green_theme +
+  theme_minimal()
+
+print(IRMplot5)
+
+```
+
+## Risk Ratio plots to test GRS+Age vs Age alone - top 20% vs bottom 80%
+
+### GRS + Age
+
+```{r, echo=FALSE}
+
+print(IRMplot4)
+
+```
+
+Ratio = (add to text here directly from ggplot output)
+
+### Age alone
+
+```{r, echo=FALSE}
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
+                     outcome = "PrCa_10yrs",
+                     predictor = "Age",
+                     covariates = NULL,
+                     plot_roc = TRUE)
+
+
+## Step 2: Set variables and labels
+
+dataframe <- model$data %>%
+  dplyr::filter(ethnicity_group_narrow == "Black")                              # Change to view specific groups, or comment out filter to see all participants
+outcome <- "PrCa_10yrs"                                                         # Set to same outcome as model
+predictor <- "pred"
+top_segment <- 20                                                               # 10 means top 10% will be treated as a distinct group
+
+xlabel <- "Group"
+ylabel <- "% with prostate cancer (10 yrs)"
+title_choice <- "Prostate Cancer in Top 20% of IRM vs. Bottom 80% (Black participants)"
+
+use_general_top_group = TRUE                                                    # If TRUE, this is the top 10% of predictor among ALL participants, not just the subgroup tested
+
+
+## Step 3: Visual inspection
+
+bottom_cutoff <- 0.01*(100-top_segment)
+predef_top <- paste0(predictor, "top", top_segment)                                        # Change number (multiples of 10 only) to see other quantiles
+
+# 1) Summarize: percentage of outcome == 1 by top10_column1
+
+df_bar <- dataframe %>%
+  {
+    if (use_general_top_group) {
+      # Use precomputed flag (assumed logical TRUE/FALSE)
+      dplyr::mutate(., top = .data[[predef_top]])
+    } else {
+      # Recompute top using the subset 'dataframe'
+      thr <- stats::quantile(.[[predictor]], probs = bottom_cutoff, na.rm = TRUE, names = FALSE)
+      dplyr::mutate(., top = .data[[predictor]] >= thr)
+    }
+  } %>%
+  # Optional: enforce logical type if your predefined flag is 0/1
+  # mutate(top = as.logical(top)) %>%
+  filter(!is.na(top)) %>%                           # drop NA flags
+  group_by(top) %>%
+  summarise(
+    # robust to numeric 0/1 or factor/character "0"/"1"
+    n1  = sum(as.character(.data[[outcome]]) == "1", na.rm = TRUE),
+    n   = sum(!is.na(.data[[outcome]])),
+    pct = dplyr::if_else(n > 0, n1 / n, NA_real_),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(scales::percent(pct, accuracy = 0.1),
+                   " (", scales::comma(n1), "/", scales::comma(n), ")")
+  )
+
+
+
+# 2) Plot 
+IRMplot6 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
+                   y = pct)) +
+  geom_col(width = 0.6, fill = ex_bright_green) +
+  geom_text(aes(label = label), vjust = -0.4, size = 3.5) +
+  scale_y_continuous(limits = c(0, 0.25)) +
+  scale_x_discrete(labels = c(`FALSE` = paste0("Bottom ", 100-top_segment, "%"), `TRUE` = paste0("Top ", top_segment, "%"))) +
+  labs(
+    x = xlabel,
+    y = ylabel,
+    title = title_choice
+  ) +
+  scale_fill_manual(values=exeter_full_palette)+scale_colour_manual(values=exeter_full_palette)+
+  ex_green_theme +
+  theme_minimal()
+
+print(IRMplot6)
+
+```
+
+## Other prediction horizons/prostate cancer severity levels?
+
+If you run logistic regressions with Age as a fixed predictor of all endpoints (any prostate cancer, actionable, severe, etc.), for all prediction horizons, and for all populations, with and without a GRS: No GRS significantly improves prediction for Black men
+
+## Does this mean the GRSs are useless for Black men?
+
+Not quite.
+
+Similarly, if you calculate the Net Reclassification Improvement (NRI) for every combination of Population-GRS-Covariate-Endpoint compared to the equivalent models with Age alone:
+
+-   Black men see a significantly (p \< 0.05) positive NRI with many GRS-endpoint combinations, with Conti, Wang, and Schumacher’s BARCODE1 GRSs providing the greatest improvement (though this varies across endpoints)
+
+## So far, we’ve evaluated GRS utility as a screening tool for asymptomatic men
+
+But another potential GRS application is in symptomatic triage pathways
+
+Which brings us on to…
+
+# Part 2: Symptomatic Triage
+
+Can the GRS predict which men presenting with symptoms to their GP will be diagnosed with prostate cancer in a given timeframe?
+
+(will fill this in later, or move to a separate Rmd script)
