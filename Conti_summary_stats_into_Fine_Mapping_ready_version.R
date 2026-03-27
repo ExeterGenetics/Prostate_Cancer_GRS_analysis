@@ -1,6 +1,5 @@
 ## Converting Conti summary stats MASTER/AFR excel file into rs72725854 Fine Mapping-ready version
 
-install.packages('readxl')
 library(readxl)
 library(dplyr)
 

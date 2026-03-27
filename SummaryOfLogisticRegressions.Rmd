@@ -1,10 +1,4058 @@
 ---
-title: "Summary presentation"
+title: "Summary of Logistic Regressions"
 output: ioslides_presentation
 date: "2026-03-27"
 ---
 
-(note: you must first run "functions.r" then "Logistic_Regressions_testing_Conti_GRS.R")
+Setup script 1: Paste "functions.r" here:
+
+```{r, echo=FALSE}
+
+## This script sets up the functions used in this repository's scripts
+
+# Function to run a logistic regression and compute a ROC AUC curve with 95% CIs
+
+run_logreg <- function(data,
+                       outcome,
+                       predictor,
+                       covariates = NULL,
+                       plot_roc = TRUE) {
+  
+  if (is.null(covariates)) {
+    formula <- as.formula(paste(outcome, "~", predictor))
+  } else {
+    formula <- as.formula(
+      paste(outcome, "~", predictor, "+", paste(covariates, collapse = " + "))
+    )
+  }
+  
+  logreg <- glm(formula, data = data, family = binomial)
+  print(summary(logreg))
+  data$pred <- predict(logreg, data, type = "response")
+  data$predtop10 <- data$pred >= quantile(data$pred, probs = 0.9, na.rm = TRUE, names = FALSE)
+  data$predtop20 <- data$pred >= quantile(data$pred, probs = 0.8, na.rm = TRUE, names = FALSE)
+  data$predtop30 <- data$pred >= quantile(data$pred, probs = 0.7, na.rm = TRUE, names = FALSE)
+  data$predtop40 <- data$pred >= quantile(data$pred, probs = 0.6, na.rm = TRUE, names = FALSE)
+  data$predtop50 <- data$pred >= quantile(data$pred, probs = 0.5, na.rm = TRUE, names = FALSE)
+  data$predtop60 <- data$pred >= quantile(data$pred, probs = 0.4, na.rm = TRUE, names = FALSE)
+  data$predtop70 <- data$pred >= quantile(data$pred, probs = 0.3, na.rm = TRUE, names = FALSE)
+  data$predtop80 <- data$pred >= quantile(data$pred, probs = 0.2, na.rm = TRUE, names = FALSE)
+  data$predtop90 <- data$pred >= quantile(data$pred, probs = 0.1, na.rm = TRUE, names = FALSE)
+  
+  if (plot_roc) {
+    roc_obj <- roc(data[[outcome]] ~ data$pred,
+                   plot = TRUE,
+                   print.auc = TRUE,
+                   ci = TRUE)
+  } else {
+    roc_obj <- roc(data[[outcome]] ~ data$pred,
+                   ci = TRUE)
+  }
+  
+  print(roc_obj)
+  
+  return(list(
+    model = logreg,
+    data = data,
+    outcome = outcome,
+    predictor = predictor,
+    covariates = covariates,
+    roc = roc_obj
+  ))
+}
+
+# Function to run a confusion matrix
+
+confusion_matrix <- function(data,
+                             outcome,
+                             cutoff_value = 0.5,
+                             positive_level = 1,
+                             negative_level = 0,
+                             print_epi = TRUE) {
+  
+  data$predbin <- factor(
+    data$pred > cutoff_value,
+    levels = c(TRUE, FALSE)
+  )
+  
+  data$outcome_actual <- factor(
+    data[[outcome]],
+    levels = c(positive_level, negative_level)
+  )
+  
+  # Build confusion matrix
+  cm <- table(
+    pred_outcome = data$predbin,
+    outcome_actual = data$outcome_actual
+  )
+  
+  # Print confusion matrix
+  print(cm)
+  
+  # Run epi.tests
+  if (print_epi) {
+    epi <- epi.tests(cm)
+    print(epi)
+  } else {
+    epi <- epi.tests(cm)
+  }
+  
+  # Return useful objects
+  return(list(
+    confusion_matrix = cm,
+    epi_tests = epi,
+    data = data
+  ))
+}
+
+## Function to run an Odds Ratio table
+
+ORtable <- function(data,
+                    outcome,
+                    group_col = "Group",
+                    positive_level = 1,
+                    pred_var = "pred",
+                    bins = c(10, 20, 30, 40, 60, 70, 80, 90, 100),
+                    use_existing_cols = FALSE,
+                    digits = 2) {
+  # Basic checks
+  stopifnot(outcome %in% names(data))
+  stopifnot(group_col %in% names(data))
+  if (!pred_var %in% names(data)) {
+    stop("`pred_var` not found in `data`.")
+  }
+  if (use_existing_cols) {
+    message("`use_existing_cols` is ignored in this ORtable version; percentile bands are computed from `pred_var`.")
+  }
+  
+  # Make Group a factor (preserve order if already set)
+  data[[group_col]] <- as.factor(data[[group_col]])
+  
+  # Percentile cut points for pred_var
+  q <- stats::quantile(data[[pred_var]], probs = seq(0, 1, 0.1), na.rm = TRUE, names = FALSE)
+  
+  # Define requested percentile bands and the reference band
+  band_defs <- list(
+    c(0.0, 0.1),
+    c(0.1, 0.2),
+    c(0.2, 0.3),
+    c(0.3, 0.4),
+    c(0.4, 0.6),
+    c(0.6, 0.7),
+    c(0.7, 0.8),
+    c(0.8, 0.9),
+    c(0.9, 1.0)
+  )
+  band_labels <- c(
+    "0-10th percentile",
+    "10-20th percentile",
+    "20-30th percentile",
+    "30-40th percentile",
+    "40-60th percentile",
+    "60-70th percentile",
+    "70-80th percentile",
+    "80-90th percentile",
+    "90-100th percentile"
+  )
+  ref_label <- "40-60th percentile"
+  
+  # Build a membership vector for each percentile band
+  make_band_vector <- function(lo_prob, hi_prob) {
+    lo_idx <- as.integer(lo_prob * 10) + 1
+    hi_idx <- as.integer(hi_prob * 10) + 1
+    lo_val <- q[lo_idx]
+    hi_val <- q[hi_idx]
+    x <- data[[pred_var]]
+    if (hi_prob < 1.0) {
+      return(x >= lo_val & x < hi_val)
+    }
+    return(x >= lo_val & x <= hi_val)
+  }
+  band_vectors <- lapply(band_defs, function(b) make_band_vector(b[1], b[2]))
+  names(band_vectors) <- band_labels
+  ref_vec <- band_vectors[[ref_label]]
+  
+  # Containers
+  groups <- levels(data[[group_col]])
+  
+  # Long results accumulator
+  res_long <- list()
+  
+  # Iterate over requested percentile bands and groups
+  for (i in seq_along(band_labels)) {
+    bin_label <- band_labels[i]
+    inbin_vec <- band_vectors[[bin_label]]
+    
+    for (g in groups) {
+      # Subset to group g and non-missing outcomes/predictions
+      keep <- !is.na(data[[group_col]]) &
+        !is.na(data[[outcome]]) &
+        !is.na(data[[pred_var]]) &
+        (data[[group_col]] == g)
+      
+      if (!any(keep)) {
+        res_long[[length(res_long) + 1]] <- data.frame(
+          bin = bin_label, group = g,
+          n_in = NA_integer_, events_in = NA_integer_, rate_in = NA_real_,
+          n_out = NA_integer_, events_out = NA_integer_, rate_out = NA_real_,
+          OR_pos = NA_real_, CI_low = NA_real_, CI_high = NA_real_,
+          p_value = NA_real_,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      
+      y <- data[[outcome]][keep]
+      inbin <- inbin_vec[keep]
+      refbin <- ref_vec[keep]
+      y_pos <- y == positive_level
+      
+      # Current band counts
+      a <- sum(inbin & y_pos, na.rm = TRUE)
+      b <- sum(inbin & !y_pos, na.rm = TRUE)
+      n_in <- a + b
+      
+      # Reference (40-60th percentile) counts
+      c <- sum(refbin & y_pos, na.rm = TRUE)
+      d <- sum(refbin & !y_pos, na.rm = TRUE)
+      n_ref <- c + d
+      
+      # Force reference band OR to 1 by definition
+      if (identical(bin_label, ref_label)) {
+        res_long[[length(res_long) + 1]] <- data.frame(
+          bin = bin_label,
+          group = g,
+          n_in = n_in,
+          events_in = a,
+          rate_in = ifelse(n_in > 0, a / n_in, NA_real_),
+          n_out = n_ref,
+          events_out = c,
+          rate_out = ifelse(n_ref > 0, c / n_ref, NA_real_),
+          OR_pos = 1,
+          CI_low = 1,
+          CI_high = 1,
+          p_value = NA_real_,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      
+      # OR undefined if either current band or reference band has no observations
+      if (n_in == 0L || n_ref == 0L) {
+        res_long[[length(res_long) + 1]] <- data.frame(
+          bin = bin_label,
+          group = g,
+          n_in = n_in,
+          events_in = a,
+          rate_in = ifelse(n_in > 0, a / n_in, NA_real_),
+          n_out = n_ref,
+          events_out = c,
+          rate_out = ifelse(n_ref > 0, c / n_ref, NA_real_),
+          OR_pos = NA_real_,
+          CI_low = NA_real_,
+          CI_high = NA_real_,
+          p_value = NA_real_,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      
+      # Haldane-Anscombe correction if any zero cells
+      zero_cell <- any(c(a, b, c, d) == 0L)
+      a2 <- if (zero_cell) a + 0.5 else a
+      b2 <- if (zero_cell) b + 0.5 else b
+      c2 <- if (zero_cell) c + 0.5 else c
+      d2 <- if (zero_cell) d + 0.5 else d
+      
+      # OR (positive outcome): odds in current band vs odds in reference band
+      OR <- (a2 * d2) / (b2 * c2)
+      
+      # Wald CI on log OR
+      se_logOR <- sqrt(1 / a2 + 1 / b2 + 1 / c2 + 1 / d2)
+      CI_low <- exp(log(OR) - 1.96 * se_logOR)
+      CI_high <- exp(log(OR) + 1.96 * se_logOR)
+      
+      # Fisher's exact p-value for current band vs reference band
+      pval <- tryCatch(
+        stats::fisher.test(matrix(c(a, b, c, d), nrow = 2))$p.value,
+        error = function(e) NA_real_
+      )
+      
+      res_long[[length(res_long) + 1]] <- data.frame(
+        bin = bin_label, group = g,
+        n_in = n_in, events_in = a, rate_in = a / n_in,
+        n_out = n_ref, events_out = c, rate_out = c / n_ref,
+        OR_pos = OR, CI_low = CI_low, CI_high = CI_high,
+        p_value = pval,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  
+  res_long <- do.call(rbind, res_long)
+  
+  # Nicely formatted "OR [L, U]; p=" string for display
+  fmt_num <- function(x, d = digits) {
+    ifelse(is.na(x), NA_character_, formatC(x, format = "f", digits = d))
+  }
+  res_long$OR_CI_p <- ifelse(
+    is.na(res_long$OR_pos),
+    NA_character_,
+    paste0(
+      fmt_num(res_long$OR_pos), " [",
+      fmt_num(res_long$CI_low), ", ",
+      fmt_num(res_long$CI_high), "]; p=",
+      formatC(res_long$p_value, format = "g", digits = max(3, digits))
+    )
+  )
+  
+  # Build a wide table with one column per group using the formatted string
+  # (Rows ordered by bin sequence)
+  # We'll keep just one row per (bin, group) with the formatted metric.
+  bins_order <- band_labels
+  groups_order <- levels(data[[group_col]])
+  
+  wide_format <- do.call(
+    cbind,
+    c(list(data.frame(Bin = bins_order, stringsAsFactors = FALSE)),
+      lapply(groups_order, function(g) {
+        v <- res_long$OR_CI_p[match(
+          paste(bins_order, g),
+          paste(res_long$bin, res_long$group)
+        )]
+        data.frame(v, stringsAsFactors = FALSE)
+      }))
+  )
+  names(wide_format) <- c("Bin", groups_order)
+  
+  # Also return a numeric wide table with raw ORs (optional)
+  wide_OR <- do.call(
+    cbind,
+    c(list(data.frame(Bin = bins_order, stringsAsFactors = FALSE)),
+      lapply(groups_order, function(g) {
+        v <- res_long$OR_pos[match(
+          paste(bins_order, g),
+          paste(res_long$bin, res_long$group)
+        )]
+        data.frame(v, stringsAsFactors = FALSE)
+      }))
+  )
+  names(wide_OR) <- c("Bin", groups_order)
+  
+  # Add helpful attributes
+  attr(res_long, "note") <- paste0(
+    "Within each Group, OR compares odds of ", outcome, " == ", positive_level,
+    " in each percentile band of `", pred_var, "` against the 40-60th percentile reference band. ",
+    "Reference band OR is fixed at 1 [1, 1]. 95% CI via Wald on log-OR; p-value via Fisher's exact test. ",
+    "Haldane-Anscombe +0.5 applied when a zero cell occurs."
+  )
+  
+  list(
+    long = res_long,          # one row per (bin, group) with counts, rates, OR, CI, p
+    wide_formatted = wide_format,  # display table: OR [L, U]; p=
+    wide_OR = wide_OR         # numeric ORs only
+  )
+}
+
+## Function to run a Risk Ratio table 
+
+RRtable <- function(data,
+                    outcome,
+                    group_col = "Group",
+                    positive_level = 1,
+                    pred_var = "pred",
+                    bins = c(10, 20, 30, 40, 50, 60, 70, 80, 90),
+                    use_existing_cols = TRUE,
+                    within_group_bins = FALSE,   # NEW: compute thresholds within each group
+                    compare_to = c("rest", "bottom"),  # NEW: compare to the rest (default) or exact bottom X%
+                    digits = 2) {
+  compare_to <- match.arg(compare_to)
+  
+  # Checks
+  stopifnot(outcome %in% names(data))
+  stopifnot(group_col %in% names(data))
+  if (!pred_var %in% names(data) && !use_existing_cols) {
+    stop("`pred_var` not found and `use_existing_cols = FALSE`.")
+  }
+  
+  # Ensure Group is factor (preserve order if already a factor)
+  data[[group_col]] <- as.factor(data[[group_col]])
+  groups <- levels(data[[group_col]])
+  bin_labels <- paste0("Top ", bins, "%")
+  
+  # Helper to build a robust logical for "outcome == positive_level"
+  is_positive <- function(y) {
+    if (is.factor(y) || is.character(y)) {
+      as.character(y) == as.character(positive_level)
+    } else {
+      # numeric/logical/integer
+      y == suppressWarnings(as.numeric(positive_level))
+    }
+  }
+  
+  # Helper: if reusing existing predtopXX columns
+  get_existing_bin <- function(bin_pct) {
+    colname <- paste0("predtop", bin_pct)
+    if (!colname %in% names(data)) {
+      stop("Requested to use existing '", colname,
+           "' but it was not found in `data`.")
+    }
+    v <- data[[colname]]
+    if (!is.logical(v)) v <- as.logical(v)
+    v
+  }
+  
+  res_long <- list()
+  
+  for (i in seq_along(bins)) {
+    bin_pct <- bins[i]
+    bin_label <- bin_labels[i]
+    
+    for (g in groups) {
+      # Subset mask for the current group
+      in_group <- !is.na(data[[group_col]]) & data[[group_col]] == g
+      
+      # Build in-bin logical vector
+      if (use_existing_cols && !within_group_bins && compare_to == "rest") {
+        # Fast path: reuse existing global predtopXX as IN-bin
+        inbin_full <- get_existing_bin(bin_pct)
+      } else {
+        # Need to compute from `pred_var`
+        if (!pred_var %in% names(data)) {
+          stop("Missing `pred_var` to compute thresholds.")
+        }
+        
+        pred <- data[[pred_var]]
+        
+        if (within_group_bins) {
+          # thresholds computed within group g
+          pred_g <- pred[in_group]
+          thr_top <- stats::quantile(pred_g, probs = 1 - bin_pct/100, na.rm = TRUE, names = FALSE)
+          
+          if (compare_to == "rest") {
+            inbin_full <- pred >= thr_top
+          } else { # compare_to == "bottom"
+            thr_bot <- stats::quantile(pred_g, probs = bin_pct/100, na.rm = TRUE, names = FALSE)
+            # top X% vs bottom X% (others excluded)
+            inbin_full <- pred >= thr_top
+            outbin_full <- pred <= thr_bot
+          }
+          
+        } else {
+          # global thresholds across all data
+          thr_top <- stats::quantile(pred, probs = 1 - bin_pct/100, na.rm = TRUE, names = FALSE)
+          
+          if (compare_to == "rest") {
+            inbin_full <- pred >= thr_top
+          } else {
+            thr_bot <- stats::quantile(pred, probs = bin_pct/100, na.rm = TRUE, names = FALSE)
+            inbin_full <- pred >= thr_top
+            outbin_full <- pred <= thr_bot
+          }
+        }
+      }
+      
+      # Now restrict to rows that are in this group and have all required info
+      y_all <- data[[outcome]]
+      keep <- in_group & !is.na(y_all) & !is.na(inbin_full)
+      
+      # If we're comparing top X% vs bottom X%, we also need outbin_full
+      if (compare_to == "bottom") {
+        keep <- keep & !is.na(outbin_full)
+      }
+      
+      if (!any(keep)) {
+        res_long[[length(res_long) + 1]] <- data.frame(
+          bin = bin_label, group = g,
+          n_in = NA_integer_, events_in = NA_integer_, risk_in = NA_real_,
+          n_out = NA_integer_, events_out = NA_integer_, risk_out = NA_real_,
+          RR = NA_real_, CI_low = NA_real_, CI_high = NA_real_,
+          p_value = NA_real_,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      
+      y <- y_all[keep]
+      y_pos <- is_positive(y)
+      
+      inbin <- inbin_full[keep]
+      
+      if (compare_to == "rest") {
+        outbin <- !inbin
+      } else {
+        # exact bottom X% (exclude the middle)
+        outbin <- outbin_full[keep]
+      }
+      
+      # If either side has no obs, RR undefined
+      if (sum(inbin, na.rm = TRUE) == 0L || sum(outbin, na.rm = TRUE) == 0L) {
+        n_in  <- sum(inbin,  na.rm = TRUE)
+        n_out <- sum(outbin, na.rm = TRUE)
+        a <- sum(inbin & y_pos,  na.rm = TRUE)
+        c <- sum(outbin & y_pos, na.rm = TRUE)
+        res_long[[length(res_long) + 1]] <- data.frame(
+          bin = bin_label, group = g,
+          n_in = n_in, events_in = a, risk_in = ifelse(n_in > 0, a / n_in, NA_real_),
+          n_out = n_out, events_out = c, risk_out = ifelse(n_out > 0, c / n_out, NA_real_),
+          RR = NA_real_, CI_low = NA_real_, CI_high = NA_real_,
+          p_value = NA_real_,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      
+      # 2x2 counts for this group/bin
+      a <- sum(inbin  &  y_pos, na.rm = TRUE)  # in & pos
+      b <- sum(inbin  & !y_pos, na.rm = TRUE)  # in & neg
+      c <- sum(outbin &  y_pos, na.rm = TRUE)  # out & pos
+      d <- sum(outbin & !y_pos, na.rm = TRUE)  # out & neg
+      
+      n_in  <- a + b
+      n_out <- c + d
+      
+      # Haldane–Anscombe if any zero cell
+      zero_cell <- any(c(a, b, c, d) == 0L)
+      a2 <- if (zero_cell) a + 0.5 else a
+      b2 <- if (zero_cell) b + 0.5 else b
+      c2 <- if (zero_cell) c + 0.5 else c
+      d2 <- if (zero_cell) d + 0.5 else d
+      
+      risk_in  <- a / n_in
+      risk_out <- c / n_out
+      
+      # RR using corrected counts when necessary
+      RR <- (a2 / (a2 + b2)) / (c2 / (c2 + d2))
+      
+      # Katz log-method SE and 95% CI
+      se_logRR <- sqrt( (1 / a2) - (1 / (a2 + b2)) + (1 / c2) - (1 / (c2 + d2)) )
+      CI_low <- exp(log(RR) - 1.96 * se_logRR)
+      CI_high <- exp(log(RR) + 1.96 * se_logRR)
+      
+      # Fisher's exact p on the original counts (layout by row)
+      pval <- tryCatch(
+        stats::fisher.test(matrix(c(a, b, c, d), nrow = 2, byrow = TRUE))$p.value,
+        error = function(e) NA_real_
+      )
+      
+      res_long[[length(res_long) + 1]] <- data.frame(
+        bin = bin_label, group = g,
+        n_in = n_in, events_in = a, risk_in = risk_in,
+        n_out = n_out, events_out = c, risk_out = risk_out,
+        RR = RR, CI_low = CI_low, CI_high = CI_high,
+        p_value = pval,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  
+  res_long <- do.call(rbind, res_long)
+  
+  # Formatting helpers
+  fmt_num <- function(x, d = digits) {
+    ifelse(is.na(x), NA_character_, formatC(x, format = "f", digits = d))
+  }
+  
+  res_long$RR_CI_p <- ifelse(
+    is.na(res_long$RR),
+    NA_character_,
+    paste0(
+      fmt_num(res_long$RR), " [",
+      fmt_num(res_long$CI_low), ", ",
+      fmt_num(res_long$CI_high), "]; p=",
+      formatC(res_long$p_value, format = "g", digits = max(3, digits))
+    )
+  )
+  
+  # Wide display table (formatted)
+  bins_order <- unique(res_long$bin)
+  groups_order <- levels(data[[group_col]])
+  
+  wide_formatted <- do.call(
+    cbind,
+    c(list(data.frame(Bin = bins_order, stringsAsFactors = FALSE)),
+      lapply(groups_order, function(g) {
+        v <- res_long$RR_CI_p[match(
+          paste(bins_order, g),
+          paste(res_long$bin, res_long$group)
+        )]
+        data.frame(v, stringsAsFactors = FALSE)
+      }))
+  )
+  names(wide_formatted) <- c("Bin", groups_order)
+  
+  # Wide numeric RR only
+  wide_RR <- do.call(
+    cbind,
+    c(list(data.frame(Bin = bins_order, stringsAsFactors = FALSE)),
+      lapply(groups_order, function(g) {
+        v <- res_long$RR[match(
+          paste(bins_order, g),
+          paste(res_long$bin, res_long$group)
+        )]
+        data.frame(v, stringsAsFactors = FALSE)
+      }))
+  )
+  names(wide_RR) <- c("Bin", groups_order)
+  
+  attr(res_long, "note") <- paste0(
+    "Within each ", group_col, ", RR compares risk of ", outcome, " == ", positive_level,
+    if (compare_to == "rest")
+      " for IN-bin (Top X%) vs OUT-of-bin (the rest). "
+    else
+      " for Top X% vs Bottom X% (middle excluded). ",
+    "95% CI via Katz log method; p-value via Fisher's exact test. ",
+    "Haldane–Anscombe +0.5 applied if any zero cell occurs.",
+    if (within_group_bins)
+      " Thresholds computed within each group."
+    else
+      " Thresholds computed globally."
+  )
+  
+  list(
+    long = res_long,             # one row per (bin, group) with counts, risks, RR, CI, p
+    wide_formatted = wide_formatted,  # display table: RR [L, U]; p=
+    wide_RR = wide_RR            # numeric RRs only
+  )
+}
+
+
+## Function to calculate the Net Reclassification Improvement (NRI)
+## Compares a new prediction model against a reference model.
+## Method: continuous NRI (Pencina et al. 2008, Stat Med).
+##   - Cases:    NRI_cases    = P(up | event)   - P(down | event)
+##   - Controls: NRI_controls = P(down | non-event) - P(up | non-event)
+##   - Overall:  NRI          = NRI_cases + NRI_controls
+## SE from Pencina 2008; 95% CIs and z-test p-values from normal approximation.
+
+nri <- function(data,
+                outcome,
+                pred_new = "pred2",
+                pred_old = "pred",
+                positive_level = 1,
+                digits = 3) {
+  
+  stopifnot(outcome  %in% names(data))
+  stopifnot(pred_new %in% names(data))
+  stopifnot(pred_old %in% names(data))
+  
+  # Drop rows with any missing values in the three key columns
+  complete <- !is.na(data[[outcome]]) &
+    !is.na(data[[pred_new]]) &
+    !is.na(data[[pred_old]])
+  d <- data[complete, ]
+  
+  is_case <- d[[outcome]] == positive_level
+  
+  delta <- d[[pred_new]] - d[[pred_old]]
+  
+  # ── Cases ──────────────────────────────────────────────────────────────────
+  n_cases         <- sum(is_case)
+  n_up_cases      <- sum(delta[is_case]  > 0)
+  n_down_cases    <- sum(delta[is_case]  < 0)
+  p_up_cases      <- n_up_cases   / n_cases
+  p_down_cases    <- n_down_cases / n_cases
+  NRI_cases       <- p_up_cases - p_down_cases
+  SE_NRI_cases    <- sqrt((p_up_cases + p_down_cases -
+                             (p_up_cases - p_down_cases)^2) / n_cases)
+  CI_low_cases    <- NRI_cases - 1.96 * SE_NRI_cases
+  CI_high_cases   <- NRI_cases + 1.96 * SE_NRI_cases
+  z_cases         <- NRI_cases / SE_NRI_cases
+  p_cases         <- 2 * pnorm(-abs(z_cases))
+  
+  # ── Controls ───────────────────────────────────────────────────────────────
+  n_controls      <- sum(!is_case)
+  n_up_controls   <- sum(delta[!is_case] > 0)
+  n_down_controls <- sum(delta[!is_case] < 0)
+  p_up_controls   <- n_up_controls   / n_controls
+  p_down_controls <- n_down_controls / n_controls
+  NRI_controls    <- p_down_controls - p_up_controls   # down is good for controls
+  SE_NRI_controls <- sqrt((p_up_controls + p_down_controls -
+                             (p_up_controls - p_down_controls)^2) / n_controls)
+  CI_low_controls  <- NRI_controls - 1.96 * SE_NRI_controls
+  CI_high_controls <- NRI_controls + 1.96 * SE_NRI_controls
+  z_controls       <- NRI_controls / SE_NRI_controls
+  p_controls       <- 2 * pnorm(-abs(z_controls))
+  
+  # ── Overall NRI ────────────────────────────────────────────────────────────
+  NRI             <- NRI_cases + NRI_controls
+  SE_NRI          <- sqrt(SE_NRI_cases^2 + SE_NRI_controls^2)
+  CI_low_NRI      <- NRI - 1.96 * SE_NRI
+  CI_high_NRI     <- NRI + 1.96 * SE_NRI
+  z_NRI           <- NRI / SE_NRI
+  p_NRI           <- 2 * pnorm(-abs(z_NRI))
+  
+  # ── Formatting helpers ─────────────────────────────────────────────────────
+  fmt  <- function(x) formatC(x, format = "f", digits = digits)
+  fmtp <- function(x) formatC(x, format = "g", digits = 3)
+  pct  <- function(x) paste0(formatC(x * 100, format = "f", digits = 1), "%")
+  
+  ci_str <- function(est, lo, hi)
+    paste0(fmt(est), " [", fmt(lo), ", ", fmt(hi), "]")
+  
+  # ── Results table ──────────────────────────────────────────────────────────
+  results <- data.frame(
+    Component = c(
+      "Cases: % reclassified up",
+      "Cases: % reclassified down",
+      "NRI (Cases)",
+      "",
+      "Controls: % reclassified up",
+      "Controls: % reclassified down",
+      "NRI (Controls)",
+      "",
+      "Overall NRI"
+    ),
+    N = c(
+      n_cases, n_cases, n_cases,
+      NA,
+      n_controls, n_controls, n_controls,
+      NA,
+      n_cases + n_controls
+    ),
+    Estimate_95CI = c(
+      pct(p_up_cases),
+      pct(p_down_cases),
+      ci_str(NRI_cases, CI_low_cases, CI_high_cases),
+      "",
+      pct(p_up_controls),
+      pct(p_down_controls),
+      ci_str(NRI_controls, CI_low_controls, CI_high_controls),
+      "",
+      ci_str(NRI, CI_low_NRI, CI_high_NRI)
+    ),
+    p_value = c(
+      NA, NA, fmtp(p_cases),
+      NA,
+      NA, NA, fmtp(p_controls),
+      NA,
+      fmtp(p_NRI)
+    ),
+    stringsAsFactors = FALSE
+  )
+  
+  print(results, row.names = FALSE, na.print = "")
+  
+  invisible(list(
+    NRI          = NRI,
+    CI_low_NRI   = CI_low_NRI,
+    CI_high_NRI  = CI_high_NRI,
+    p_NRI        = p_NRI,
+    NRI_cases    = NRI_cases,
+    CI_low_cases = CI_low_cases,
+    CI_high_cases = CI_high_cases,
+    p_cases      = p_cases,
+    p_up_cases   = p_up_cases,
+    p_down_cases = p_down_cases,
+    NRI_controls    = NRI_controls,
+    CI_low_controls = CI_low_controls,
+    CI_high_controls = CI_high_controls,
+    p_controls       = p_controls,
+    p_up_controls    = p_up_controls,
+    p_down_controls  = p_down_controls,
+    n_cases      = n_cases,
+    n_controls   = n_controls,
+    table        = results
+  ))
+}
+
+## Function to compute NRI for each GRS added to an Age-only reference model ─────────────────────
+## 
+## How it works:
+##   For each combination of (outcome, population):
+##     1. Fit an Age-only model (reference) → generates pred column
+##     2. For each GRS in grs_list:
+##        - Fit Age + GRS model → generates pred2 column
+##        - Calculate NRI(Age+GRS vs Age only)
+##        - Store in results dataframe
+##
+## Returns: dataframe with columns:
+##   - Outcome, Population, GRS
+##   - N_Cases, N_Controls
+##   - NRI, NRI_CI_Lower, NRI_CI_Upper, p_NRI
+##   - NRI_Cases, NRI_Controls (component NRIs)
+
+nri_table <- function(
+    populations = NULL,
+    grs_list = NULL,
+    outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
+                 "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
+                 "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    verbose = TRUE
+) {
+  
+  # Default populations if not specified
+  if (is.null(populations)) {
+    populations <- list(
+      "All" = PCa_iv_covariates_GRS_predhorizon,
+      "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+      "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+      "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+      "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+      "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+      "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+      "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+      "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+      "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+      "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+    )
+  }
+  
+  # Default GRS list if not specified
+  if (is.null(grs_list)) {
+    grs_list <- c(
+      # Conti GRSs (Conti_script.R version)
+      "ContimultiethnicGRS",
+      "ContiEuropeanGRS",
+      "ContiAfricanGRS",
+      "ContiEast_AsianGRS",
+      "ContiHispanicGRS",
+      "ContiadjustedGRS",
+      # Conti GRSs (Conti_GRS_267.R version)
+      "ContimultiethnicGRS267",
+      "ContiEuropeanGRS265",
+      "ContiAfricanGRS246",
+      "ContiEast_AsianGRS222",
+      "ContiHispanicGRS253",
+      "ContiORadjustedGRS",
+      # Wang GRSs (Conti_script.R version)
+      "WangmultiethnicGRS",
+      "WangEuropeanGRS",
+      "WangAfricanGRS",
+      "WangEast_AsianGRS",
+      "WangHispanicGRS",
+      # Wang GRSs (Conti_GRS_267.R version)
+      "WangmultiethnicGRS450",
+      "WangEuropeanGRS445",
+      "WangAfricanGRS444",
+      "WangEast_AsianGRS379",
+      "WangHispanicGRS446",
+      # Schumacher and BARCODE1 GRSs
+      "SchumacherGRS",
+      "BARCODE1GRS",
+      "SchumacherGRS145",
+      "BARCODE1GRS129",
+      # Seibert and Pagadala GRSs
+      "SeibertGRS",
+      "PagadalaGRS",
+      "SeibertGRS52",
+      "PagadalaGRS285"
+    )
+  }
+  
+  grs_list <- setdiff(grs_list, "Age")
+  
+  # Initialize results dataframe
+  results <- data.frame(
+    Outcome = character(),
+    Population = character(),
+    GRS = character(),
+    N_Cases = integer(),
+    N_Controls = integer(),
+    NRI = numeric(),
+    NRI_CI_Lower = numeric(),
+    NRI_CI_Upper = numeric(),
+    p_NRI = numeric(),
+    NRI_Cases = numeric(),
+    NRI_Controls = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Total combinations to process
+  total_combos <- length(outcomes) * length(populations) * length(grs_list)
+  combo_count <- 0
+  
+  # Loop over all combinations
+  for (current_outcome in outcomes) {
+    for (pop_name in names(populations)) {
+      pop_data <- populations[[pop_name]]
+      
+      # ── Fit Age-only reference model ───────────────────────────────────────
+      if (verbose) {
+        cat(sprintf("\n=== %s | %s ===\n", current_outcome, pop_name))
+        cat("Fitting Age-only reference model...\n")
+      }
+      
+      if (!"Age" %in% colnames(pop_data)) {
+        if (verbose) cat(sprintf("Skipping (Age not in %s)\n", pop_name))
+        next
+      }
+      
+      tryCatch({
+        # Fit Age-only model
+        age_model <- run_logreg(
+          data = pop_data,
+          outcome = current_outcome,
+          predictor = "Age",
+          covariates = NULL,
+          plot_roc = FALSE
+        )
+        
+        reference_data <- age_model$data  # Has pred column (Age-only predictions)
+        
+        # ── For each GRS, fit Age+GRS model and calculate NRI ─────────────────
+        for (grs_pred in grs_list) {
+          combo_count <- combo_count + 1
+          
+          # Check if GRS exists in data
+          if (!grs_pred %in% colnames(pop_data)) {
+            if (verbose) cat(sprintf("[%d/%d] Skipping %s (not in %s)\n", 
+                                     combo_count, total_combos, grs_pred, pop_name))
+            next
+          }
+          
+          if (verbose) {
+            cat(sprintf("[%d/%d] %s + %s\n", 
+                        combo_count, total_combos, current_outcome, grs_pred))
+          }
+          
+          tryCatch({
+            # Fit Age + GRS model on the reference_data (which already has predictions)
+            grs_model <- run_logreg(
+              data = reference_data,
+              outcome = current_outcome,
+              predictor = grs_pred,
+              covariates = "Age",
+              plot_roc = FALSE
+            )
+            
+            # grs_model$data now has pred column (Age+GRS predictions)
+            # reference_data$pred has Age-only predictions
+            # Rename pred columns for NRI calculation
+            nri_data <- grs_model$data
+            names(nri_data)[names(nri_data) == "pred"] <- "pred2"  # Age+GRS predictions
+            
+            # Add the Age-only predictions as pred_old
+            nri_data$pred <- reference_data$pred
+            
+            # Calculate NRI
+            nri_result <- nri(
+              data = nri_data,
+              outcome = current_outcome,
+              pred_new = "pred2",
+              pred_old = "pred",
+              digits = 3
+            )
+            
+            # Count cases and controls
+            n_cases <- nri_result$n_cases
+            n_controls <- nri_result$n_controls
+            
+            # Append to results
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              GRS = grs_pred,
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              NRI = nri_result$NRI,
+              NRI_CI_Lower = nri_result$CI_low_NRI,
+              NRI_CI_Upper = nri_result$CI_high_NRI,
+              p_NRI = nri_result$p_NRI,
+              NRI_Cases = nri_result$NRI_cases,
+              NRI_Controls = nri_result$NRI_controls,
+              stringsAsFactors = FALSE
+            ))
+            
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
+        
+      }, error = function(e) {
+        if (verbose) cat(sprintf("  ERROR fitting Age model: %s\n", e$message))
+      })
+    }
+  }
+  
+  return(results)
+}
+
+## Function to compute logistic regression for all outcome × GRS × population × covariate combinations ───
+## 
+## How it works:
+##   For each combination of (outcome, population, GRS, covariates):
+##     - Fit a logistic regression model
+##     - Compute ROC AUC with 95% CI
+##     - Store outcome, population, GRS, covariates, sample sizes, AUC, and 95% CI in results dataframe
+##
+## Optionally includes Age-only baseline models for comparison.
+##
+## Returns: dataframe with columns:
+##   - Outcome, Population, Predictor, Covariates
+##   - N_Cases, N_Controls
+##   - ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper
+
+logreg_table <- function(
+    populations = NULL,
+    grs_list = NULL,
+    outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
+                 "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
+                 "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    covariates_list = list(NULL, "Age", "rs72725854_T"),  # uses list() so NULL is preserved as a distinct option
+    include_age_only = TRUE,
+    plot_roc = FALSE,
+    verbose = TRUE
+) {
+  
+  # Default populations if not specified
+  
+  if (is.null(populations)) {
+    populations <- list(
+      "All" = PCa_iv_covariates_GRS_predhorizon,
+      "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+      "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+      "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+      "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+      "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+      "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+      "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+      "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+      "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+      "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+    )
+  }
+  
+  # Default GRS list if not specified
+  if (is.null(grs_list)) {
+    grs_list <- c(
+      # Conti GRSs (Conti_script.R version)
+      "ContimultiethnicGRS",
+      "ContiEuropeanGRS",
+      "ContiAfricanGRS",
+      "ContiEast_AsianGRS",
+      "ContiHispanicGRS",
+      "ContiadjustedGRS",
+      # Conti GRSs (Conti_GRS_267.R version)
+      "ContimultiethnicGRS267",
+      "ContiEuropeanGRS265",
+      "ContiAfricanGRS246",
+      "ContiEast_AsianGRS222",
+      "ContiHispanicGRS253",
+      "ContiORadjustedGRS",
+      # Wang GRSs (Conti_script.R version)
+      "WangmultiethnicGRS",
+      "WangEuropeanGRS",
+      "WangAfricanGRS",
+      "WangEast_AsianGRS",
+      "WangHispanicGRS",
+      # Wang GRSs (Conti_GRS_267.R version)
+      "WangmultiethnicGRS450",
+      "WangEuropeanGRS445",
+      "WangAfricanGRS444",
+      "WangEast_AsianGRS379",
+      "WangHispanicGRS446",
+      # Schumacher and BARCODE1 GRSs
+      "SchumacherGRS",
+      "BARCODE1GRS",
+      "SchumacherGRS145",
+      "BARCODE1GRS129",
+      # Seibert and Pagadala GRSs
+      "SeibertGRS",
+      "PagadalaGRS",
+      "SeibertGRS52",
+      "PagadalaGRS285"
+    )
+  }
+  
+  grs_list <- setdiff(grs_list, "Age")
+  
+  # Initialize results dataframe
+  results <- data.frame(
+    Outcome = character(),
+    Population = character(),
+    Predictor = character(),
+    Covariates = character(),
+    N_Cases = integer(),
+    N_Controls = integer(),
+    ROC_AUC = numeric(),
+    ROC_AUC_CI_Lower = numeric(),
+    ROC_AUC_CI_Upper = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Total combinations to process
+  total_combos <- length(outcomes) * length(populations) * length(grs_list) * length(covariates_list)
+  if (include_age_only) {
+    total_combos <- total_combos + length(outcomes) * length(populations)
+  }
+  combo_count <- 0
+  
+  # Loop over all combinations
+  for (current_outcome in outcomes) {
+    for (pop_name in names(populations)) {
+      pop_data <- populations[[pop_name]]
+      
+      for (grs_pred in grs_list) {
+        
+        # Check if GRS exists in data
+        if (!grs_pred %in% colnames(pop_data)) {
+          if (verbose) cat(sprintf("Skipping %s (not in %s)\n", grs_pred, pop_name))
+          next
+        }
+        
+        for (cov in covariates_list) {
+          combo_count <- combo_count + 1
+          
+          # Progress indicator
+          if (verbose) {
+            cov_label <- ifelse(is.null(cov), "NULL", cov)
+            cat(sprintf("[%d/%d] %s | %s | %s | %s\n", 
+                        combo_count, total_combos, current_outcome, pop_name, grs_pred, cov_label))
+          }
+          
+          # Run logistic regression
+          tryCatch({
+            model <- run_logreg(
+              data = pop_data,
+              outcome = current_outcome,
+              predictor = grs_pred,
+              covariates = cov,
+              plot_roc = plot_roc
+            )
+            
+            # Extract ROC AUC and CI
+            roc_obj <- model$roc
+            auc_val <- as.numeric(roc_obj$auc)
+            auc_ci <- as.numeric(roc_obj$ci)  # Returns [lower, AUC, upper]
+            auc_lower <- auc_ci[1]
+            auc_upper <- auc_ci[3]
+            
+            # Count cases and controls in the dataset used
+            n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
+            n_controls <- sum(model$data[[current_outcome]] == 0, na.rm = TRUE)
+            
+            # Covariate label
+            cov_label <- ifelse(is.null(cov), "None", cov)
+            
+            # Append to results
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              Predictor = grs_pred,
+              Covariates = cov_label,
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              ROC_AUC = auc_val,
+              ROC_AUC_CI_Lower = auc_lower,
+              ROC_AUC_CI_Upper = auc_upper,
+              stringsAsFactors = FALSE
+            ))
+            
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
+      }
+      
+      if (include_age_only) {
+        combo_count <- combo_count + 1
+        
+        if (verbose) {
+          cat(sprintf("[%d/%d] %s | %s | %s | %s\n",
+                      combo_count, total_combos, current_outcome, pop_name, "Age", "None"))
+        }
+        
+        if (!"Age" %in% colnames(pop_data)) {
+          if (verbose) cat(sprintf("Skipping Age (not in %s)\n", pop_name))
+        } else {
+          tryCatch({
+            model <- run_logreg(
+              data = pop_data,
+              outcome = current_outcome,
+              predictor = "Age",
+              covariates = NULL,
+              plot_roc = plot_roc
+            )
+            
+            roc_obj <- model$roc
+            auc_val <- as.numeric(roc_obj$auc)
+            auc_ci <- as.numeric(roc_obj$ci)
+            auc_lower <- auc_ci[1]
+            auc_upper <- auc_ci[3]
+            
+            n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
+            n_controls <- sum(model$data[[current_outcome]] == 0, na.rm = TRUE)
+            
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              Predictor = "Age",
+              Covariates = "None",
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              ROC_AUC = auc_val,
+              ROC_AUC_CI_Lower = auc_lower,
+              ROC_AUC_CI_Upper = auc_upper,
+              stringsAsFactors = FALSE
+            ))
+            
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
+      }
+    }
+  }
+  
+  return(results)
+}
+
+
+```
+
+Setup script 2: Paste "Logistic_Regressions_testing_Conti_GRS.R" here:
+
+```{r, echo=FALSE}
+
+######### Logistic Regression Application - testing Conti's GRSs #########
+
+## Note: this script requires first running "functions.r"
+
+## Setup ##
+
+source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
+
+library(ggplot2)
+install.packages("pROC")
+library(pROC)
+library(epiR)
+
+## Download files from project workspace into RStudio session
+
+dxdownload("Callum/Derived_datasets/KLK3.csv")			# Dataset of KLK3 (Olink Instance 0 NPX Result proteomics) readings, created using the UKB-RAP cohort browser
+dxdownload("Callum/Derived_datasets/imputed_rs72725854.csv")	# Dataset of rs72725854 SNP carrier status, created using "Extracting_rs72725854_carriers.R"
+dxdownload("Callum/Derived_datasets/Age_Sex_PRS_GA.csv")	# Dataset of Age at Recruitment (p21022), Sex (p31), Genetically-inferred Sex (p22001), Standard PRS for Prostate cancer (p26267), Enhanced PRS for Prostate cancer (p26268), Genomic Ancestry (p30079), created using the UKB-RAP cohort browser
+dxdownload("Callum/Derived_datasets/ethnicity.csv")		# Dataset of self-reported Ethnic Background (p21000_i0), created using the UKB-RAP cohort browser
+dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs_UKB2_scaled.csv")	# Projected Principal Components of UKB participants in the principal components space of the HGDP+1000 Genomes reference panel, calculated using "AncestryProbability2calculation.R" in AncestryProbability2_plink folder
+dxdownload("Callum/Derived_datasets/AncestryProbability1.csv")	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
+dxdownload("Callum/Derived_datasets/AncestryProbability2.csv") 	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability2_plink folder script
+dxdownload("Callum/Derived_datasets/FH_PrCa_BrCa.csv")		# Dataset of Family History of Prostate Cancer and Breast Cancer, created using "Family_history.R" script
+
+dxdownload("Callum/GRSs/Conti_multi_ethnic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Multiethnic Analysis"
+dxdownload("Callum/GRSs/Conti_European.pgs.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "European...16"
+dxdownload("Callum/GRSs/Conti_African.pgs.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "African...19"
+dxdownload("Callum/GRSs/Conti_East_Asian.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "East Asian...22"
+dxdownload("Callum/GRSs/Conti_Hispanic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Hispanic...25"
+
+dxdownload("Callum/GRSs/Conti_multiethnicGRS_267.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_EuropeanGRS_265.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_AfricanGRS_246.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_East_AsianGRS_222.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_HispanicGRS_253.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Conti"
+
+dxdownload("Callum/GRSs/Wang_multi_ethnic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_European.pgs.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_script" 
+dxdownload("Callum/GRSs/Wang_African.pgs.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_East_Asian.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_Hispanic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+
+dxdownload("Callum/GRSs/Wang_multiethnicGRS_450.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_EuropeanGRS_445.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_AfricanGRS_444.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_East_AsianGRS_379.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_HispanicGRS_446.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Wang"
+
+dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
+
+dxdownload("Callum/GRSs/Schumacher.pgs.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/SchumacherGRS_145.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Schumacher"
+
+dxdownload("Callum/GRSs/BARCODE1.pgs.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/BARCODE1GRS_129.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "BARCODE1"
+
+dxdownload("Callum/GRSs/Seibert.pgs.tsv")    # Calculated Seibert (2018) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/SeibertGRS_52.tsv")    # Calculated Seibert (2018) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Seibert"
+
+dxdownload("Callum/GRSs/Pagadala.pgs.tsv")    # Calculated Pagadala (2022) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/PagadalaGRS_285.tsv")    # Calculated Pagadala (2022) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Pagadala"
+
+######################################################################
+# Step 1 - Fetch PrCa Cases and collapse into earliest epistart/date #
+######################################################################
+
+PCaCases_HES<-read_ICD10(c('C61', 'Z8546', 'R9721')) # Creates a dataframe of *almost* all recorded prostate cancer diagnoses in HES records
+# Z85.46 is "Personal history of malignant neoplasm of prostate" and R97.21 is "Elevated prostate specific antigen (PSA)". Adding these to read_ICD10 does not add any cases
+
+PCaCases_ICD9<-read_ICD9(c(185, 'V1046')) 
+# V10.46 is "Personal history of malignant neoplasm of prostate". Adding this to read_ICD9 does not add any cases
+PCaCases_ICD9 <- PCaCases_ICD9 %>%
+  mutate(
+    diag_icd10 = case_when(
+      diag_icd9 %in% c("1859") ~ "C61",
+      TRUE ~ NA_character_
+    )
+  )
+
+PCaCases_ICD9 <- PCaCases_ICD9 %>%
+  select(c("eid", "diag_icd10", "assess_date_initial", "epistart", "epiend"))
+
+PCaCases_HES <- bind_rows(PCaCases_HES, PCaCases_ICD9) # Now we have all, after adding old ICD9 diagnoses
+
+PCaCases_cancerregistry<-read_cancer('C61') # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+PCaCases_death<-read_death('C61') # Creates a dataframe of all recorded prostate cancer deaths in death records
+
+PCaCases_HES_earliest <- PCaCases_HES %>%
+  dplyr::mutate(epistart = as.Date(epistart)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    epistart = if (all(is.na(epistart))) NA else min(epistart, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    diag_icd10 = first(diag_icd10),
+    .groups = "drop"
+  )
+
+PCaCases_cancerregistry_earliest <- PCaCases_cancerregistry %>%
+  dplyr::mutate(date = as.Date(date)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    date = if (all(is.na(date))) NA else min(date, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    ICD10 = first(ICD10),
+    .groups = "drop"
+  )
+
+PCaCases_death_earliest <- PCaCases_death %>%
+  dplyr::mutate(date_of_death = as.Date(date_of_death)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    date_of_death = if (all(is.na(date_of_death))) NA else min(date_of_death, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    cause_icd10 = first(cause_icd10),
+    .groups = "drop"
+  )
+
+
+# Sanity check - how many rows per patient in PCaCases vs. PCaCases_earliest? (should have same n number)
+
+PCaCases_HES %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_HES_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_cancerregistry %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_cancerregistry_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_death %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_death_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+# Merge all "earliest" datasets into one
+
+PCaCases_earliest <- merge(PCaCases_HES_earliest, PCaCases_cancerregistry_earliest, by="eid", all = T)
+PCaCases_earliest <- merge(PCaCases_earliest, PCaCases_death_earliest, by="eid", all = T)
+PCaCases_earliest <- PCaCases_earliest %>%
+  rename("assess_date_initial_ICD10" = "assess_date_initial.x", 
+         "assess_date_initial_cr" = "assess_date_initial.y", 
+         "assess_date_initial_death" = "assess_date_initial",
+         "icd10_HES" = "diag_icd10",
+         "icd10_cr" = "ICD10",
+         "icd10_death" = "cause_icd10"
+  )
+
+
+# Sanity check - are the assessment centre dates the same in both HES and cancer registry, unless NA on either side?
+
+mismatched_assessdates <- with(PCaCases_earliest,
+                               !is.na(assess_date_initial_ICD10) &
+                                 !is.na(assess_date_initial_cr) &
+                                 assess_date_initial_ICD10 != assess_date_initial_cr
+)
+
+any(mismatched_assessdates)
+
+PCaCases_earliest$assess_date_initial <- coalesce(PCaCases_earliest$assess_date_initial_ICD10, PCaCases_earliest$assess_date_initial_cr, PCaCases_earliest$assess_date_initial_death)
+
+# Tag patients who already had prostate cancer at assessment centre as "pre-diagnosed". These will be filtered out later 
+# (any death-only PrCa cases will be treated as pre_diagnosed, as we don't have HES or Cancer Registry dates to prove that they were diagnosed post-assessment centre)
+
+# Also make "earliest PrCa diagnosis date" which is the earliest of epistart and date. date_of_death will not be included as this is not strictly a diagnosis date
+
+PCaCases_prediagnosis <- PCaCases_earliest %>%
+  dplyr::mutate(
+    pre_diagnosed =
+      (is.na(epistart) & is.na(date)) |
+      (!is.na(epistart) & epistart <= assess_date_initial) |
+      (!is.na(date) & date <= assess_date_initial),
+    PrCa_case = if_else(icd10_HES == "C61" | icd10_cr == "C61" | icd10_death == "C61", 1L, 0L, missing = 0L),
+    earliest_PrCa_date = pmin(epistart, date, na.rm = TRUE)
+  )
+
+Earliest_PrCa_diagnosis <- PCaCases_prediagnosis %>%
+  select('eid', 'earliest_PrCa_date')
+
+# Tag participants who had a prostate cancer record in HES but not in cancer registry or death records as "HES-only" (these will be excluded later) 
+
+PCaCases_prediagnosis <- PCaCases_prediagnosis %>%
+  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
+
+
+
+
+
+
+
+##################################################################################################
+# Step 2 - Fetch cancer death, chemotherapy, surgery, radiotherapy, and androgen therapy records #
+##################################################################################################
+
+###### Severe = chemotherapy or death from cancer within 2 years of diagnosis
+
+###### Actionable = radiotherapy, prostate surgery, or anti-androgen treatments 
+###### within 2 years of diagnosis, or any of the Severe criteria
+
+Cancer_death<-read_death('C')
+Cancer_death=Cancer_death[grepl("^C", Cancer_death$cause_icd10),] # Creates a dataframe of all recorded cancer (general) deaths in death records
+Cancer_death_earliest <- Cancer_death %>%
+  dplyr::mutate(date_of_death = as.Date(date_of_death)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    date_of_death = if (all(is.na(date_of_death))) NA else min(date_of_death, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    .groups = "drop"
+  )
+
+# Dataframe for chemotherapy (IV, IM, unspecified),
+
+chemotherapy  <- read_OPCS(c('X70', 'X71', 'X72'))
+chemotherapy <- merge(chemotherapy, Earliest_PrCa_diagnosis, by = 'eid') 
+chemotherapy <- chemotherapy %>%
+  dplyr::filter(opdate >= earliest_PrCa_date)
+chemotherapy_earliest <- chemotherapy %>%
+  dplyr::mutate(opdate = as.Date(opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    opdate = if (all(is.na(opdate))) NA else min(opdate, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    .groups = "drop"
+  )
+
+death_chemo <- merge(chemotherapy_earliest, Cancer_death_earliest, by = "eid", all = T)
+
+# Check that all assessment centre dates match, then merge
+
+mismatched_assessdates <- with(death_chemo,
+                               !is.na(assess_date_initial.x) &
+                                 !is.na(assess_date_initial.y) &
+                                 assess_date_initial.x != assess_date_initial.y
+)
+any(mismatched_assessdates)
+
+death_chemo$assess_date_initial <- coalesce(death_chemo$assess_date_initial.x, death_chemo$assess_date_initial.y)
+
+death_chemo <- death_chemo %>%
+  select('eid', 'chemo_opdate' = 'opdate', 'date_of_cancer_death' = 'date_of_death')
+
+
+
+
+# Dataframe for prostatectomy
+
+surgery <- read_OPCS(c('M61', "M611", "M612", "M613"))
+surgery <- merge(surgery, Earliest_PrCa_diagnosis, by = 'eid')
+surgery <- surgery %>%
+  dplyr::filter(opdate >= earliest_PrCa_date)
+surgery_earliest <- surgery %>%
+  dplyr::mutate(opdate = as.Date(opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    opdate = if (all(is.na(opdate))) NA else min(opdate, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Dataframe for radiotherapy (external, brachytherapy, planning, unspecified)
+
+radiotherapy <- read_OPCS(c('X65', 'X66', 'X67', 'X69'))
+radiotherapy <- merge(radiotherapy, Earliest_PrCa_diagnosis, by = 'eid')
+radiotherapy <- radiotherapy %>%
+  dplyr::filter(opdate >= earliest_PrCa_date)
+radiotherapy_earliest <- radiotherapy %>%
+  dplyr::mutate(opdate = as.Date(opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    opdate = if (all(is.na(opdate))) NA else min(opdate, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Dataframe for androgen (therapy?)
+
+androgen <- read_OPCS(c('X741', 'X383', 'S525', 'S526'))
+androgen <- merge(androgen, Earliest_PrCa_diagnosis, by = 'eid')
+androgen <- androgen %>%
+  dplyr::filter(opdate >= earliest_PrCa_date)
+androgen_earliest <- androgen %>%
+  dplyr::mutate(opdate = as.Date(opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    opdate = if (all(is.na(opdate))) NA else min(opdate, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+# Sanity check - how many rows per patient in each dataframe vs. dataframe_earliest?
+
+Cancer_death %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+Cancer_death_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+chemotherapy %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+chemotherapy_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+surgery %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+surgery_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+radiotherapy %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+radiotherapy_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+androgen %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+androgen_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+# Merge all actionable criteria (remember - "actionable" includes all severe criteria also)
+
+surgery_radio_androgen <- merge(surgery_earliest, radiotherapy_earliest, by = "eid", all = T)
+surgery_radio_androgen <- merge(surgery_radio_androgen, androgen_earliest, by = "eid", all = T)
+
+surgery_radio_androgen <- surgery_radio_androgen %>%
+  rename('surgery_opdate' = 'opdate.x', 'radio_opdate' = 'opdate.y', 'androgen_opdate' = 'opdate')
+
+actionable_criteria <- merge(death_chemo, surgery_radio_androgen, by = "eid", all = T)
+
+# Collect severity criteria
+
+severity_criteria <- death_chemo
+
+
+
+
+######################################################################################
+# Step 3 - Load in independent variables, GRSs, and covariates from DNAnexus project #
+######################################################################################
+
+# Load in independent variable, covariates, and GRSs
+
+iv <- read_csv("imputed_rs72725854.csv") # loads independent variable dataset
+iv <- iv %>%
+  select(c("eid", "rs72725854_G", "rs72725854_T")) 
+
+covariates <- read_csv("Age_Sex_PRS_GA.csv")
+covariates <- covariates %>% 
+  rename('Age' = 'p21022', 'Sex' = 'p31', 'PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genomic_ancestry' = 'p30079')
+
+
+ethnicity <- read_csv("ethnicity.csv")
+ethnicity <- ethnicity %>%
+  rename('Ethnicity' = 'p21000_i0')
+
+ethnicity <- ethnicity %>% # "wide net" ethnicity grouping
+  mutate(ethnicity_group_wide = case_when(
+    Ethnicity %in% c("British", "White", "Any other white background", "Irish") ~ "White",
+    Ethnicity %in% c("African", "Caribbean", "Any other Black background", "White and Black African", "White and Black Caribbean", "Black or Black British") ~ "Black",
+    Ethnicity %in% c("Pakistani", "Indian", "Bangladeshi") ~ "South Asian",
+    Ethnicity %in% c("Any other Asian background", "White and Asian", "Chinese", "Asian or Asian British") ~ "East Asian",
+    Ethnicity %in% c("Other ethnic group", "Any other mixed background", "Prefer not to answer", "Do not know", "Mixed", "NA") ~ "Other",
+    TRUE ~ NA_character_
+  ))
+
+ethnicity <- ethnicity %>% # stricter ethnicity grouping
+  mutate(ethnicity_group_narrow = case_when(
+    Ethnicity %in% c("British", "White", "Any other white background", "Irish") ~ "White",
+    Ethnicity %in% c("African", "Caribbean", "Any other Black background", "Black or Black British") ~ "Black",
+    Ethnicity %in% c("Pakistani", "Indian", "Bangladeshi") ~ "South Asian",
+    Ethnicity %in% c("Chinese") ~ "East Asian",
+    Ethnicity %in% c("White and Black African", "White and Black Caribbean") ~ "Mixed White and Black",
+    Ethnicity %in% c("Other ethnic group", "Any other mixed background", "Prefer not to answer", "Do not know", "Mixed", "NA", "Any other Asian background", "White and Asian", "Asian or Asian British") ~ "Other",
+    TRUE ~ NA_character_
+  ))
+
+principal_components<-read_csv("HGDP_1KG_PCs_UKB2_scaled.csv") %>%
+  dplyr::rename("eid" = "IID") %>%
+  dplyr::select("eid", "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11", "PC12", "PC13", "PC14", "PC15", "PC16", "PC17", "PC18", "PC19", "PC20")
+
+family_history <- read.csv("FH_PrCa_BrCa.csv") %>%
+  dplyr::select(c("eid", "FH_Prostate_cancer", "FH_Breast_cancer", "FH_PrCa_BrCa"))
+
+covariates <- merge(covariates, ethnicity, by = "eid", all.x = T)
+covariates <- merge(covariates, principal_components, by = "eid", all = T)
+covariates <- merge(covariates, family_history, by = "eid", all.x = T)
+
+## Load in Conti GRSs, rename columns, and create "top 10%" variables for each GRS (where "top 10%" is defined as being above the 90th percentile of the GRS distribution in the entire eligible UKB population, not just within each ancestry group)
+
+ContimultiethnicGRS <- read_delim("Conti_multi_ethnic.pgs.tsv")
+ContimultiethnicGRS <- ContimultiethnicGRS %>%
+  dplyr::rename('ContimultiethnicGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContimultiethnicGRS = ContimultiethnicGRS >= quantile(ContimultiethnicGRS, probs = 0.9))
+
+ContiEuropeanGRS <- read_delim("Conti_European.pgs.tsv")
+ContiEuropeanGRS <- ContiEuropeanGRS %>%
+  dplyr::rename('ContiEuropeanGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiEuropeanGRS = ContiEuropeanGRS >= quantile(ContiEuropeanGRS, probs = 0.9))
+
+ContiAfricanGRS <- read_delim("Conti_African.pgs.tsv")
+ContiAfricanGRS <- ContiAfricanGRS %>%
+  dplyr::rename('ContiAfricanGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiAfricanGRS = ContiAfricanGRS >= quantile(ContiAfricanGRS, probs = 0.9))
+
+ContiEast_AsianGRS <- read_delim("Conti_East_Asian.pgs.tsv")
+ContiEast_AsianGRS <- ContiEast_AsianGRS %>%
+  dplyr::rename('ContiEast_AsianGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiEast_AsianGRS = ContiEast_AsianGRS >= quantile(ContiEast_AsianGRS, probs = 0.9))
+
+ContiHispanicGRS <- read_delim("Conti_Hispanic.pgs.tsv")
+ContiHispanicGRS <- ContiHispanicGRS %>%
+  dplyr::rename('ContiHispanicGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiHispanicGRS = ContiHispanicGRS >= quantile(ContiHispanicGRS, probs = 0.9))
+
+ContimultiethnicGRS267 <- read_delim("Conti_multiethnicGRS_267.tsv")
+ContimultiethnicGRS267 <- ContimultiethnicGRS267 %>%
+  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
+  dplyr::rename('ContimultiethnicGRS267' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::mutate(top10_all_ContimultiethnicGRS267 = ContimultiethnicGRS267 >= quantile(ContimultiethnicGRS267, probs = 0.9)) 
+
+ContiEuropeanGRS265 <- read_delim("Conti_EuropeanGRS_265.tsv")
+ContiEuropeanGRS265 <- ContiEuropeanGRS265 %>%
+  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
+  dplyr::rename('ContiEuropeanGRS265' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::mutate(top10_all_ContiEuropeanGRS265 = ContiEuropeanGRS265 >= quantile(ContiEuropeanGRS265, probs = 0.9))
+
+ContiAfricanGRS246 <- read_delim("Conti_AfricanGRS_246.tsv")
+ContiAfricanGRS246 <- ContiAfricanGRS246 %>%
+  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
+  dplyr::rename('ContiAfricanGRS246' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::mutate(top10_all_ContiAfricanGRS246 = ContiAfricanGRS246 >= quantile(ContiAfricanGRS246, probs = 0.9))
+
+ContiEast_AsianGRS222 <- read_delim("Conti_East_AsianGRS_222.tsv")
+ContiEast_AsianGRS222 <- ContiEast_AsianGRS222 %>%
+  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
+  dplyr::rename('ContiEast_AsianGRS222' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::mutate(top10_all_ContiEast_AsianGRS222 = ContiEast_AsianGRS222 >= quantile(ContiEast_AsianGRS222, probs = 0.9))
+
+ContiHispanicGRS253 <- read_delim("Conti_HispanicGRS_253.tsv")
+ContiHispanicGRS253 <- ContiHispanicGRS253 %>%
+  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
+  dplyr::rename('ContiHispanicGRS253' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::mutate(top10_all_ContiHispanicGRS253 = ContiHispanicGRS253 >= quantile(ContiHispanicGRS253, probs = 0.9))
+
+# Merge all data
+
+All_Conti_GRS <- merge(ContimultiethnicGRS, ContiEuropeanGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiAfricanGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEast_AsianGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiHispanicGRS, by = "eid")
+
+All_Conti_GRS <- merge(All_Conti_GRS, ContimultiethnicGRS267, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEuropeanGRS265, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiAfricanGRS246, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEast_AsianGRS222, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiHispanicGRS253, by = "eid")
+
+### Creating an adjusted GRS ###
+
+AncestryProbability1 <- read.csv("AncestryProbability1.csv") %>%          
+  dplyr::select(c("IID", "AMR", "AFR", "CSA", "EAS", "EUR", "MID")) %>%
+  dplyr::rename("eid" = "IID")
+
+AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%         
+  dplyr::select(c("IID", "AMR", "AFR", "CSA", "EAS", "EUR", "MID")) %>%
+  dplyr::rename("eid" = "IID")
+
+GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability1 or AncestryProbability 2 depending on preference
+GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
+  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
+
+GRS_plus_ancestry <- GRS_plus_ancestry %>%
+  dplyr::mutate(
+    ContiadjustedGRS = (EUR*ContiEuropeanGRS)+(AFR*ContiAfricanGRS)+(EAS*ContiEast_AsianGRS)+(AMR*ContiHispanicGRS)+(CSA*ContimultiethnicGRS)+(MID*ContiAfricanGRS)
+  )
+
+All_Conti_GRS <- GRS_plus_ancestry %>%
+  dplyr::select(c("eid", "EUR", "AFR", "EAS", "CSA", "MID", "AMR", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "ContiadjustedGRS"))
+
+## Add Odds Ratio-adjusted GRS (where ancestry probability is applied to the OR, not the final scores)
+
+ContiORadjustedGRS <- read.table("OR_adjustedGRS_267.tsv", header = T) %>%
+  dplyr::select(c("eid", "Conti_ORfirst_avg")) %>%
+  dplyr::rename("ContiORadjustedGRS" = "Conti_ORfirst_avg")
+
+All_Conti_GRS <- merge(All_Conti_GRS, ContiORadjustedGRS, by = "eid", all.x = T)
+
+##################### Now repeat for Wang GRSs
+
+WangmultiethnicGRS <- read_delim("Wang_multi_ethnic.pgs.tsv")
+WangmultiethnicGRS <- WangmultiethnicGRS %>%
+  dplyr::rename('WangmultiethnicGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangmultiethnicGRS = WangmultiethnicGRS >= quantile(WangmultiethnicGRS, probs = 0.9))
+
+WangEuropeanGRS <- read_delim("Wang_European.pgs.tsv")
+WangEuropeanGRS <- WangEuropeanGRS %>%
+  dplyr::rename('WangEuropeanGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangEuropeanGRS = WangEuropeanGRS >= quantile(WangEuropeanGRS, probs = 0.9))
+
+WangAfricanGRS <- read_delim("Wang_African.pgs.tsv")
+WangAfricanGRS <- WangAfricanGRS %>%
+  dplyr::rename('WangAfricanGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangAfricanGRS = WangAfricanGRS >= quantile(WangAfricanGRS, probs = 0.9))
+
+WangEast_AsianGRS <- read_delim("Wang_East_Asian.pgs.tsv")
+WangEast_AsianGRS <- WangEast_AsianGRS %>%
+  dplyr::rename('WangEast_AsianGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangEast_AsianGRS = WangEast_AsianGRS >= quantile(WangEast_AsianGRS, probs = 0.9))
+
+WangHispanicGRS <- read_delim("Wang_Hispanic.pgs.tsv")
+WangHispanicGRS <- WangHispanicGRS %>%
+  dplyr::rename('WangHispanicGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangHispanicGRS = WangHispanicGRS >= quantile(WangHispanicGRS, probs = 0.9))
+
+WangmultiethnicGRS450 <- read_delim("Wang_multiethnicGRS_450.tsv")
+WangmultiethnicGRS450 <- WangmultiethnicGRS450 %>%
+  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
+  dplyr::rename('WangmultiethnicGRS450' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::mutate(top10_all_WangmultiethnicGRS450 = WangmultiethnicGRS450 >= quantile(WangmultiethnicGRS450, probs = 0.9))
+
+WangEuropeanGRS445 <- read_delim("Wang_EuropeanGRS_445.tsv")
+WangEuropeanGRS445 <- WangEuropeanGRS445 %>%
+  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
+  dplyr::rename('WangEuropeanGRS445' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::mutate(top10_all_WangEuropeanGRS445 = WangEuropeanGRS445 >= quantile(WangEuropeanGRS445, probs = 0.9))
+
+WangAfricanGRS444 <- read_delim("Wang_AfricanGRS_444.tsv")
+WangAfricanGRS444 <- WangAfricanGRS444 %>%
+  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
+  dplyr::rename('WangAfricanGRS444' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::mutate(top10_all_WangAfricanGRS444 = WangAfricanGRS444 >= quantile(WangAfricanGRS444, probs = 0.9))
+
+WangEast_AsianGRS379 <- read_delim("Wang_East_AsianGRS_379.tsv")
+WangEast_AsianGRS379 <- WangEast_AsianGRS379 %>%
+  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
+  dplyr::rename('WangEast_AsianGRS379' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::mutate(top10_all_WangEast_AsianGRS379 = WangEast_AsianGRS379 >= quantile(WangEast_AsianGRS379, probs = 0.9))
+
+WangHispanicGRS446 <- read_delim("Wang_HispanicGRS_446.tsv")
+WangHispanicGRS446 <- WangHispanicGRS446 %>%
+  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
+  dplyr::rename('WangHispanicGRS446' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::mutate(top10_all_WangHispanicGRS446 = WangHispanicGRS446 >= quantile(WangHispanicGRS446, probs = 0.9))
+
+
+All_Wang_GRS <- merge(WangmultiethnicGRS, WangEuropeanGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS, by = "eid")
+
+All_Wang_GRS <- merge(All_Wang_GRS, WangmultiethnicGRS450, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEuropeanGRS445, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS444, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS379, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS446, by = "eid")
+
+## Add Schumacher and BARCODE1 GRSs
+
+SchumacherGRS <- read_delim("Schumacher.pgs.tsv")
+SchumacherGRS <- SchumacherGRS %>%
+  dplyr::rename('SchumacherGRS' = 'Schumacher') %>%
+  dplyr::mutate(top10_all_SchumacherGRS = SchumacherGRS >= quantile(SchumacherGRS, probs = 0.9))
+
+BARCODE1GRS <- read_delim("BARCODE1.pgs.tsv")
+BARCODE1GRS <- BARCODE1GRS %>%
+  dplyr::rename('BARCODE1GRS' = 'BARCODE1') %>%
+  dplyr::mutate(top10_all_BARCODE1GRS = BARCODE1GRS >= quantile(BARCODE1GRS, probs = 0.9))
+
+SchumacherGRS145 <- read.delim("SchumacherGRS_145.tsv")
+SchumacherGRS145 <- SchumacherGRS145 %>%
+  dplyr::select(c("eid", "Schumacher_GRS_avg")) %>%
+  dplyr::rename('SchumacherGRS145' = 'Schumacher_GRS_avg') %>%
+  dplyr::mutate(top10_all_SchumacherGRS145 = SchumacherGRS145 >= quantile(SchumacherGRS145, probs = 0.9))
+
+BARCODE1GRS129 <- read.delim("BARCODE1GRS_129.tsv")
+BARCODE1GRS129 <- BARCODE1GRS129 %>%
+  dplyr::select(c("eid", "BARCODE1_GRS_avg")) %>%
+  dplyr::rename('BARCODE1GRS129' = 'BARCODE1_GRS_avg') %>%
+  dplyr::mutate(top10_all_BARCODE1GRS129 = BARCODE1GRS129 >= quantile(BARCODE1GRS129, probs = 0.9))
+
+## Add Seibert and Pagadala GRSs
+
+SeibertGRS <- read_delim("Seibert.pgs.tsv")
+SeibertGRS <- SeibertGRS %>%
+  dplyr::rename('SeibertGRS' = 'Seibert') %>%
+  dplyr::mutate(top10_all_SeibertGRS = SeibertGRS >= quantile(SeibertGRS, probs = 0.9))
+
+PagadalaGRS <- read_delim("Pagadala.pgs.tsv")
+PagadalaGRS <- PagadalaGRS %>%
+  dplyr::rename('PagadalaGRS' = 'Pagadala') %>%
+  dplyr::mutate(top10_all_PagadalaGRS = PagadalaGRS >= quantile(PagadalaGRS, probs = 0.9))
+
+SeibertGRS52 <- read_delim("SeibertGRS_52.tsv")
+SeibertGRS52 <- SeibertGRS52 %>%
+  dplyr::select(c("eid", "Seibert_GRS_avg")) %>%
+  dplyr::rename('SeibertGRS52' = 'Seibert_GRS_avg') %>%
+  dplyr::mutate(top10_all_SeibertGRS52 = SeibertGRS52 >= quantile(SeibertGRS52, probs = 0.9))
+
+PagadalaGRS285 <- read_delim("PagadalaGRS_285.tsv")
+PagadalaGRS285 <- PagadalaGRS285 %>%
+  dplyr::select(c("eid", "Pagadala_GRS_avg")) %>%
+  dplyr::rename('PagadalaGRS285' = 'Pagadala_GRS_avg') %>%
+  dplyr::mutate(top10_all_PagadalaGRS285 = PagadalaGRS285 >= quantile(PagadalaGRS285, probs = 0.9))
+
+## Merge all GRSs into one
+
+All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS145, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS129, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SeibertGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, PagadalaGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SeibertGRS52, by = "eid", all = T)
+All_GRS <- merge(All_GRS, PagadalaGRS285, by = "eid", all = T)
+
+#########################################################################################
+# Step 4 - Merge all variables/covariates into one dataframe with Prostate Cancer cases #
+#########################################################################################
+
+iv_covariates <- merge(iv, covariates, by = "eid", all.y = T)
+
+PCa_iv_covariates <- merge(iv_covariates, PCaCases_prediagnosis, by = "eid", all = TRUE)
+
+PCa_iv_covariates_GRS <- merge(PCa_iv_covariates, All_GRS, by = "eid", all.x = TRUE)
+
+PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all = T)
+
+## Extra exclusion criteria for controls 
+## (derived from https://phekb.org/phenotype/prostate-cancer-0 see tables: https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fphekb.org%2Fsites%2Fphenotype%2Ffiles%2FPrCa%2520Phenotyping%2520Algorithm%2520codes.xlsx&wdOrigin=BROWSELINK
+## with alterations to remove ICD9: V84.03 and ICD10: Z15.03 since these describe genetic susceptibility to prostate cancer)
+## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
+
+exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostate
+                               'V104',      # V10.4: Personal history of malignant neoplasm of genital organs
+                               2334,        # 233.4: Carcinoma in situ of the prostate (note: no results returned)
+                               2365,        # 236.5: Neoplasm of uncertain behavior of the prostate (note: no results returned)
+                               6023,        # 602.3: Dysplasia of the prostate (note: no results returned)
+                               6021,        # 60.21: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
+                               6029,        # 60.29: Other transurethral prostatectomy (note: no results returned)
+                               603,         # 60.3: Suprapubic prostatectomy
+                               604,         # 60.4: Retropubic prostatectomy
+                               605,         # 60.5: Radical prostatectomy
+                               6061,        # 60.61: Local excision of lesion of prostate (note: no results returned)
+                               6062,        # 60.62: Perineal prostatectomy (note: no results returned)
+                               6069)        # 60.69: Other prostatectomy
+) %>%
+  dplyr::select("eid", "diag_icd9")
+
+exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
+                                 'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
+                                 'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+                                 'D075',    # D07.5: Carcinoma in situ of prostate
+                                 'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+                                 'N423')    # N42.3: Dysplasia of prostate
+)%>%
+  dplyr::select("eid", "diag_icd10")
+
+exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
+                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
+                                           'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+                                           'D075',    # D07.5: Carcinoma in situ of prostate
+                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
+)%>%
+  dplyr::select("eid", "ICD10")
+
+exclusions_OPCS <- read_OPCS(c('M61',      # M61: Prostatectomy
+                               'M611',     # M61.1: Radical prostatectomy
+                               'M612',     # M61.2: Retropubic Prostatectomy
+                               'M613',     # M61.3: Transvesical Prostatectomy
+                               'M614',     # M61.4: Perineal Prostatectomy
+                               'X65',      # X65: Radiotherapy Delivery
+                               'X67',      # X67: Preparation of radiotherapy
+                               'X68',      # X68: Brachytherapy preparation
+                               'M706',     # M70.6 Radioactive seed implantation into prostate
+                               'Y35',      # Y35: Introduction Material Radioactive Removable NOC
+                               'Y36',      # Y36: Introduction Material Non-removable NOC
+                               'T856',     # T85.6: Block dissection of pelvic lymph nodes
+                               'M702',     # M70.2: Perineal needle biopsy of prostate
+                               'M703',     # M70.3: Rectal needle biopsy of prostate
+                               'N04',      # N04: Orchidectomy
+                               'M65',      # M65: Endoscopic resection of prostate
+                               'M68',      # M68: Endoscopic insertion of prosthesis into prostate
+                               'M671',     # M67.1: Endoscopic cryotherapy to lesion of prostate
+                               'M711',     # M71.1: High intensity focused ultrasound of prostate
+                               'M712')     # M71.2: Implantation of radioactive substance into prostate
+) %>%
+  dplyr::select("eid", "oper4")
+
+possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry, by = "eid", all = T)
+
+# Collapse exclusions to one row per participant, leaving only eids
+possible_PrCa_cases <- possible_PrCa_cases %>%
+  group_by(eid) %>%
+  dplyr::summarise(possible_PrCa_case = 1)
+
+# Join onto main dataframe and create "exclude" variable to exclude controls who meet any of the exclusion criteria for controls (i.e. those with possible PrCa diagnoses but no evidence of prostate cancer diagnosis)
+
+PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS_severity, possible_PrCa_cases, by = "eid", all.x = TRUE) %>%
+  dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & (PrCa_case == 0 | is.na(PrCa_case)), 1L, 0L, missing = 0L))
+
+## Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis
+
+PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
+  dplyr::filter(
+    Sex == 'Male',
+    !is.na(ContimultiethnicGRS),
+    pre_diagnosed == FALSE | is.na(pre_diagnosed), ## to remove pre-diagnosed == TRUE patients
+    HES_only == FALSE | is.na(HES_only), ## to remove patients with HES-only PrCa diagnoses
+    exclude == 0 | is.na(exclude) ## to remove controls who meet any of the exclusion criteria for controls
+  )
+
+# Sanity Check - how many patients in PCa_iv_covariates were female or lacked GRS data? Does it match the difference in n between PCa_iv_covariates and PCa_iv_covariates_clean ?
+
+PCa_iv_covariates_GRS_severity %>%
+  filter(
+    Sex == "Female" |
+      is.na(ContimultiethnicGRS) |
+      pre_diagnosed == TRUE |
+      HES_only == TRUE |
+      exclude == 1L
+  ) %>%
+  summarise(n = n())
+
+# Set Prostate Cancer cases to 1, controls to 0. 
+
+PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
+  dplyr::mutate(
+    PrCa = if_else(PrCa_case == 1, 1L, 0L, missing = 0L),
+  )
+
+############################################# (these should have already been filtered out, 
+# Important - remove withdrawn participants #  since the withdrawn participants no longer have 
+#############################################  a GRS calculated, but still worth making sure)
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite') ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(eid=X1),
+    by='eid'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+PCa_iv_covariates_GRS_clean <- exclude_withdrawn(PCa_iv_covariates_GRS_clean)
+
+
+
+
+##################################################################################
+# Step 5 - Set prediction horizons, including for general/actionable/severe PrCa #
+##################################################################################
+
+library(lubridate)
+
+PCa_iv_covariates_GRS_predhorizon <- PCa_iv_covariates_GRS_clean %>%
+  dplyr::mutate(
+    PrCa_post_assessment  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial
+    ),
+    PrCa_2yrs  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(2)
+    ),
+    PrCa_5yrs  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(5)
+    ),
+    PrCa_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(10)
+    ),
+    PrCa_severe = as.integer(
+      !is.na(earliest_PrCa_date) & (
+        (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+      )
+    ),
+    PrCa_severe_2yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(2) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_severe_5yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(5) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_severe_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(10) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable = as.integer(
+      !is.na(earliest_PrCa_date) & (
+        (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+      )
+    ),
+    PrCa_actionable_2yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(2) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable_5yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(5) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(10) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    )
+  )
+
+################################################################
+# Step 6 - Subset data for different ethnicity/ancestry groups #
+################################################################
+
+# Prediction horizons for White patients only
+
+PCa_iv_covariates_GRS_predhorizon_WhiteOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(ethnicity_group_narrow == "White")
+
+#PCa_iv_covariates_GRS_predhorizon_EurOnly_subset <- PCa_iv_covariates_GRS_predhorizon_EurOnly %>%
+
+
+# Prediction horizons for Black patients only
+
+PCa_iv_covariates_GRS_predhorizon_BlackOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(ethnicity_group_narrow == "Black")
+
+# Prediction horizons for Mixed patients only
+
+PCa_iv_covariates_GRS_predhorizon_Mixed <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(ethnicity_group_narrow == "Mixed White and Black")
+
+# Prediction horizons for Black+Mixed participants
+
+PCa_iv_covariates_GRS_predhorizon_BlackMixed <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(ethnicity_group_wide == "Black")
+
+# Prediction horizons for European participants
+
+PCa_iv_covariates_GRS_predhorizon_EUROnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "European ancestry (EUR)")
+
+# Prediction horizons for African participants
+
+PCa_iv_covariates_GRS_predhorizon_AFROnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "African ancestry (AFR)")
+
+# Prediction horizons for East Asian participants
+
+PCa_iv_covariates_GRS_predhorizon_EASOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "East Asian ancestry (EAS)")
+
+# Prediction horizons for Central/South Asian participants
+
+PCa_iv_covariates_GRS_predhorizon_CSAOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "Central/South Asian ancestry (CSA)")
+#dplyr::filter(ethnicity_group_narrow == "South Asian")
+
+# Prediction horizons for Middle Eastern participants
+
+PCa_iv_covariates_GRS_predhorizon_MIDOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "Middle Eastern ancestry (MID)")
+
+# Prediction horizons for Admixed American participants
+
+PCa_iv_covariates_GRS_predhorizon_AMROnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "Admixed American ancestry (AMR)")
+
+
+
+################################################################################
+# Step 7 (optional) - Visually inspect GRS distribution for cases vs. controls #
+################################################################################
+
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa)))+ # PrCa in general
+  geom_density()+
+  theme_bw()
+
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_2yrs)))+ # PrCa within 2 years
+  geom_density()+
+  theme_bw()
+
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_5yrs)))+ # PrCa within 5 years
+  geom_density()+
+  theme_bw()
+
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_10yrs)))+ # PrCa within 10 years
+  geom_density()+
+  theme_bw()
+
+
+########################################
+# Step 8 - Model Logistic Regression,  #
+# Confusion Matrix, and OR/RR tables   #
+########################################
+
+# Set "data" to either: 
+#   - PCa_iv_covariates_GRS_predhorizon (all participants)
+#   - PCa_iv_covariates_GRS_predhorizon_WhiteOnly (White participants)
+#   - PCa_iv_covariates_GRS_predhorizon_BlackOnly (Black participants)
+#   - PCa_iv_covariates_GRS_predhorizon_Mixed (Mixed White and Black participants)
+#   - PCa_iv_covariates_GRS_predhorizon_BlackMixed (Black + Mixed White and Black participants)
+#   - PCa_iv_covariates_GRS_predhorizon_EUROnly (EUR-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_AFROnly (AFR-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_EASOnly (EAS-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_CSAOnly (CSA-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_MIDOnly (MID-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_AMROnly (AMR-like participants)
+# 
+# 
+# Set "outcome" to either: 
+#   - PrCa (Prostate Cancer diagnosis after assessment centre)
+#   - PrCa_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre)
+#   - PrCa_5yrs (Prostate Cancer diagnosis within 5 years after assessment centre)
+#   - PrCa_10yrs (Prostate Cancer diagnosis within 10 years after assessment centre)
+#
+#   - PrCa_actionable (Prostate Cancer diagnosis after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_5yrs (Prostate Cancer diagnosis within 5 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_10yrs (Prostate Cancer diagnosis within 10 years after assessment centre that satisfies "Actionable" criteria within 2 years of diagnosis)
+#
+#   - PrCa_severe (Prostate Cancer diagnosis after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_2yrs (Prostate Cancer diagnosis within 2 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_5yrs (Prostate Cancer diagnosis within 5 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_10yrs (Prostate Cancer diagnosis within 10 years after assessment centre that satisfies "Severe" criteria within 2 years of diagnosis)
+#
+# Set "predictor" to either: 
+#
+#    Note: these top 6 GRSs use "Conti_script.R", which drops 4 SNPs by default. The numbered GRSs below only drop 2 SNPs
+#
+#   - ContimultiethnicGRS (Conti's GRS with pan-Ancestry weights)
+#   - ContiEuropeanGRS (Conti's GRS with European-specific weights)
+#   - ContiAfricanGRS (Conti's GRS with African-specific weights)
+#   - ContiEast_AsianGRS (Conti's GRS with East Asian-specific weights)
+#   - ContiHispanicGRS (Conti's GRS with Hispanic-specific weights)
+#   - ContiadjustedGRS (Conti's GRS adjusted for ancestry probability at the Beta level)
+#
+#   - ContimultiethnicGRS267 (Conti's GRS with pan-Ancestry weights, all 267 available SNPs)
+#   - ContiEuropeanGRS265 (Conti's GRS with European-specific weights, all 265 available SNPs)
+#   - ContiAfricanGRS246 (Conti's GRS with African-specific weights, all 246 available SNPs)
+#   - ContiEast_AsianGRS222 (Conti's GRS with East Asian-specific weights)
+#   - ContiHispanicGRS253 (Conti's GRS with Hispanic-specific weights)
+#
+#   - ContiORadjustedGRS (Conti's GRS adjusted for ancestry probability at the Odds Ratio level)
+#
+#   - WangmultiethnicGRS (Wang's GRS with pan-Ancestry weights)
+#   - WangEuropeanGRS (Wang's GRS with European-specific weights)
+#   - WangAfricanGRS (Wang's GRS with African-specific weights)
+#   - WangEast_AsianGRS (Wang's GRS with East Asian-specific weights)
+#   - WangHispanicGRS (Wang's GRS with Hispanic-specific weights)
+#
+#   - WangmultiethnicGRS450 (Wang's GRS with pan-Ancestry weights, all 450 available SNPs)
+#   - WangEuropeanGRS445 (Wang's GRS with European-specific weights, all 445 available SNPs)
+#   - WangAfricanGRS444 (Wang's GRS with African-specific weights, all 444 available SNPs)
+#   - WangEast_AsianGRS379 (Wang's GRS with East Asian-specific weights, all 379 available SNPs)
+#   - WangHispanicGRS446 (Wang's GRS with Hispanic-specific weights, all 446 available SNPs)
+#
+#   - SchumacherGRS (Schumacher's GRS (2018)))
+#   - BARCODE1GRS (BARCODE1 GRS (2021)))
+#   - SchumacherGRS145 (Schumacher's GRS with 145 available SNPs)
+#   - BARCODE1GRS129 (BARCODE1 GRS with 129 available SNPs)
+#
+#    - SeibertGRS (Seibert's GRS (2018))
+#    - PagadalaGRS (Pagadala's GRS (2022))
+#    - SeibertGRS52 (Seibert's GRS with 52 available SNPs)
+#    - PagadalaGRS285 (Pagadala's GRS with 285 available SNPs)
+#
+# Set "covariates" to either: (or add multiple using + between covariates)
+#   - (without quote marks) NULL
+#   - Age (Age at assessment centre visit)
+#   - rs72725854_T (carrier status of rs72725854 risk allele) 
+#
+
+# Logistic Regression
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+                    outcome = "PrCa_10yrs",
+                    predictor = "Age",
+                    covariates = NULL,
+                    plot_roc = TRUE)
+
+model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
+                     outcome = "PrCa_10yrs",
+                     predictor = "Age",
+                     covariates = "WangAfricanGRS444",
+                     plot_roc = TRUE)
+
+# Confusion Matrix
+
+matrix <- confusion_matrix(data = model$data, 
+                           outcome = model$outcome, 
+                           cutoff_value = 0.20, 
+                           positive_level = 1, negative_level = 0)
+
+# Odds Ratio Table
+
+OR_table <- ORtable(
+  data = model$data,
+  outcome = model$outcome,
+  group_col = "ethnicity_group_narrow",       # <- your 6-level grouping variable
+  positive_level = 1,        # 1 denotes positive outcome
+  use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
+)
+
+print(OR_table$wide_formatted)
+
+# Risk Ratio Table
+
+RR_table <- RRtable(
+  data = model$data,
+  outcome = model$outcome,
+  group_col = "ethnicity_group_narrow",
+  positive_level = 1,
+  use_existing_cols = TRUE
+)
+
+print(RR_table$wide_formatted)
+
+
+# NRI Calculation to compare two models
+
+nri_result <- nri(
+  data = model$data %>% dplyr::mutate(pred2 = model2$data$pred),
+  outcome = model$outcome,
+)
+
+print(nri_result)
+
+######################################################################################
+# Step 9 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
+######################################################################################
+
+## By default, logreg_table() will compute all combinations of population, outcome, GRS, and covariates
+
+bulk <- logreg_table()
+
+## The below block adds, for each row that represents a GRS + Age model, the
+## equivalent Age-only model, and compares confidence intervals between them
+
+age_only_reference <- bulk %>%
+  dplyr::filter(Predictor == "Age", Covariates == "None") %>%
+  dplyr::select(
+    Outcome,
+    Population,
+    Age_only_ROC_AUC_CI_Upper = ROC_AUC_CI_Upper
+  )
+
+formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
+  dplyr::left_join(age_only_reference, by = c("Outcome", "Population")) %>%
+  dplyr::mutate(
+    ROC_AUC_4dp = dplyr::if_else(
+      is.na(ROC_AUC),
+      NA_character_,
+      sprintf("%.4f", ROC_AUC)
+    ),
+    ROC_AUC_CI_95_4dp = dplyr::if_else(
+      is.na(ROC_AUC_CI_Lower) | is.na(ROC_AUC_CI_Upper),
+      NA_character_,
+      sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
+    ),
+    `GRS+Age > Age?` = dplyr::case_when(
+      Covariates != "Age" | Predictor == "Age" ~ NA_character_,
+      is.na(ROC_AUC_CI_Lower) | is.na(Age_only_ROC_AUC_CI_Upper) ~ NA_character_,
+      ROC_AUC_CI_Lower > Age_only_ROC_AUC_CI_Upper ~ "YES",
+      ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
+    )
+  ) %>%
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
+
+## This block is to view a subset of the bulk logistic regression table. Change
+## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
+
+subset <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "Black",
+    #Predictor == "PagadalaGRS",
+    #Outcome == "PrCa_severe_10yrs",
+    #Covariates == "Age" #| Covariates == "None"
+  )    
+
+
+######################################################################################
+# Step 10 - Generate comprehensive NRI table for all GRSs, populations, and outcomes # 
+######################################################################################
+
+## By default, nri_table() will compute all combinations of population, outcome, and GRS for the NRI comparison between a GRS+Age model vs. an Age-only model
+
+nri_bulk <- nri_table()
+
+nri_bulk <- nri_bulk %>%
+  dplyr::mutate(
+    NRI_significant = dplyr::case_when(
+      is.na(p_NRI) ~ NA_character_,
+      p_NRI < 0.05 ~ "YES",
+      p_NRI >= 0.05 ~ "NO"
+    )
+  )
+
+## This block is to view a subset of the bulk NRI table. Change the filter to investigate a specific Population, Predictor, or Outcome
+
+nri_subset <- nri_bulk %>%
+  dplyr::filter(
+    Population == "Black",
+    #GRS == "PagadalaGRS",
+    #Outcome == "PrCa_severe_10yrs"
+  )
+
+```
+
+Setup script 3: Paste "LUTS.R" here:
+
+```{r, echo=FALSE}
+
+#############################################################################
+# Symptomatic Angle - how well can GRS predict Prostate cancer diagnosis in #
+# ------------------- symptomatic participants? ----------------------------#
+#############################################################################
+
+## Note: this script requires first running "functions.r"
+
+source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
+
+install.packages("RMySQL")
+library(RMySQL)
+library(dplyr)
+library(readr)
+install.packages("readstata13")
+library(readstata13)
+library(ggplot2)
+install.packages("pROC")
+library(pROC)
+library(matrixStats)
+install.packages("survminer")
+library(survminer)
+library(survival)
+install.packages("tidyverse")
+library(tidyverse) 
+install.packages("DiagrammeR")
+library(DiagrammeR)
+library(epiR)
+
+## Download files from project workspace into RStudio session
+
+dxdownload("Callum/Derived_datasets/KLK3.csv")			# Dataset of KLK3 (Olink Instance 0 NPX Result proteomics) readings, created using the UKB-RAP cohort browser
+dxdownload("Callum/Derived_datasets/imputed_rs72725854.csv")	# Dataset of rs72725854 SNP carrier status, created using "Extracting_rs72725854_carriers.R"
+dxdownload("Callum/Derived_datasets/Age_Sex_PRS_GA.csv")	# Dataset of Age at Recruitment (p21022), Sex (p31), Genetically-inferred Sex (p22001), Standard PRS for Prostate cancer (p26267), Enhanced PRS for Prostate cancer (p26268), Genomic Ancestry (p30079), created using the UKB-RAP cohort browser
+dxdownload("Callum/Derived_datasets/ethnicity.csv")		# Dataset of self-reported Ethnic Background (p21000_i0), created using the UKB-RAP cohort browser
+dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs_UKB2_scaled.csv")	# Projected Principal Components of UKB participants in the principal components space of the HGDP+1000 Genomes reference panel, calculated using "AncestryProbability2calculation.R" in AncestryProbability2_plink folder
+dxdownload("Callum/Derived_datasets/AncestryProbability1.csv")	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
+dxdownload("Callum/Derived_datasets/AncestryProbability2.csv") 	# Genetic similarity probabilities for Ancestry group calculated using AncestryProbability2_plink folder script
+dxdownload("Callum/Derived_datasets/FH_PrCa_BrCa.csv")		# Dataset of Family History of Prostate Cancer and Breast Cancer, created using "Family_history.R" script
+
+dxdownload("Callum/GRSs/Conti_multi_ethnic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Multiethnic Analysis"
+dxdownload("Callum/GRSs/Conti_European.pgs.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "European...16"
+dxdownload("Callum/GRSs/Conti_African.pgs.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "African...19"
+dxdownload("Callum/GRSs/Conti_East_Asian.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "East Asian...22"
+dxdownload("Callum/GRSs/Conti_Hispanic.pgs.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Hispanic...25"
+
+dxdownload("Callum/GRSs/Conti_multiethnicGRS_267.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_EuropeanGRS_265.tsv") 		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_AfricanGRS_246.tsv")			# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_East_AsianGRS_222.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Conti"
+dxdownload("Callum/GRSs/Conti_HispanicGRS_253.tsv")		# Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Conti"
+
+dxdownload("Callum/GRSs/Wang_multi_ethnic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_European.pgs.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_script" 
+dxdownload("Callum/GRSs/Wang_African.pgs.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_East_Asian.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/Wang_Hispanic.pgs.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_script"
+
+dxdownload("Callum/GRSs/Wang_multiethnicGRS_450.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_EuropeanGRS_445.tsv") 		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_AfricanGRS_444.tsv")			# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_East_AsianGRS_379.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Wang"
+dxdownload("Callum/GRSs/Wang_HispanicGRS_446.tsv")		# Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Wang"
+
+dxdownload("Callum/GRSs/OR_adjustedGRS_267.tsv")	# Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
+
+dxdownload("Callum/GRSs/Schumacher.pgs.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/SchumacherGRS_145.tsv")    # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Schumacher"
+
+dxdownload("Callum/GRSs/BARCODE1.pgs.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/BARCODE1GRS_129.tsv")    # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "BARCODE1"
+
+dxdownload("Callum/GRSs/Seibert.pgs.tsv")    # Calculated Seibert (2018) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/SeibertGRS_52.tsv")    # Calculated Seibert (2018) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Seibert"
+
+dxdownload("Callum/GRSs/Pagadala.pgs.tsv")    # Calculated Pagadala (2022) GRS for all eligible participants using "Conti_script"
+dxdownload("Callum/GRSs/PagadalaGRS_285.tsv")    # Calculated Pagadala (2022) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Pagadala"
+
+system("dx download Callum/LUTS/Green2022supplementarytable1.csv") # This is the supplementary table 1 from Harry Green's LUTS paper, converted to .csv format using excel. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC9553867/
+Green2022supplementarytable1 <- read.csv("Green2022supplementarytable1.csv")
+
+
+#################################################################
+# Step 1: Fetch Prostate Cancer symptom records from GP records #
+#################################################################
+
+PrCa_symptom_codes <- Green2022supplementarytable1$read_3 |> as.character()
+print(PrCa_symptom_codes)
+
+## Using these codes, select corresponding GP records
+
+# Method 1) Exactly as codes are written, all full stops and ellipses (written as three ASCII dots) included, without Prostate Cancer codes
+
+PrCaSymptom_gp_records1 <- read_GP(c(
+  "1A27.", "K16y8", "XaNFc", "X30Ni", "1A1Z.", "1A11.", "1A1..", "R084.", "1A12.", "R084z", "R0840",
+  "1A1..", "1A1..", "1A34.", "1A34.", "R083z", "R083.", "1AZ6.", "1AZ60", "1AZ61", "1AZ62", "1A2..",
+  "1A2Z.", "R086z", "8D7..", "R08..", "R08zz", "66K3.", "1A4..", "1A...", "1A...", "1AZ..", "1AZZ.",
+  "1AH1.", "R086.", "R08z.", "Kz...", "Ryu4.", "XaB9O", "XaXHi", "XaXHj", "XaXHk", "Xa96j", "1A13.",
+  "R0842", "1A33.", "1A31.", "1A3..", "1A3Z.", "1A3..", "R0861", "R0863", "R0860", "317C.", "1A37.",
+  "1A36.", "XaD2w", "X77SF", "X76Y0", "R082.", "R0824", "1A32.", "K196.", "R0820", "1A32.", "R0822",
+  "1A25.", "R0862", "1A25.")
+)
+
+##### Prostate Cancer Codes
+##  "R15y0", "B7C20", "14270", "ZV104", "B834.", "1J08.", "B58y5", "B8340",
+##  "B46..", "XaC0j", "Xa3fu", "XaXGk", "XaFwo", "XaKyV"
+
+
+PrCaSymptom_gp_records1 <- PrCaSymptom_gp_records1 %>%                                          ## Change all blanks to NA
+  dplyr::mutate(across(all_of(c("read_2", "read_3")),
+                       ~ na_if(str_trim(as.character(.)), "")))
+
+
+PrCaSymptom_gp_records1$read_code <- coalesce(PrCaSymptom_gp_records1$read_2, PrCaSymptom_gp_records1$read_3) # Combine read2 and read3 into one column called "read_code"
+
+## Assign symptom categories (note that this is strict - only exact matches will be categorized)
+
+PrCaSymptom_gp_records1_over40_strict <- PrCaSymptom_gp_records1 %>%
+  filter(event_age >= 40) %>%
+  mutate(category = case_when(
+    read_code %in% c("1A27.", "K16y8", "XaNFc", "X30Ni") ~ "DoubleVoiding",
+    read_code %in% c("1A1Z.", "1A11.", "1A1..", "R084.", "1A12.", "R084z", "R0840", "1A1..", "1A1..") ~ "Frequency",
+    read_code %in% c("1A34.", "1A34.") ~ "Hesitancy",
+    read_code %in% c("R083z", "R083.") ~ "Incontinence",
+    read_code %in% c("1AZ6.", "1AZ60", "1AZ61", "1AZ62", "1A2..", "1A2Z.", "R086z", "8D7..", "R08..", "R08zz", "66K3.", "1A4..", "1A...", "1A...", "1AZ..", "1AZZ.", "1AH1.", "R086.", "R08z.", "Kz...", "Ryu4.", "XaB9O", "XaXHi", "XaXHj", "XaXHk", "Xa96j") ~ "LUTS",
+    read_code %in% c("1A13.", "R0842") ~ "Nocturia",
+    read_code %in% c("1A33.", "1A31.", "1A3..", "1A3Z.", "1A3..", "R0861", "R0863", "R0860", "317C.", "1A37.", "1A36.", "XaD2w", "X77SF", "X76Y0") ~ "PoorStream",
+    read_code %in% c("R082.", "R0824", "1A32.", "K196.", "R0820", "1A32.", "R0822") ~ "Retention",
+    read_code %in% c("1A25.", "R0862", "1A25.") ~ "Urgency",
+    ##    read_code %in% c("R15y0", "B7C20", "14270", "ZV104", "B834.", "1J08.", "B58y5", "B8340", "B46..", "XaC0j", "Xa3fu", "XaXGk", "XaFwo", "XaKyV") ~ "ProstateCancer",
+    TRUE ~ NA_character_
+  ))
+
+
+## Write uncategorized dataframe to investigate non-exact codes - see if we should drop or include them
+
+uncategorized <- PrCaSymptom_gp_records1_over40_strict %>%
+  dplyr::filter(is.na(category))
+
+
+unique_uncategorized_codes <- uncategorized %>%
+  mutate(read_code = str_trim(as.character(read_code))) %>%
+  filter(!is.na(read_code), read_code != "") %>%
+  distinct(read_code) %>%
+  arrange(read_code)
+
+unique_uncategorized_codes
+
+## Read in read2 and read3 dictionaries to see what these codes mean
+
+dxdownload("Callum/read2_read3_codes/read2_lkp3.csv")
+dxdownload("Callum/read2_read3_codes/read3_lkp3.csv")
+
+uncategorized_codes_table <- uncategorized %>%
+  transmute(code = str_trim(as.character(read_code))) %>%
+  filter(!is.na(code), code != "") %>%
+  distinct()
+
+
+read2_dictionary <- read.csv("read2_lkp3.csv") %>%
+  transmute(code = as.character(read_2), term_r2 = as.character(term_description)) %>%
+  distinct()
+
+
+read3_dictionary <- read.csv("read3_lkp3.csv") %>%
+  transmute(code = as.character(read_3), term_r3 = as.character(term_description)) %>%
+  distinct()
+
+
+
+mapped_uncategorized_codes_table <- uncategorized_codes_table %>%
+  left_join(read2_dictionary, by = "code") %>%
+  left_join(read3_dictionary,  by = "code") %>%
+  mutate(
+    scheme = case_when(
+      !is.na(term_r2)   &  is.na(term_r3) ~ "Read v2",
+      is.na(term_r2)    & !is.na(term_r3) ~ "Read v3",
+      !is.na(term_r2)   & !is.na(term_r3) ~ "Both (check)",
+      TRUE                                 ~ "Not found"
+    ),
+    term = coalesce(term_r2, term_r3)
+  ) %>%
+  select(code, scheme, term) %>%
+  arrange(scheme, code)
+
+mapped_uncategorized_codes_table
+
+
+## Create a less strict categorization based on mapped_uncategorized_codes_table
+
+PrCaSymptom_gp_records1_over40_liberal <- PrCaSymptom_gp_records1 %>%
+  filter(event_age >= 40) %>%
+  mutate(category = case_when(
+    read_code %in% c("1A27.", "K16y8", "XaNFc", "X30Ni") ~ "DoubleVoiding",
+    read_code %in% c("1A1Z.", "1A11.", "1A1..", "R084.", "1A12.", "R084z", "R0840", "1A1..", "1A1..") ~ "Frequency",
+    read_code %in% c("1A34.", "1A34.") ~ "Hesitancy",
+    read_code %in% c("R083z", "R083.", "1A23.", "1A24.", "1A26.", "1A22.", "1A220", "R0831", "R0832", "R0830") ~ "Incontinence",
+    read_code %in% c("1AZ6.", "1AZ60", "1AZ61", "1AZ62", "1A2..", "1A2Z.", "R086z", "8D7..", "R08..", "R08zz", "66K3.", "1A4..", "1A...", "1A...", "1AZ..", "1AZZ.", "1AH1.", "R086.", "R08z.", "Kz...", "Ryu4.", "XaB9O", "XaXHi", "XaXHj", "XaXHk", "Xa96j") ~ "LUTS",
+    read_code %in% c("1A13.", "R0842") ~ "Nocturia",
+    read_code %in% c("1A33.", "1A31.", "1A3..", "1A3Z.", "1A3..", "R0861", "R0863", "R0860", "317C.", "1A37.", "1A36.", "XaD2w", "X77SF", "X76Y0", "1AZ3.", "Ryu40") ~ "PoorStream",
+    read_code %in% c("R082.", "R0824", "1A32.", "K196.", "R0820", "1A32.", "R0822", "1AH0.", "R0823") ~ "Retention",
+    read_code %in% c("1A25.", "R0862", "1A25.", "1A35.", "R08z2") ~ "Urgency",
+    ##    read_code %in% c("R15y0", "B7C20", "14270", "ZV104", "B834.", "1J08.", "B58y5", "B8340", "B46..", "XaC0j", "Xa3fu", "XaXGk", "XaFwo", "XaKyV") ~ "ProstateCancer",
+    TRUE ~ NA_character_
+  ))
+
+## Choose which one you want to use here
+
+chosen_dataframe <- PrCaSymptom_gp_records1_over40_liberal %>%  ## Change this to toggle between strict inclusion and liberal inclusion
+  dplyr::filter(!is.na(category)) %>%    
+  dplyr::select(c("eid", "event_dt", "read_code", "event_age", "date_of_birth", "category")) %>%
+  inner_join(baseline) %>%
+  dplyr::filter(sex == "Male")
+
+## Create new binary symptom columns - All symptoms, Frequency, Hesitancy, Incontinenece, LUTS, Nocturia, PoorStream, Retention, Urgency
+
+PrCa_symptoms <- chosen_dataframe %>%
+  dplyr::mutate(
+    All_symptoms = 1,
+    Frequency = if_else(category == "Frequency", 1L, 0L, missing = 0L),
+    Hesitancy = if_else(category == "Hesitancy", 1L, 0L, missing = 0L),
+    Incontinence = if_else(category == "Incontinence", 1L, 0L, missing = 0L),
+    LUTS = if_else(category == "LUTS", 1L, 0L, missing = 0L),
+    Nocturia = if_else(category == "Nocturia", 1L, 0L, missing = 0L),
+    PoorStream = if_else(category == "PoorStream", 1L, 0L, missing = 0L),
+    Retention = if_else(category == "Retention", 1L, 0L, missing = 0L),
+    Urgency = if_else(category == "Urgency", 1L, 0L, missing = 0L)
+  )
+
+## Create individual dataframes that collapse into earliest symptom presentation
+
+PrCa_all_symptoms_earliest <- PrCa_symptoms %>%
+  dplyr::filter(All_symptoms == 1) %>%
+  dplyr::select(c("eid", "All_symptoms", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    All_symptoms = first(All_symptoms),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+
+PrCa_Frequency_earliest <- PrCa_symptoms %>%
+  dplyr::filter(Frequency == 1) %>%
+  dplyr::select(c("eid", "Frequency", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    Frequency = first(Frequency),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+PrCa_Hesitancy_earliest <- PrCa_symptoms %>%
+  dplyr::filter(Hesitancy == 1) %>%
+  dplyr::select(c("eid", "Hesitancy", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    Hesitancy = first(Hesitancy),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+PrCa_Incontinence_earliest <- PrCa_symptoms %>%
+  dplyr::filter(Incontinence == 1) %>%
+  dplyr::select(c("eid", "Incontinence", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    Incontinence = first(Incontinence),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+PrCa_LUTS_earliest <- PrCa_symptoms %>%
+  dplyr::filter(LUTS == 1) %>%
+  dplyr::select(c("eid", "LUTS", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    LUTS = first(LUTS),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+PrCa_Nocturia_earliest <- PrCa_symptoms %>%
+  dplyr::filter(Nocturia == 1) %>%
+  dplyr::select(c("eid", "Nocturia", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    Nocturia = first(Nocturia),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+PrCa_PoorStream_earliest <- PrCa_symptoms %>%
+  dplyr::filter(PoorStream == 1) %>%
+  dplyr::select(c("eid", "PoorStream", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    PoorStream = first(PoorStream),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+PrCa_Urgency_earliest <- PrCa_symptoms %>%
+  dplyr::filter(Urgency == 1) %>%
+  dplyr::select(c("eid", "Urgency", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    Urgency = first(Urgency),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+PrCa_Retention_earliest <- PrCa_symptoms %>%
+  dplyr::filter(Retention == 1) %>%
+  dplyr::select(c("eid", "Retention", "event_dt", "event_age", "date_of_birth")) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    EarliestDate_symptom = if (all(is.na(event_dt))) NA else min(event_dt, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    Retention = first(Retention),
+    date_of_birth = first(date_of_birth),
+    .groups = "drop"
+  )
+
+chosen_symptom_earliest_dataframe <- PrCa_all_symptoms_earliest # change this to look at different symptom group in rest of analysis
+
+## Sanity check 1 - is there truly 1 row per participant now?
+
+test_df <- chosen_symptom_earliest_dataframe 
+
+test_df %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )                                   # Should be same as n now, with 1 for every other number
+
+## Sanity check 2 - does "event_age" always match EarliestDate - date_of_birth?
+
+test_df <- chosen_symptom_earliest_dataframe %>%
+  dplyr::mutate(test_age = as.numeric(EarliestDate_symptom - date_of_birth)/365.25)
+
+test_df %>%
+  dplyr::filter(
+    test_age == event_age
+  ) %>%
+  summarise(n = n())  ## should be same as number of obs. in test.df
+
+
+################################################################################
+# Step 2: Fetch Prostate Cancer Diagnosis records from HES and Cancer Registry #
+################################################################################
+
+
+PCaCases_HES<-read_ICD10(c('C61', 'Z8546', 'R9721')) # Creates a dataframe of *almost* all recorded prostate cancer diagnoses in HES records
+# Z85.46 is "Personal history of malignant neoplasm of prostate" and R97.21 is "Elevated prostate specific antigen (PSA)". Adding these to read_ICD10 does not add any cases
+
+PCaCases_ICD9<-read_ICD9(c(185, 'V1046'))
+# V10.46 is "Personal history of malignant neoplasm of prostate". Adding this to read_ICD9 does not add any cases
+PCaCases_ICD9 <- PCaCases_ICD9 %>%
+  mutate(
+    diag_icd10 = case_when(
+      diag_icd9 %in% c("1859") ~ "C61",
+      TRUE ~ NA_character_
+    )
+  )
+PCaCases_ICD9 <- PCaCases_ICD9 %>%
+  select(c("eid", "diag_icd10", "assess_date_initial", "epistart", "epiend", "event_age"))
+
+PCaCases_HES <- bind_rows(PCaCases_HES, PCaCases_ICD9) # Now we have all, after adding old ICD9 diagnoses
+
+PCaCases_cancerregistry<-read_cancer('C61') # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+PCaCases_death<-read_death('C61') # Creates a dataframe of all recorded prostate cancer deaths in death records
+
+PCaCases_HES_earliest <- PCaCases_HES %>%
+  dplyr::mutate(epistart = as.Date(epistart)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    epistart = if (all(is.na(epistart))) NA else min(epistart, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    diag_icd10 = first(diag_icd10),
+    .groups = "drop"
+  )
+
+PCaCases_cancerregistry_earliest <- PCaCases_cancerregistry %>%
+  dplyr::mutate(date = as.Date(date)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    date = if (all(is.na(date))) NA else min(date, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    ICD10 = first(ICD10),
+    .groups = "drop"
+  )
+
+PCaCases_death_earliest <- PCaCases_death %>%
+  dplyr::mutate(date_of_death = as.Date(date_of_death)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    date_of_death = if (all(is.na(date_of_death))) NA else min(date_of_death, na.rm = TRUE),
+    event_age = if (all(is.na(event_age))) NA else min(event_age, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    cause_icd10 = first(cause_icd10),
+    .groups = "drop"
+  )
+
+
+# Sanity check - how many rows per patient in PCaCases vs. PCaCases_earliest? (should have same n number)
+
+PCaCases_HES %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_HES_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_cancerregistry %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_cancerregistry_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_death %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+PCaCases_death_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+# Merge all "earliest" datasets into one
+
+PCaCases_earliest <- merge(PCaCases_HES_earliest, PCaCases_cancerregistry_earliest, by="eid", all = T)
+PCaCases_earliest <- merge(PCaCases_earliest, PCaCases_death_earliest, by="eid", all = T)
+PCaCases_earliest <- PCaCases_earliest %>%
+  dplyr::rename("assess_date_initial_ICD10" = "assess_date_initial.x", "assess_date_initial_cr" = "assess_date_initial.y", "assess_date_initial_death" = "assess_date_initial",
+                "event_age_ICD10" = "event_age.x", "event_age_cr" = "event_age.y", "event_age_death" = "event_age",
+                "icd10_HES" = "diag_icd10", "icd10_cr" = "ICD10", "icd10_death" = "cause_icd10")
+
+
+# Sanity check - are the assessment centre dates the same in both HES and cancer registry, unless NA on either side?
+
+mismatched_assessdates <- with(PCaCases_earliest,
+                               !is.na(assess_date_initial_ICD10) &
+                                 !is.na(assess_date_initial_cr) &
+                                 assess_date_initial_ICD10 != assess_date_initial_cr
+)
+
+any(mismatched_assessdates)
+
+PCaCases_earliest$assess_date_initial <- coalesce(PCaCases_earliest$assess_date_initial_ICD10, PCaCases_earliest$assess_date_initial_cr, PCaCases_earliest$assess_date_initial_death)
+
+## Combine PrCa diagnosis dataframe with chosen symptom dataframe
+
+PrCa_symptoms_diagnosis <- merge(chosen_symptom_earliest_dataframe, PCaCases_earliest, by = "eid", all.x = T)
+
+# Tag participants who already had prostate cancer diagnosis before symptom event date as "pre-diagnosed". Also make "earliest PrCa diagnosis date" which is the earliest of epistart and date
+
+PrCa_symptoms_diagnosis <- PrCa_symptoms_diagnosis %>%
+  dplyr::mutate(
+    pre_diagnosed =
+      (icd10_HES == "C61" | icd10_cr == "C61" | icd10_death == "C61") & (
+      (is.na(epistart) & is.na(date)) |
+      ((!is.na(epistart) & epistart < EarliestDate_symptom) | (!is.na(date) & date < EarliestDate_symptom))
+      ),
+    PrCa_case = if_else(icd10_HES == "C61" | icd10_cr == "C61" | icd10_death == "C61", 1L, 0L, missing = 0L),
+    earliest_PrCa_date = pmin(epistart, date, na.rm = TRUE)
+  )
+
+Earliest_PrCa_diagnosis <- PrCa_symptoms_diagnosis %>%
+  select('eid', 'earliest_PrCa_date')
+
+# Tag participants who had a prostate cancer record in HES but not in cancer registry or death records as "HES-only" (these will be excluded later)
+
+PrCa_symptoms_diagnosis <- PrCa_symptoms_diagnosis %>%
+  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
+
+
+
+
+
+
+##################################################################################################
+# Step 3 - Fetch cancer death, chemotherapy, surgery, radiotherapy, and androgen therapy records #
+##################################################################################################
+
+###### Severe = chemotherapy or death from cancer within 2 years of diagnosis
+
+###### Actionable = radiotherapy, prostate surgery, or anti-androgen treatments 
+###### within 2 years of diagnosis, or any of the Severe criteria
+
+Cancer_death<-read_death('C')
+Cancer_death=Cancer_death[grepl("^C", Cancer_death$cause_icd10),] # Creates a dataframe of all recorded cancer (general) deaths in death records
+Cancer_death_earliest <- Cancer_death %>%
+  dplyr::mutate(date_of_death = as.Date(date_of_death)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    date_of_death = if (all(is.na(date_of_death))) NA else min(date_of_death, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    .groups = "drop"
+  )
+
+# Dataframe for chemotherapy (IV, IM, unspecified),
+
+chemotherapy  <- read_OPCS(c('X70', 'X71', 'X72'))
+chemotherapy <- merge(chemotherapy, Earliest_PrCa_diagnosis, by = 'eid') 
+chemotherapy <- chemotherapy %>%
+  dplyr::filter(opdate >= earliest_PrCa_date)
+chemotherapy_earliest <- chemotherapy %>%
+  dplyr::mutate(opdate = as.Date(opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    opdate = if (all(is.na(opdate))) NA else min(opdate, na.rm = TRUE),
+    assess_date_initial = first(assess_date_initial),
+    .groups = "drop"
+  )
+
+death_chemo <- merge(chemotherapy_earliest, Cancer_death_earliest, by = "eid", all = T)
+
+# Check that all assessment centre dates match, then merge
+
+mismatched_assessdates <- with(death_chemo,
+                               !is.na(assess_date_initial.x) &
+                                 !is.na(assess_date_initial.y) &
+                                 assess_date_initial.x != assess_date_initial.y
+)
+any(mismatched_assessdates)
+
+death_chemo$assess_date_initial <- coalesce(death_chemo$assess_date_initial.x, death_chemo$assess_date_initial.y)
+
+death_chemo <- death_chemo %>%
+  select('eid', 'chemo_opdate' = 'opdate', 'date_of_cancer_death' = 'date_of_death')
+
+
+
+
+# Dataframe for prostatectomy
+
+surgery <- read_OPCS(c('M61', 'M611', 'M612', 'M613'))
+surgery <- merge(surgery, Earliest_PrCa_diagnosis, by = 'eid')
+surgery <- surgery %>%
+  dplyr::filter(opdate >= earliest_PrCa_date)
+surgery_earliest <- surgery %>%
+  dplyr::mutate(opdate = as.Date(opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    opdate = if (all(is.na(opdate))) NA else min(opdate, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Dataframe for radiotherapy (external, brachytherapy, planning, unspecified)
+
+radiotherapy <- read_OPCS(c('X65', 'X66', 'X67', 'X69'))
+radiotherapy <- merge(radiotherapy, Earliest_PrCa_diagnosis, by = 'eid')
+radiotherapy <- radiotherapy %>%
+  dplyr::filter(opdate >= earliest_PrCa_date)
+radiotherapy_earliest <- radiotherapy %>%
+  dplyr::mutate(opdate = as.Date(opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    opdate = if (all(is.na(opdate))) NA else min(opdate, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Dataframe for androgen (therapy?)
+
+androgen <- read_OPCS(c('X741', 'X383', 'S525', 'S526'))
+androgen <- merge(androgen, Earliest_PrCa_diagnosis, by = 'eid')
+androgen <- androgen %>%
+  dplyr::filter(opdate >= earliest_PrCa_date)
+androgen_earliest <- androgen %>%
+  dplyr::mutate(opdate = as.Date(opdate)) %>%
+  dplyr::group_by(eid) %>%
+  dplyr::summarise(
+    opdate = if (all(is.na(opdate))) NA else min(opdate, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+# Sanity check - how many rows per patient in each dataframe vs. dataframe_earliest?
+
+Cancer_death %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+Cancer_death_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+chemotherapy %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+chemotherapy_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+surgery %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+surgery_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+radiotherapy %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+radiotherapy_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+androgen %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+androgen_earliest %>%
+  dplyr::count(eid) %>%
+  dplyr::summarise(
+    avg_rows_per_id = mean(n),
+    median_rows_per_id = median(n),
+    min_rows = min(n),
+    max_rows = max(n),
+    sample_size = dplyr::n()
+  )
+
+# Merge all actionable criteria (remember - "actionable" includes all severe criteria also)
+
+surgery_radio_androgen <- merge(surgery_earliest, radiotherapy_earliest, by = "eid", all = T)
+surgery_radio_androgen <- merge(surgery_radio_androgen, androgen_earliest, by = "eid", all = T)
+
+surgery_radio_androgen <- surgery_radio_androgen %>%
+  rename('surgery_opdate' = 'opdate.x', 'radio_opdate' = 'opdate.y', 'androgen_opdate' = 'opdate')
+
+actionable_criteria <- merge(death_chemo, surgery_radio_androgen, by = "eid", all = T)
+
+# Collect severity criteria
+
+severity_criteria <- death_chemo
+
+
+
+
+######################################################################################
+# Step 4 - Load in independent variables, GRSs, and covariates from DNAnexus project #
+######################################################################################
+
+# Load in independent variable, covariates, and GRSs
+
+iv <- read_csv("imputed_rs72725854.csv") # loads independent variable dataset
+iv <- iv %>%
+  select(c("eid", "rs72725854_G", "rs72725854_T")) 
+
+covariates <- read_csv("Age_Sex_PRS_GA.csv")
+covariates <- covariates %>% 
+  rename('Age_at_assess_centre' = 'p21022', 'Sex' = 'p31', 'PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genomic_ancestry' = 'p30079')
+
+
+ethnicity <- read_csv("ethnicity.csv")
+ethnicity <- ethnicity %>%
+  rename('Ethnicity' = 'p21000_i0')
+
+ethnicity <- ethnicity %>% # "wide net" ethnicity grouping
+  mutate(ethnicity_group_wide = case_when(
+    Ethnicity %in% c("British", "White", "Any other white background", "Irish") ~ "White",
+    Ethnicity %in% c("African", "Caribbean", "Any other Black background", "White and Black African", "White and Black Caribbean", "Black or Black British") ~ "Black",
+    Ethnicity %in% c("Pakistani", "Indian", "Bangladeshi") ~ "South Asian",
+    Ethnicity %in% c("Any other Asian background", "White and Asian", "Chinese", "Asian or Asian British") ~ "East Asian",
+    Ethnicity %in% c("Other ethnic group", "Any other mixed background", "Prefer not to answer", "Do not know", "Mixed", "NA") ~ "Other",
+    TRUE ~ NA_character_
+  ))
+
+ethnicity <- ethnicity %>% # stricter ethnicity grouping
+  mutate(ethnicity_group_narrow = case_when(
+    Ethnicity %in% c("British", "White", "Any other white background", "Irish") ~ "White",
+    Ethnicity %in% c("African", "Caribbean", "Any other Black background", "Black or Black British") ~ "Black",
+    Ethnicity %in% c("Pakistani", "Indian", "Bangladeshi") ~ "South Asian",
+    Ethnicity %in% c("Chinese") ~ "East Asian",
+    Ethnicity %in% c("White and Black African", "White and Black Caribbean") ~ "Mixed White and Black",
+    Ethnicity %in% c("Other ethnic group", "Any other mixed background", "Prefer not to answer", "Do not know", "Mixed", "NA", "Any other Asian background", "White and Asian", "Asian or Asian British") ~ "Other",
+    TRUE ~ NA_character_
+  ))
+
+principal_components<-read_csv("HGDP_1KG_PCs_UKB2_scaled.csv") %>%
+  dplyr::rename("eid" = "IID") %>%
+  dplyr::select("eid", "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11", "PC12", "PC13", "PC14", "PC15", "PC16", "PC17", "PC18", "PC19", "PC20")
+
+family_history <- read.csv("FH_PrCa_BrCa.csv") %>%
+  dplyr::select(c("eid", "FH_Prostate_cancer", "FH_Breast_cancer", "FH_PrCa_BrCa"))
+
+covariates <- merge(covariates, ethnicity, by = "eid", all.x = T)
+covariates <- merge(covariates, principal_components, by = "eid", all = T)
+covariates <- merge(covariates, family_history, by = "eid", all.x = T)
+
+
+## Load in Conti GRSs, rename columns, and create "top 10%" variables for each GRS (where "top 10%" is defined as being above the 90th percentile of the GRS distribution in the entire eligible UKB population, not just within each ancestry group)
+
+ContimultiethnicGRS <- read_delim("Conti_multi_ethnic.pgs.tsv")
+ContimultiethnicGRS <- ContimultiethnicGRS %>%
+  dplyr::rename('ContimultiethnicGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContimultiethnicGRS = ContimultiethnicGRS >= quantile(ContimultiethnicGRS, probs = 0.9))
+
+ContiEuropeanGRS <- read_delim("Conti_European.pgs.tsv")
+ContiEuropeanGRS <- ContiEuropeanGRS %>%
+  dplyr::rename('ContiEuropeanGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiEuropeanGRS = ContiEuropeanGRS >= quantile(ContiEuropeanGRS, probs = 0.9))
+
+ContiAfricanGRS <- read_delim("Conti_African.pgs.tsv")
+ContiAfricanGRS <- ContiAfricanGRS %>%
+  dplyr::rename('ContiAfricanGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiAfricanGRS = ContiAfricanGRS >= quantile(ContiAfricanGRS, probs = 0.9))
+
+ContiEast_AsianGRS <- read_delim("Conti_East_Asian.pgs.tsv")
+ContiEast_AsianGRS <- ContiEast_AsianGRS %>%
+  dplyr::rename('ContiEast_AsianGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiEast_AsianGRS = ContiEast_AsianGRS >= quantile(ContiEast_AsianGRS, probs = 0.9))
+
+ContiHispanicGRS <- read_delim("Conti_Hispanic.pgs.tsv")
+ContiHispanicGRS <- ContiHispanicGRS %>%
+  dplyr::rename('ContiHispanicGRS' = 'Conti') %>%
+  dplyr::mutate(top10_all_ContiHispanicGRS = ContiHispanicGRS >= quantile(ContiHispanicGRS, probs = 0.9))
+
+ContimultiethnicGRS267 <- read_delim("Conti_multiethnicGRS_267.tsv")
+ContimultiethnicGRS267 <- ContimultiethnicGRS267 %>%
+  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
+  dplyr::rename('ContimultiethnicGRS267' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::mutate(top10_all_ContimultiethnicGRS267 = ContimultiethnicGRS267 >= quantile(ContimultiethnicGRS267, probs = 0.9)) 
+
+ContiEuropeanGRS265 <- read_delim("Conti_EuropeanGRS_265.tsv")
+ContiEuropeanGRS265 <- ContiEuropeanGRS265 %>%
+  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
+  dplyr::rename('ContiEuropeanGRS265' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::mutate(top10_all_ContiEuropeanGRS265 = ContiEuropeanGRS265 >= quantile(ContiEuropeanGRS265, probs = 0.9))
+
+ContiAfricanGRS246 <- read_delim("Conti_AfricanGRS_246.tsv")
+ContiAfricanGRS246 <- ContiAfricanGRS246 %>%
+  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
+  dplyr::rename('ContiAfricanGRS246' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::mutate(top10_all_ContiAfricanGRS246 = ContiAfricanGRS246 >= quantile(ContiAfricanGRS246, probs = 0.9))
+
+ContiEast_AsianGRS222 <- read_delim("Conti_East_AsianGRS_222.tsv")
+ContiEast_AsianGRS222 <- ContiEast_AsianGRS222 %>%
+  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
+  dplyr::rename('ContiEast_AsianGRS222' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::mutate(top10_all_ContiEast_AsianGRS222 = ContiEast_AsianGRS222 >= quantile(ContiEast_AsianGRS222, probs = 0.9))
+
+ContiHispanicGRS253 <- read_delim("Conti_HispanicGRS_253.tsv")
+ContiHispanicGRS253 <- ContiHispanicGRS253 %>%
+  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
+  dplyr::rename('ContiHispanicGRS253' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::mutate(top10_all_ContiHispanicGRS253 = ContiHispanicGRS253 >= quantile(ContiHispanicGRS253, probs = 0.9))
+
+# Merge all data
+
+All_Conti_GRS <- merge(ContimultiethnicGRS, ContiEuropeanGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiAfricanGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEast_AsianGRS, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiHispanicGRS, by = "eid")
+
+All_Conti_GRS <- merge(All_Conti_GRS, ContimultiethnicGRS267, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEuropeanGRS265, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiAfricanGRS246, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiEast_AsianGRS222, by = "eid")
+All_Conti_GRS <- merge(All_Conti_GRS, ContiHispanicGRS253, by = "eid")
+
+### Creating an adjusted GRS ###
+
+AncestryProbability1 <- read.csv("AncestryProbability1.csv") %>%          
+  dplyr::select(c("IID", "AMR", "AFR", "CSA", "EAS", "EUR", "MID")) %>%
+  dplyr::rename("eid" = "IID")
+
+AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%         
+  dplyr::select(c("IID", "AMR", "AFR", "CSA", "EAS", "EUR", "MID")) %>%
+  dplyr::rename("eid" = "IID")
+
+GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability1 or AncestryProbability 2 depending on preference
+GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
+  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
+
+GRS_plus_ancestry <- GRS_plus_ancestry %>%
+  dplyr::mutate(
+    ContiadjustedGRS = (EUR*ContiEuropeanGRS)+(AFR*ContiAfricanGRS)+(EAS*ContiEast_AsianGRS)+(AMR*ContiHispanicGRS)+(CSA*ContimultiethnicGRS)+(MID*ContiAfricanGRS)
+  )
+
+All_Conti_GRS <- GRS_plus_ancestry %>%
+  dplyr::select(c("eid", "EUR", "AFR", "EAS", "CSA", "MID", "AMR", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "ContiadjustedGRS"))
+
+## Add Odds Ratio-adjusted GRS (where ancestry probability is applied to the OR, not the final scores)
+
+ContiORadjustedGRS <- read.table("OR_adjustedGRS_267.tsv", header = T) %>%
+  dplyr::select(c("eid", "Conti_ORfirst_avg")) %>%
+  dplyr::rename("ContiORadjustedGRS" = "Conti_ORfirst_avg")
+
+All_Conti_GRS <- merge(All_Conti_GRS, ContiORadjustedGRS, by = "eid", all.x = T)
+
+##################### Now repeat for Wang GRSs
+
+WangmultiethnicGRS <- read_delim("Wang_multi_ethnic.pgs.tsv")
+WangmultiethnicGRS <- WangmultiethnicGRS %>%
+  dplyr::rename('WangmultiethnicGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangmultiethnicGRS = WangmultiethnicGRS >= quantile(WangmultiethnicGRS, probs = 0.9))
+
+WangEuropeanGRS <- read_delim("Wang_European.pgs.tsv")
+WangEuropeanGRS <- WangEuropeanGRS %>%
+  dplyr::rename('WangEuropeanGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangEuropeanGRS = WangEuropeanGRS >= quantile(WangEuropeanGRS, probs = 0.9))
+
+WangAfricanGRS <- read_delim("Wang_African.pgs.tsv")
+WangAfricanGRS <- WangAfricanGRS %>%
+  dplyr::rename('WangAfricanGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangAfricanGRS = WangAfricanGRS >= quantile(WangAfricanGRS, probs = 0.9))
+
+WangEast_AsianGRS <- read_delim("Wang_East_Asian.pgs.tsv")
+WangEast_AsianGRS <- WangEast_AsianGRS %>%
+  dplyr::rename('WangEast_AsianGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangEast_AsianGRS = WangEast_AsianGRS >= quantile(WangEast_AsianGRS, probs = 0.9))
+
+WangHispanicGRS <- read_delim("Wang_Hispanic.pgs.tsv")
+WangHispanicGRS <- WangHispanicGRS %>%
+  dplyr::rename('WangHispanicGRS' = 'Wang') %>%
+  dplyr::mutate(top10_all_WangHispanicGRS = WangHispanicGRS >= quantile(WangHispanicGRS, probs = 0.9))
+
+WangmultiethnicGRS450 <- read_delim("Wang_multiethnicGRS_450.tsv")
+WangmultiethnicGRS450 <- WangmultiethnicGRS450 %>%
+  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
+  dplyr::rename('WangmultiethnicGRS450' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::mutate(top10_all_WangmultiethnicGRS450 = WangmultiethnicGRS450 >= quantile(WangmultiethnicGRS450, probs = 0.9))
+
+WangEuropeanGRS445 <- read_delim("Wang_EuropeanGRS_445.tsv")
+WangEuropeanGRS445 <- WangEuropeanGRS445 %>%
+  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
+  dplyr::rename('WangEuropeanGRS445' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::mutate(top10_all_WangEuropeanGRS445 = WangEuropeanGRS445 >= quantile(WangEuropeanGRS445, probs = 0.9))
+
+WangAfricanGRS444 <- read_delim("Wang_AfricanGRS_444.tsv")
+WangAfricanGRS444 <- WangAfricanGRS444 %>%
+  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
+  dplyr::rename('WangAfricanGRS444' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::mutate(top10_all_WangAfricanGRS444 = WangAfricanGRS444 >= quantile(WangAfricanGRS444, probs = 0.9))
+
+WangEast_AsianGRS379 <- read_delim("Wang_East_AsianGRS_379.tsv")
+WangEast_AsianGRS379 <- WangEast_AsianGRS379 %>%
+  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
+  dplyr::rename('WangEast_AsianGRS379' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::mutate(top10_all_WangEast_AsianGRS379 = WangEast_AsianGRS379 >= quantile(WangEast_AsianGRS379, probs = 0.9))
+
+WangHispanicGRS446 <- read_delim("Wang_HispanicGRS_446.tsv")
+WangHispanicGRS446 <- WangHispanicGRS446 %>%
+  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
+  dplyr::rename('WangHispanicGRS446' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::mutate(top10_all_WangHispanicGRS446 = WangHispanicGRS446 >= quantile(WangHispanicGRS446, probs = 0.9))
+
+
+All_Wang_GRS <- merge(WangmultiethnicGRS, WangEuropeanGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS, by = "eid")
+
+All_Wang_GRS <- merge(All_Wang_GRS, WangmultiethnicGRS450, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEuropeanGRS445, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangAfricanGRS444, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangEast_AsianGRS379, by = "eid")
+All_Wang_GRS <- merge(All_Wang_GRS, WangHispanicGRS446, by = "eid")
+
+## Add Schumacher and BARCODE1 GRSs
+
+SchumacherGRS <- read_delim("Schumacher.pgs.tsv")
+SchumacherGRS <- SchumacherGRS %>%
+  dplyr::rename('SchumacherGRS' = 'Schumacher') %>%
+  dplyr::mutate(top10_all_SchumacherGRS = SchumacherGRS >= quantile(SchumacherGRS, probs = 0.9))
+
+BARCODE1GRS <- read_delim("BARCODE1.pgs.tsv")
+BARCODE1GRS <- BARCODE1GRS %>%
+  dplyr::rename('BARCODE1GRS' = 'BARCODE1') %>%
+  dplyr::mutate(top10_all_BARCODE1GRS = BARCODE1GRS >= quantile(BARCODE1GRS, probs = 0.9))
+
+SchumacherGRS145 <- read.delim("SchumacherGRS_145.tsv")
+SchumacherGRS145 <- SchumacherGRS145 %>%
+  dplyr::select(c("eid", "Schumacher_GRS_avg")) %>%
+  dplyr::rename('SchumacherGRS145' = 'Schumacher_GRS_avg') %>%
+  dplyr::mutate(top10_all_SchumacherGRS145 = SchumacherGRS145 >= quantile(SchumacherGRS145, probs = 0.9))
+
+BARCODE1GRS129 <- read.delim("BARCODE1GRS_129.tsv")
+BARCODE1GRS129 <- BARCODE1GRS129 %>%
+  dplyr::select(c("eid", "BARCODE1_GRS_avg")) %>%
+  dplyr::rename('BARCODE1GRS129' = 'BARCODE1_GRS_avg') %>%
+  dplyr::mutate(top10_all_BARCODE1GRS129 = BARCODE1GRS129 >= quantile(BARCODE1GRS129, probs = 0.9))
+
+## Add Seibert and Pagadala GRSs
+
+SeibertGRS <- read_delim("Seibert.pgs.tsv")
+SeibertGRS <- SeibertGRS %>%
+  dplyr::rename('SeibertGRS' = 'Seibert') %>%
+  dplyr::mutate(top10_all_SeibertGRS = SeibertGRS >= quantile(SeibertGRS, probs = 0.9))
+
+PagadalaGRS <- read_delim("Pagadala.pgs.tsv")
+PagadalaGRS <- PagadalaGRS %>%
+  dplyr::rename('PagadalaGRS' = 'Pagadala') %>%
+  dplyr::mutate(top10_all_PagadalaGRS = PagadalaGRS >= quantile(PagadalaGRS, probs = 0.9))
+
+SeibertGRS52 <- read_delim("SeibertGRS_52.tsv")
+SeibertGRS52 <- SeibertGRS52 %>%
+  dplyr::select(c("eid", "Seibert_GRS_avg")) %>%
+  dplyr::rename('SeibertGRS52' = 'Seibert_GRS_avg') %>%
+  dplyr::mutate(top10_all_SeibertGRS52 = SeibertGRS52 >= quantile(SeibertGRS52, probs = 0.9))
+
+PagadalaGRS285 <- read_delim("PagadalaGRS_285.tsv")
+PagadalaGRS285 <- PagadalaGRS285 %>%
+  dplyr::select(c("eid", "Pagadala_GRS_avg")) %>%
+  dplyr::rename('PagadalaGRS285' = 'Pagadala_GRS_avg') %>%
+  dplyr::mutate(top10_all_PagadalaGRS285 = PagadalaGRS285 >= quantile(PagadalaGRS285, probs = 0.9))
+
+## Merge all GRSs into one
+
+All_GRS <- merge(All_Conti_GRS, All_Wang_GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SchumacherGRS145, by = "eid", all = T)
+All_GRS <- merge(All_GRS, BARCODE1GRS129, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SeibertGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, PagadalaGRS, by = "eid", all = T)
+All_GRS <- merge(All_GRS, SeibertGRS52, by = "eid", all = T)
+All_GRS <- merge(All_GRS, PagadalaGRS285, by = "eid", all = T)
+
+#########################################################################################
+# Step 5 - Merge all variables/covariates into one dataframe with Prostate Cancer cases #
+#########################################################################################
+
+iv_covariates <- merge(iv, covariates, by = "eid", all.y = T)
+
+PCa_iv_covariates <- merge(iv_covariates, PrCa_symptoms_diagnosis, by = "eid", all.y = TRUE)
+
+PCa_iv_covariates_GRS <- merge(PCa_iv_covariates, All_GRS, by = "eid", all.x = TRUE)
+
+PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criteria, by = 'eid', all = T)
+
+## Extra exclusion criteria for controls 
+## (derived from https://phekb.org/phenotype/prostate-cancer-0 see tables: https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fphekb.org%2Fsites%2Fphenotype%2Ffiles%2FPrCa%2520Phenotyping%2520Algorithm%2520codes.xlsx&wdOrigin=BROWSELINK
+## with alterations to remove ICD9: V84.03 and ICD10: Z15.03 since these describe genetic susceptibility to prostate cancer)
+## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
+
+exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostate
+                               'V104',       # V10.4: Personal history of malignant neoplasm of genital organs
+                               2334,        # 233.4: Carcinoma in situ of the prostate
+                               2365,        # 236.5: Neoplasm of uncertain behavior of the prostate
+                               6023,        # 602.3: Dysplasia of the prostate
+                               6021,        # 60.21: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
+                               6029,        # 60.29: Other transurethral prostatectomy
+                               603,         # 60.3: Suprapubic prostatectomy
+                               604,         # 60.4: Retropubic prostatectomy
+                               605,         # 60.5: Radical prostatectomy
+                               6061,        # 60.61: Local excision of lesion of prostate
+                               6062,        # 60.62: Perineal prostatectomy
+                               6069)        # 60.69: Other prostatectomy
+) %>%
+  dplyr::select("eid", "diag_icd9")
+
+exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
+                                 'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
+                                 'R972',     # R97.2: Elevated prostate specific antigen [PSA]
+                                 'D075',     # D07.5: Carcinoma in situ of prostate
+                                 'D400',     # D40.0: Neoplasm of uncertain behavior of prostate
+                                 'N423')     # N42.3: Dysplasia of prostate
+)%>%
+  dplyr::select("eid", "diag_icd10")
+
+exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
+                               'M611',      # M61.1: Radical prostatectomy
+                               'M612',      # M61.2: Retropubic Prostatectomy
+                               'M613',      # M61.3: Transvesical Prostatectomy
+                               'M614',     # M61.4: Perineal Prostatectomy
+                               'X65',       # X65: Radiotherapy Delivery
+                               'X67',       # X67: Preparation of radiotherapy
+                               'X68',       # X68: Brachytherapy preparation
+                               'M706',      # M70.6 Radioactive seed implantation into prostate
+                               'Y35',       # Y35: Introduction Material Radioactive Removable NOC
+                               'Y36',       # Y36: Introduction Material Non-removable NOC
+                               'T856',      # T85.6: Block dissection of pelvic lymph nodes
+                               'M702',      # M70.2: Perineal needle biopsy of prostate
+                               'M703',      # M70.3: Rectal needle biopsy of prostate
+                               'N04',       # N04: Orchidectomy
+                               'M65',       # M65: Endoscopic resection of prostate
+                               'M68',       # M68: Endoscopic insertion of prosthesis into prostate
+                               'M671',      # M67.1: Endoscopic cryotherapy to lesion of prostate
+                               'M711',      # M71.1: High intensity focused ultrasound of prostate
+                               'M712')      # M71.2: Implantation of radioactive substance into prostate
+) %>%
+  dplyr::select("eid", "oper4")
+
+exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
+                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
+                                           'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+                                           'D075',    # D07.5: Carcinoma in situ of prostate
+                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
+)%>%
+  dplyr::select("eid", "ICD10")
+
+possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry, by = "eid", all = T)
+
+# Collapse exclusions to one row per participant, leaving only eids
+possible_PrCa_cases <- possible_PrCa_cases %>%
+  group_by(eid) %>%
+  dplyr::summarise(possible_PrCa_case = 1)
+
+# Join onto main dataframe and create "exclude" variable to exclude controls who meet any of the exclusion criteria for controls (i.e. those with possible PrCa diagnoses but no evidence of prostate cancer diagnosis)
+
+PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS_severity, possible_PrCa_cases, by = "eid", all.x = TRUE) %>%
+  dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & (PrCa_case == 0 | is.na(PrCa_case)), 1L, 0L, missing = 0L))
+
+## Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis
+
+PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_severity %>%
+  dplyr::filter(
+    Sex == 'Male',
+    !is.na(ContimultiethnicGRS),
+    pre_diagnosed == FALSE | is.na(pre_diagnosed), ## to remove pre-diagnosed == TRUE patients
+    HES_only == FALSE | is.na(HES_only), ## to remove patients with HES-only PrCa diagnoses
+    exclude == 0L | is.na(exclude) ## to remove controls who meet any of the exclusion criteria for controls
+  )
+
+# Sanity Check - how many patients in PCa_iv_covariates were female or lacked GRS data? Does it match the difference in n between PCa_iv_covariates and PCa_iv_covariates_clean ?
+
+PCa_iv_covariates_GRS_severity %>%
+  filter(
+    Sex == "Female" |
+      is.na(ContimultiethnicGRS) |
+      pre_diagnosed == TRUE |
+      HES_only == TRUE |
+      exclude == 1L
+  ) %>%
+  summarise(n = n())
+
+# Set Prostate Cancer cases to 1, controls to 0. Also rename event_age to simply Age
+
+PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
+  dplyr::mutate(
+    PrCa = if_else(PrCa_case == 1, 1L, 0L, missing = 0L),
+  ) %>%
+  dplyr::rename(Age = event_age)
+
+############################################# (these should have already been filtered out,
+# Important - remove withdrawn participants #  since the withdrawn participants no longer have 
+#############################################  a GRS calculated, but still worth making sure)
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite')  ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(eid=X1),
+    by='eid'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+PCa_iv_covariates_GRS_clean <- exclude_withdrawn(PCa_iv_covariates_GRS_clean)
+
+##################################################################################
+# Step 6 - Set prediction horizons, including for general/actionable/severe PrCa #
+##################################################################################
+
+library(lubridate)
+
+PCa_iv_covariates_GRS_predhorizon <- PCa_iv_covariates_GRS_clean %>%
+  dplyr::mutate(
+    PrCa_post_symptoms  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom
+    ),
+    PrCa_2yrs  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(2)
+    ),
+    PrCa_5yrs  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(5)
+    ),
+    PrCa_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(10)
+    ),
+    PrCa_severe = as.integer(
+      !is.na(earliest_PrCa_date) & (
+        (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+      )
+    ),
+    PrCa_severe_2yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(2) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_severe_5yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(5) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_severe_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(10) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable = as.integer(
+      !is.na(earliest_PrCa_date) & (
+        (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+      )
+    ),
+    PrCa_actionable_2yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(2) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable_5yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(5) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(EarliestDate_symptom) &
+        earliest_PrCa_date >= EarliestDate_symptom &
+        earliest_PrCa_date <= EarliestDate_symptom %m+% lubridate::years(10) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    )
+  )
+
+################################################################
+# Step 7 - Subset data for different ethnicity/ancestry groups #
+################################################################
+
+# Prediction horizons for White patients only
+
+PCa_iv_covariates_GRS_predhorizon_WhiteOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(ethnicity_group_narrow == "White")
+
+#PCa_iv_covariates_GRS_predhorizon_EurOnly_subset <- PCa_iv_covariates_GRS_predhorizon_EurOnly %>%
+
+
+# Prediction horizons for Black patients only
+
+PCa_iv_covariates_GRS_predhorizon_BlackOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(ethnicity_group_narrow == "Black")
+
+# Prediction horizons for Mixed patients only
+
+PCa_iv_covariates_GRS_predhorizon_Mixed <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(ethnicity_group_narrow == "Mixed White and Black")
+
+# Prediction horizons for Black+Mixed participants
+
+PCa_iv_covariates_GRS_predhorizon_BlackMixed <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(ethnicity_group_wide == "Black")
+
+# Prediction horizons for European participants
+
+PCa_iv_covariates_GRS_predhorizon_EUROnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "European ancestry (EUR)")
+
+# Prediction horizons for African participants
+
+PCa_iv_covariates_GRS_predhorizon_AFROnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "African ancestry (AFR)")
+
+# Prediction horizons for East Asian participants
+
+PCa_iv_covariates_GRS_predhorizon_EASOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "East Asian ancestry (EAS)")
+
+# Prediction horizons for Central/South Asian participants
+
+PCa_iv_covariates_GRS_predhorizon_CSAOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "Central/South Asian ancestry (CSA)")
+#dplyr::filter(ethnicity_group_narrow == "South Asian")
+
+# Prediction horizons for Middle Eastern participants
+
+PCa_iv_covariates_GRS_predhorizon_MIDOnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "Middle Eastern ancestry (MID)")
+
+# Prediction horizons for Admixed American participants
+
+PCa_iv_covariates_GRS_predhorizon_AMROnly <- PCa_iv_covariates_GRS_predhorizon %>%
+  dplyr::filter(Genomic_ancestry == "Admixed American ancestry (AMR)")
+
+
+
+################################################################################
+# Step 8 (optional) - Visually inspect GRS distribution for cases vs. controls #
+################################################################################
+
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa)))+ # PrCa in general
+  geom_density()+
+  theme_bw()
+
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_2yrs)))+ # PrCa within 2 years
+  geom_density()+
+  theme_bw()
+
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_5yrs)))+ # PrCa within 5 years
+  geom_density()+
+  theme_bw()
+
+ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=as.factor(PrCa_10yrs)))+ # PrCa within 10 years
+  geom_density()+
+  theme_bw()
+
+###########################################################################
+# Step 9 - Model Logistic Regression, Confusion Matrix, and OR/RR tables  #
+###########################################################################
+
+# Set "data" to either: 
+#   - PCa_iv_covariates_GRS_predhorizon (all participants)
+#   - PCa_iv_covariates_GRS_predhorizon_EurOnly (White participants)
+#   - PCa_iv_covariates_GRS_predhorizon_BlackOnly (Black participants)
+#   - PCa_iv_covariates_GRS_predhorizon_Mixed (Mixed White and Black participants)
+#   - PCa_iv_covariates_GRS_predhorizon_BlackMixed (Black + Mixed White and Black participants)
+#   - PCa_iv_covariates_GRS_predhorizon_EUROnly (EUR-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_AFROnly (AFR-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_EASOnly (EAS-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_CSAOnly (CSA-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_MIDOnly (MID-like participants)
+#   - PCa_iv_covariates_GRS_predhorizon_AMROnly (AMR-like participants)
+# 
+# 
+# Set "outcome" to either: 
+#   - PrCa (Prostate Cancer diagnosis after symptom presentation)
+#   - PrCa_2yrs (Prostate Cancer diagnosis within 2 years after symptom presentation)
+#   - PrCa_5yrs (Prostate Cancer diagnosis within 5 years after symptom presentation)
+#   - PrCa_10yrs (Prostate Cancer diagnosis within 10 years after symptom presentation)
+#
+#   - PrCa_actionable (Prostate Cancer diagnosis after symptom presentation that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_2yrs (Prostate Cancer diagnosis within 2 years after symptom presentation that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_5yrs (Prostate Cancer diagnosis within 5 years after symptom presentation that satisfies "Actionable" criteria within 2 years of diagnosis)
+#   - PrCa_actionable_10yrs (Prostate Cancer diagnosis within 10 years after symptom presentation that satisfies "Actionable" criteria within 2 years of diagnosis)
+#
+#   - PrCa_severe (Prostate Cancer diagnosis after symptom presentation that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_2yrs (Prostate Cancer diagnosis within 2 years after symptom presentation that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_5yrs (Prostate Cancer diagnosis within 5 years after symptom presentation that satisfies "Severe" criteria within 2 years of diagnosis)
+#   - PrCa_severe_10yrs (Prostate Cancer diagnosis within 10 years after symptom presentation that satisfies "Severe" criteria within 2 years of diagnosis)
+#
+# Set "predictor" to either: 
+#
+#    Note: these top 6 GRSs use "Conti_script.R", which drops 4 SNPs by default. The numbered GRSs below only drop 2 SNPs
+#
+#   - ContimultiethnicGRS (Conti's GRS with pan-Ancestry weights)
+#   - ContiEuropeanGRS (Conti's GRS with European-specific weights)
+#   - ContiAfricanGRS (Conti's GRS with African-specific weights)
+#   - ContiEast_AsianGRS (Conti's GRS with East Asian-specific weights)
+#   - ContiHispanicGRS (Conti's GRS with Hispanic-specific weights)
+#   - ContiadjustedGRS (Conti's GRS adjusted for ancestry probability at the Beta level)
+#
+#   - ContimultiethnicGRS267 (Conti's GRS with pan-Ancestry weights, all 267 available SNPs)
+#   - ContiEuropeanGRS265 (Conti's GRS with European-specific weights, all 265 available SNPs)
+#   - ContiAfricanGRS246 (Conti's GRS with African-specific weights, all 246 available SNPs)
+#   - ContiEast_AsianGRS222 (Conti's GRS with East Asian-specific weights)
+#   - ContiHispanicGRS253 (Conti's GRS with Hispanic-specific weights)
+#
+#   - ContiORadjustedGRS (Conti's GRS adjusted for ancestry probability at the Odds Ratio level)
+#
+#   - WangmultiethnicGRS (Wang's GRS with pan-Ancestry weights)
+#   - WangEuropeanGRS (Wang's GRS with European-specific weights)
+#   - WangAfricanGRS (Wang's GRS with African-specific weights)
+#   - WangEast_AsianGRS (Wang's GRS with East Asian-specific weights)
+#   - WangHispanicGRS (Wang's GRS with Hispanic-specific weights)
+#
+#   - WangmultiethnicGRS450 (Wang's GRS with pan-Ancestry weights, all 450 available SNPs)
+#   - WangEuropeanGRS445 (Wang's GRS with European-specific weights, all 445 available SNPs)
+#   - WangAfricanGRS444 (Wang's GRS with African-specific weights, all 444 available SNPs)
+#   - WangEast_AsianGRS379 (Wang's GRS with East Asian-specific weights, all 379 available SNPs)
+#   - WangHispanicGRS446 (Wang's GRS with Hispanic-specific weights, all 446 available SNPs)
+#
+#   - SchumacherGRS (Schumacher's GRS (2018)))
+#   - BARCODE1GRS (BARCODE1 GRS (2021)))
+#   - SchumacherGRS145 (Schumacher's GRS with 145 available SNPs)
+#   - BARCODE1GRS129 (BARCODE1 GRS with 129 available SNPs)
+#
+#    - SeibertGRS (Seibert's GRS (2018))
+#    - PagadalaGRS (Pagadala's GRS (2022))
+#    - SeibertGRS52 (Seibert's GRS with 52 available SNPs)
+#    - PagadalaGRS285 (Pagadala's GRS with 285 available SNPs)
+#
+# Set "covariates" to either: (or add multiple using + between covariates)
+#
+#   - (without quote marks) NULL
+#   - Age (Age at symptom presentation)
+#   - rs72725854_T (carrier status of rs72725854 risk allele)
+#
+
+
+# Logistic Regression
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+                    outcome = "PrCa_10yrs",
+                    predictor = "Age",
+                    covariates = NULL,
+                    plot_roc = TRUE)
+
+model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly, ## model2 is used for NRI comparison with model1
+                     outcome = "PrCa_10yrs",
+                     predictor = "ContimultiethnicGRS",
+                     covariates = "Age",
+                     plot_roc = TRUE)
+
+# Confusion Matrix
+
+matrix <- confusion_matrix(data = model$data, 
+                           outcome = model$outcome, 
+                           cutoff_value = 0.20, 
+                           positive_level = 1, negative_level = 0)
+
+# Odds Ratio Table
+
+OR_table <- ORtable(
+  data = model$data,
+  outcome = model$outcome,
+  group_col = "ethnicity_group_narrow",       # <- your 6-level grouping variable
+  positive_level = 1,        # 1 denotes positive outcome
+  use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
+)
+
+print(OR_table$wide_formatted)
+
+# Risk Ratio Table
+
+RR_table <- RRtable(
+  data = model$data,
+  outcome = model$outcome,
+  group_col = "ethnicity_group_narrow",
+  positive_level = 1,
+  use_existing_cols = TRUE
+)
+
+print(RR_table$wide_formatted)
+
+
+# NRI Calculation to compare two models
+
+nri_result <- nri(
+  data = model$data %>% dplyr::mutate(pred2 = model2$data$pred),
+  outcome = model$outcome,
+)
+
+print(nri_result)
+
+######################################################################################
+# Step 10 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
+######################################################################################
+
+## By default, logreg_table() will compute all combinations of population, outcome, GRS, and covariates
+
+bulk_LUTS <- logreg_table()
+
+## The below block adds, for each row that represents a GRS + Age model, the
+## equivalent Age-only model, and compares confidence intervals between them
+
+age_only_reference <- bulk_LUTS %>%
+  dplyr::filter(Predictor == "Age", Covariates == "None") %>%
+  dplyr::select(
+    Outcome,
+    Population,
+    Age_only_ROC_AUC_CI_Upper = ROC_AUC_CI_Upper
+  )
+
+formatted_LUTS <- bulk_LUTS %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
+  dplyr::left_join(age_only_reference, by = c("Outcome", "Population")) %>%
+  dplyr::mutate(
+    ROC_AUC_4dp = dplyr::if_else(
+      is.na(ROC_AUC),
+      NA_character_,
+      sprintf("%.4f", ROC_AUC)
+    ),
+    ROC_AUC_CI_95_4dp = dplyr::if_else(
+      is.na(ROC_AUC_CI_Lower) | is.na(ROC_AUC_CI_Upper),
+      NA_character_,
+      sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
+    ),
+    `GRS+Age > Age?` = dplyr::case_when(
+      Covariates != "Age" | Predictor == "Age" ~ NA_character_,
+      is.na(ROC_AUC_CI_Lower) | is.na(Age_only_ROC_AUC_CI_Upper) ~ NA_character_,
+      ROC_AUC_CI_Lower > Age_only_ROC_AUC_CI_Upper ~ "YES",
+      ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
+    )
+  ) %>%
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
+
+## This block is to view a subset of the bulk logistic regression table. Change
+## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
+
+subset_LUTS <- formatted_LUTS %>%                        
+  dplyr::filter(                          
+    Population == "Black",
+    #Predictor == "PagadalaGRS",
+    #Outcome == "PrCa_severe_10yrs",
+    #Covariates == "Age" #| Covariates == "None"
+  )    
+
+
+######################################################################################
+# Step 11 - Generate comprehensive NRI table for all GRSs, populations, and outcomes # 
+######################################################################################
+
+## By default, nri_table() will compute all combinations of population, outcome, and GRS for the NRI comparison between a GRS+Age model vs. an Age-only model
+
+nri_bulk_LUTS <- nri_table()
+
+nri_bulk_LUTS <- nri_bulk_LUTS %>%
+  dplyr::mutate(
+    NRI_significant = dplyr::case_when(
+      is.na(p_NRI) ~ NA_character_,
+      p_NRI < 0.05 ~ "YES",
+      p_NRI >= 0.05 ~ "NO"
+    )
+  )
+
+
+## This block is to view a subset of the bulk NRI table. Change the filter to investigate a specific Population, Predictor, or Outcome
+
+nri_subset_LUTS <- nri_bulk_LUTS %>%
+  dplyr::filter(
+    Population == "Black",
+    #GRS == "PagadalaGRS",
+    #Outcome == "PrCa_severe_10yrs"
+  )
+
+```
 
 # Part 1: Asymptomatic Screening
 

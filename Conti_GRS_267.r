@@ -18,10 +18,8 @@
 ## - SeibertGRS_52.tsv
 ## - PagadalaGRS_285.tsv
 
-install.packages("remotes")
 remotes::install_github("lcpilling/ukbrapR@v0.3.10",
                         force = TRUE, clean = TRUE, dependencies = TRUE)
-install.packages("readxl")
 
 library(dplyr)
 library(readxl)

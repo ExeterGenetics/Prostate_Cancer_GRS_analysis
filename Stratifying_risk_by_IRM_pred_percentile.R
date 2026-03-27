@@ -5,13 +5,10 @@
 ## Step 1: Run "Logistic_Regressions_testing_Conti_GRS.R" script all the way
 ##         down to running a model
 
-install.packages("tidyverse")
 library(tidyverse)
-install.packages("extrafont")
 library(extrafont)
 library(dplyr)
 library(ggplot2)
-install.packages("showtext")
 library(showtext)
 
 library(devtools)

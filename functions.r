@@ -1,4 +1,18 @@
-## This script sets up the functions used in this repository's scripts
+## This script sets up the packages and functions used in this repository's scripts
+
+source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
+install.packages("pROC")
+install.packages("RMySQL")
+install.packages("readstata13")
+install.packages("survminer")
+install.packages("tidyverse")
+install.packages("DiagrammeR")
+install.packages("extrafont")
+install.packages("showtext")
+install.packages('readxl')
+install.packages("remotes")
+install.packages("caret")
+install.packages("bigsnpr")      
 
 # Function to run a logistic regression and compute a ROC AUC curve with 95% CIs
 
