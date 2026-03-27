@@ -784,7 +784,6 @@ ukb[stage1_label != "Other" & !is.na(MD2) & MD2 > thr_emp95, stage2_label := "Ot
 
 ### Compare to Pan-UKB labels
 
-install.packages("caret")
 library(caret)
 
 # Bring in Pan-UKBB labels (already in probDF_w_results data)

@@ -1,6 +1,5 @@
 ### YOU WILL NEED TO RUN THESE TWO LINES SEPARETELY (AND INDIVIDUALLY), THEN THE REST OF THE SCRIPT
 remotes::install_github("lcpilling/ukbrapR@v0.3.10")
-install.packages('readxl')
 
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 

@@ -7,7 +7,6 @@
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
 library(ggplot2)
-install.packages("pROC")
 library(pROC)
 library(epiR)
 

@@ -30,8 +30,7 @@ dxdownload("Callum/HGDP_1KG/HGDP_1KGG_autosomes_pruned_masked_norelatives_p1.bim
 dxdownload("Callum/HGDP_1KG/HGDP_1KGG_autosomes_pruned_masked_norelatives_p1.fam")
 
 ## Load in bigsnpr (package for projecting PCs)
-
-install.packages("bigsnpr")         
+   
 library(bigsnpr)
 
 ## Install PLINK

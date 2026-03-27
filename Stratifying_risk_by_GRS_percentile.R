@@ -2,13 +2,10 @@
 # Visually inspecting how well top 10% of GRS stratifies prostate cancer risk #
 ###############################################################################
 
-install.packages("tidyverse")
 library(tidyverse)
-install.packages("extrafont")
 library(extrafont)
 library(dplyr)
 library(ggplot2)
-install.packages("showtext")
 library(showtext)
 
 library(devtools)
