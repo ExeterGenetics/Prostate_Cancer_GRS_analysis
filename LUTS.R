@@ -517,8 +517,14 @@ PrCa_symptoms_diagnosis <- merge(chosen_symptom_earliest_dataframe, PCaCases_ear
 PrCa_symptoms_diagnosis <- PrCa_symptoms_diagnosis %>%
   dplyr::mutate(
     pre_diagnosed =
-      (!is.na(epistart) | !is.na(date) | !is.na(date_of_death)) &
-      ((!is.na(epistart) & epistart < EarliestDate_symptom) | (!is.na(date) & date < EarliestDate_symptom)),
+      (icd10_HES == "C61" | icd10_cr == "C61" | icd10_death == "C61") & (
+      (is.na(epistart) & is.na(date)) |
+      ((!is.na(epistart) & epistart < EarliestDate_symptom) | (!is.na(date) & date < EarliestDate_symptom))
+      ),
+    PrCa_case =
+      coalesce(icd10_HES == "C61", FALSE) |
+      coalesce(icd10_cr == "C61", FALSE) |
+      coalesce(icd10_death == "C61", FALSE),
     earliest_PrCa_date = pmin(epistart, date, na.rm = TRUE)
   )
 
@@ -1050,7 +1056,7 @@ PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criter
 ## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
 
 exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostate
-                              'V104',       # V10.4: Personal history of malignant neoplasm of genital organs
+                               'V104',       # V10.4: Personal history of malignant neoplasm of genital organs
                                2334,        # 233.4: Carcinoma in situ of the prostate
                                2365,        # 236.5: Neoplasm of uncertain behavior of the prostate
                                6023,        # 602.3: Dysplasia of the prostate
@@ -1062,16 +1068,16 @@ exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostat
                                6061,        # 60.61: Local excision of lesion of prostate
                                6062,        # 60.62: Perineal prostatectomy
                                6069)        # 60.69: Other prostatectomy
-                               ) %>%
+) %>%
   dplyr::select("eid", "diag_icd9")
 
 exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
-                                'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
-                                'R972',     # R97.2: Elevated prostate specific antigen [PSA]
-                                'D075',     # D07.5: Carcinoma in situ of prostate
-                                'D400',     # D40.0: Neoplasm of uncertain behavior of prostate
-                                'N423')     # N42.3: Dysplasia of prostate
-                                )%>%
+                                 'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
+                                 'R972',     # R97.2: Elevated prostate specific antigen [PSA]
+                                 'D075',     # D07.5: Carcinoma in situ of prostate
+                                 'D400',     # D40.0: Neoplasm of uncertain behavior of prostate
+                                 'N423')     # N42.3: Dysplasia of prostate
+)%>%
   dplyr::select("eid", "diag_icd10")
 
 exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
@@ -1094,7 +1100,7 @@ exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                'M671',      # M67.1: Endoscopic cryotherapy to lesion of prostate
                                'M711',      # M71.1: High intensity focused ultrasound of prostate
                                'M712')      # M71.2: Implantation of radioactive substance into prostate
-                               ) %>%
+) %>%
   dplyr::select("eid", "oper4")
 
 exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
@@ -1103,7 +1109,7 @@ exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm o
                                            'D075',    # D07.5: Carcinoma in situ of prostate
                                            'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
                                            'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
-)%>
+)%>%
   dplyr::select("eid", "ICD10")
 
 possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
@@ -1118,7 +1124,7 @@ possible_PrCa_cases <- possible_PrCa_cases %>%
 # Join onto main dataframe and create "exclude" variable to exclude controls who meet any of the exclusion criteria for controls (i.e. those with possible PrCa diagnoses but no evidence of prostate cancer diagnosis)
 
 PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS_severity, possible_PrCa_cases, by = "eid", all.x = TRUE) %>%
-  dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & is.na(pre_diagnosed), 1L, 0L, missing = 0L))
+  dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & PrCa_case == FALSE, 1L, 0L, missing = 0L))
 
 ## Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis
 
@@ -1147,7 +1153,7 @@ PCa_iv_covariates_GRS_severity %>%
 
 PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
   dplyr::mutate(
-    PrCa = if_else(!is.na(pre_diagnosed) & HES_only == FALSE, 1L, 0L, missing = 0L),
+    PrCa = if_else(PrCa_case == TRUE, 1L, 0L, missing = 0L),
   ) %>%
   dplyr::rename(Age = event_age)
 
@@ -1441,7 +1447,7 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     covariates = NULL,
                     plot_roc = TRUE)
 
-model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
+model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly, ## model2 is used for NRI comparison with model1
                      outcome = "PrCa_10yrs",
                      predictor = "ContimultiethnicGRS",
                      covariates = "Age",
