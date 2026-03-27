@@ -1,4 +1,4 @@
-(note: you must first run "functions.r" then "Logistic_Regressions_testing_Conti_GRS.R" then "LUTS.R" to generate this document)
+(note: you must first run "functions.r" then "Logistic_Regressions_testing_Conti_GRS.R")
 
 ## Part 1: Asymptomatic Screening ##
 
@@ -358,3 +358,5 @@ UKB_PC_plot1 <- ggplot(test_population %>% dplyr::filter(ethnicity_group_narrow 
 print(UKB_PC_plot1)
 
 ```
+
+
