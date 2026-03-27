@@ -215,6 +215,10 @@ PCaCases_prediagnosis <- PCaCases_earliest %>%
       (is.na(epistart) & is.na(date)) |
       (!is.na(epistart) & epistart <= assess_date_initial) |
       (!is.na(date) & date <= assess_date_initial),
+    PrCa_case =
+      coalesce(icd10_HES == "C61", FALSE) |
+      coalesce(icd10_cr == "C61", FALSE) |
+      coalesce(icd10_death == "C61", FALSE),
     earliest_PrCa_date = pmin(epistart, date, na.rm = TRUE)
   )
 
@@ -814,7 +818,7 @@ possible_PrCa_cases <- possible_PrCa_cases %>%
 # Join onto main dataframe and create "exclude" variable to exclude controls who meet any of the exclusion criteria for controls (i.e. those with possible PrCa diagnoses but no evidence of prostate cancer diagnosis)
 
 PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS_severity, possible_PrCa_cases, by = "eid", all.x = TRUE) %>%
-  dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & is.na(pre_diagnosed), 1L, 0L, missing = 0L))
+  dplyr::mutate(exclude = if_else(possible_PrCa_case == 1 & PrCa_case == FALSE, 1L, 0L, missing = 0L))
 
 ## Remove anybody who is female, lacks GRS data, anyone pre-diagnosed, anyone with HES-only PrCa diagnosis
 
@@ -843,7 +847,7 @@ PCa_iv_covariates_GRS_severity %>%
 
 PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
   dplyr::mutate(
-    PrCa = if_else(!is.na(pre_diagnosed) & HES_only == FALSE, 1L, 0L, missing = 0L),
+    PrCa = if_else(PrCa_case == TRUE, 1L, 0L, missing = 0L),
   )
 
 ############################################# (these should have already been filtered out, 
