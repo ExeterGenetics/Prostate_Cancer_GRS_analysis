@@ -20,7 +20,8 @@ run_logreg <- function(data,
                        outcome,
                        predictor,
                        covariates = NULL,
-                       plot_roc = TRUE) {
+                       plot_roc = TRUE,
+                       show_output = TRUE) {
   
   if (is.null(covariates)) {
     formula <- as.formula(paste(outcome, "~", predictor))
@@ -31,7 +32,9 @@ run_logreg <- function(data,
   }
   
   logreg <- glm(formula, data = data, family = binomial)
-  print(summary(logreg))
+  if (show_output) {
+    print(summary(logreg))
+  }
   data$pred <- predict(logreg, data, type = "response")
   data$predtop10 <- data$pred >= quantile(data$pred, probs = 0.9, na.rm = TRUE, names = FALSE)
   data$predtop20 <- data$pred >= quantile(data$pred, probs = 0.8, na.rm = TRUE, names = FALSE)
@@ -43,7 +46,7 @@ run_logreg <- function(data,
   data$predtop80 <- data$pred >= quantile(data$pred, probs = 0.2, na.rm = TRUE, names = FALSE)
   data$predtop90 <- data$pred >= quantile(data$pred, probs = 0.1, na.rm = TRUE, names = FALSE)
   
-  if (plot_roc) {
+  if (plot_roc && show_output) {
     roc_obj <- roc(data[[outcome]] ~ data$pred,
                    plot = TRUE,
                    print.auc = TRUE,
@@ -53,7 +56,9 @@ run_logreg <- function(data,
                    ci = TRUE)
   }
   
-  print(roc_obj)
+  if (show_output) {
+    print(roc_obj)
+  }
   
   return(list(
     model = logreg,
@@ -1112,7 +1117,8 @@ logreg_table <- function(
               outcome = current_outcome,
               predictor = grs_pred,
               covariates = cov,
-              plot_roc = plot_roc
+              plot_roc = plot_roc,
+              show_output = FALSE
             )
             
             # Extract ROC AUC and CI
@@ -1166,7 +1172,8 @@ logreg_table <- function(
               outcome = current_outcome,
               predictor = "Age",
               covariates = NULL,
-              plot_roc = plot_roc
+              plot_roc = plot_roc,
+              show_output = FALSE
             )
             
             roc_obj <- model$roc

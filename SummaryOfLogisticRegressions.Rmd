@@ -4,9 +4,15 @@ output: ioslides_presentation
 date: "2026-03-27"
 ---
 
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+
 Setup script 1: Paste "functions.r" here:
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 
 ## This script sets up the packages and functions used in this repository's scripts
 
@@ -1217,7 +1223,7 @@ logreg_table <- function(
 
 Setup script 2: Paste "Logistic_Regressions_testing_Conti_GRS.R" here:
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 
 ######### Logistic Regression Application - testing Conti's GRSs #########
 
@@ -2490,7 +2496,7 @@ nri_subset <- nri_bulk %>%
 
 Setup script 3: Paste "LUTS.R" here:
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 
 #############################################################################
 # Symptomatic Angle - how well can GRS predict Prostate cancer diagnosis in #
@@ -4499,13 +4505,10 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
 ## Step 1: Run "Logistic_Regressions_testing_Conti_GRS.R" script all the way
 ##         down to running a model
 
-install.packages("tidyverse")
 library(tidyverse)
-install.packages("extrafont")
 library(extrafont)
 library(dplyr)
 library(ggplot2)
-install.packages("showtext")
 library(showtext)
 
 library(devtools)
