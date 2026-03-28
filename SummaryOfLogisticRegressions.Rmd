@@ -4240,7 +4240,7 @@ Ethnicity is based on self-report and clustered as follows:
 
 Note: Genetic similarity is the preferred term for what is called “Genomic Ancestry” in the UK Biobank
 
-# Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
+## Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
 
 ```{r, echo=FALSE}
 
