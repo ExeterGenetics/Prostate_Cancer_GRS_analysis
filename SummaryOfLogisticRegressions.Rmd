@@ -1291,19 +1291,17 @@ logreg_table <- function(
   return(results)
 }
 
-# Override default data.frame printing in knitr so all print(table) calls
-# render as styled HTML tables automatically
-knit_print.data.frame <- function(x, ...) {
-  knitr::asis_output(
+# Consistent HTML table renderer for report/slides
+pretty_print_table <- function(df, caption = NULL) {
+  knitr::kable(df, format = "html", escape = FALSE, caption = caption) %>%
     kableExtra::kable_styling(
-      knitr::kable(x, format = "html"),
-      bootstrap_options = c("striped", "hover", "condensed"),
+      bootstrap_options = c("striped", "hover", "condensed", "responsive"),
       full_width = TRUE,
-      font_size = 11
-    )
-  )
+      font_size = 12,
+      position = "left"
+    ) %>%
+    kableExtra::scroll_box(width = "100%", height = "420px")
 }
-
 
 ```
 
@@ -2475,7 +2473,7 @@ OR_table <- ORtable(
   use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
 )
 
-print(OR_table$wide_formatted)
+pretty_print_table(OR_table$wide_formatted)
 
 # Risk Ratio Table
 
@@ -2487,7 +2485,7 @@ RR_table <- RRtable(
   use_existing_cols = TRUE
 )
 
-print(RR_table$wide_formatted)
+pretty_print_table(RR_table$wide_formatted)
 
 
 # NRI Calculation to compare two models
@@ -4053,7 +4051,7 @@ OR_table <- ORtable(
   use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
 )
 
-print(OR_table$wide_formatted)
+pretty_print_table(OR_table$wide_formatted)
 
 # Risk Ratio Table
 
@@ -4065,7 +4063,7 @@ RR_table <- RRtable(
   use_existing_cols = TRUE
 )
 
-print(RR_table$wide_formatted)
+pretty_print_table(RR_table$wide_formatted)
 
 
 # NRI Calculation to compare two models
@@ -4269,9 +4267,9 @@ table1 <- formatted %>%
     Outcome == "PrCa",
     Covariates == "None"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table1)
+pretty_print_table(table1)
 
 ```
 
@@ -4286,9 +4284,9 @@ table2 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table2)
+pretty_print_table(table2)
 
 ```
 
@@ -4305,9 +4303,9 @@ table3 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table3)
+pretty_print_table(table3)
 
 ```
 
@@ -4566,9 +4564,9 @@ table1 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table1)
+pretty_print_table(table1)
 
 ```
 
@@ -4954,9 +4952,9 @@ table4 <- formatted %>%
     Outcome == "PrCa",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table4)
+pretty_print_table(table4)
 
 ```
 
@@ -4971,9 +4969,9 @@ table5 <- formatted %>%
     Outcome == "PrCa_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table5)
+pretty_print_table(table5)
 
 ```
 
@@ -4988,9 +4986,9 @@ table6 <- formatted %>%
     Outcome == "PrCa_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table6)
+pretty_print_table(table6)
 
 ```
 
@@ -5005,9 +5003,9 @@ table7 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table7)
+pretty_print_table(table7)
 
 ```
 
@@ -5044,9 +5042,9 @@ table8 <- formatted %>%
     Outcome == "PrCa_actionable",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table8)
+pretty_print_table(table8)
 
 ```
 
@@ -5063,7 +5061,7 @@ table9 <- formatted %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table9)
+pretty_print_table(table9)
 
 ```
 
@@ -5078,9 +5076,9 @@ table10 <- formatted %>%
     Outcome == "PrCa_actionable_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table10)
+pretty_print_table(table10)
 
 ```
 
@@ -5095,9 +5093,9 @@ table11 <- formatted %>%
     Outcome == "PrCa_actionable_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table11)
+pretty_print_table(table11)
 
 ```
 
@@ -5112,9 +5110,9 @@ table12 <- formatted %>%
     Outcome == "PrCa_severe",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table12)
+pretty_print_table(table12)
 
 ```
 
@@ -5129,9 +5127,9 @@ table13 <- formatted %>%
     Outcome == "PrCa_severe_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table13)
+pretty_print_table(table13)
 
 ```
 
@@ -5146,9 +5144,9 @@ table14 <- formatted %>%
     Outcome == "PrCa_severe_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table14)
+pretty_print_table(table14)
 
 ```
 
@@ -5163,9 +5161,9 @@ table15 <- formatted %>%
     Outcome == "PrCa_severe_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table15)
+pretty_print_table(table15)
 
 ```
 
@@ -5200,9 +5198,9 @@ table16 <- formatted %>%
     Outcome == "PrCa_actionable",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table16)
+pretty_print_table(table16)
 
 ```
 
@@ -5217,9 +5215,9 @@ table17 <- formatted %>%
     Outcome == "PrCa_actionable_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table17)
+pretty_print_table(table17)
 
 ```
 
@@ -5234,9 +5232,9 @@ table18 <- formatted %>%
     Outcome == "PrCa_actionable_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table18)
+pretty_print_table(table18)
 
 ```
 
@@ -5251,9 +5249,9 @@ table19 <- formatted %>%
     Outcome == "PrCa_actionable_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table19)
+pretty_print_table(table19)
 
 ```
 
@@ -5268,9 +5266,9 @@ table20 <- formatted %>%
     Outcome == "PrCa_severe",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table20)
+pretty_print_table(table20)
 
 ```
 
@@ -5285,9 +5283,9 @@ table21 <- formatted %>%
     Outcome == "PrCa_severe_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table21)
+pretty_print_table(table21)
 
 ```
 
@@ -5302,9 +5300,9 @@ table22 <- formatted %>%
     Outcome == "PrCa_severe_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table22)
+pretty_print_table(table22)
 
 ```
 
@@ -5319,9 +5317,9 @@ table23 <- formatted %>%
     Outcome == "PrCa_severe_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table23)
+pretty_print_table(table23)
 
 ```
 
@@ -5336,9 +5334,9 @@ table24 <- formatted %>%
     Outcome == "PrCa_actionable",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table24)
+pretty_print_table(table24)
 
 ```
 
@@ -5353,9 +5351,9 @@ table25 <- formatted %>%
     Outcome == "PrCa_actionable_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table25)
+pretty_print_table(table25)
 
 ```
 
@@ -5370,9 +5368,9 @@ table26 <- formatted %>%
     Outcome == "PrCa_actionable_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table26)
+pretty_print_table(table26)
 
 ```
 
@@ -5387,9 +5385,9 @@ table27 <- formatted %>%
     Outcome == "PrCa_actionable_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table27)
+pretty_print_table(table27)
 
 ```
 
@@ -5404,9 +5402,9 @@ table28 <- formatted %>%
     Outcome == "PrCa_severe",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table28)
+pretty_print_table(table28)
 
 ```
 
@@ -5421,9 +5419,9 @@ table29 <- formatted %>%
     Outcome == "PrCa_severe_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table29)
+pretty_print_table(table29)
 
 ```
 
@@ -5438,9 +5436,9 @@ table30 <- formatted %>%
     Outcome == "PrCa_severe_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table30)
+pretty_print_table(table30)
 
 ```
 
@@ -5455,9 +5453,9 @@ table31 <- formatted %>%
     Outcome == "PrCa_severe_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table31)
+pretty_print_table(table31)
 
 ```
 
@@ -5480,9 +5478,9 @@ table32 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table32)
+pretty_print_table(table32)
 
 ```
 
@@ -5499,9 +5497,9 @@ table33 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table33)
+pretty_print_table(table33)
 
 ```
 
@@ -5518,9 +5516,9 @@ table34 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table34)
+pretty_print_table(table34)
 
 ```
 
@@ -5540,9 +5538,9 @@ table35 <- formatted %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | Predictor == "Age" & (Covariates == "None"),
     Outcome == "PrCa_10yrs",
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table35)
+pretty_print_table(table35)
 
 ```
 
@@ -5870,9 +5868,9 @@ table36 <- formatted2 %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table36)
+pretty_print_table(table36)
 
 ```
 
@@ -5889,9 +5887,9 @@ table37 <- formatted2 %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa_2yrs"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table37)
+pretty_print_table(table37)
 
 ```
 
@@ -5908,9 +5906,9 @@ table38 <- formatted2 %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa_5yrs"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table38)
+pretty_print_table(table38)
 
 ```
 
@@ -5927,9 +5925,9 @@ table39 <- formatted2 %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa_10yrs"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table39)
+pretty_print_table(table39)
 
 ```
 
