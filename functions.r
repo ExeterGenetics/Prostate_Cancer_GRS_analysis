@@ -1271,15 +1271,14 @@ logreg_table <- function(
   return(results)
 }
 
-# Override default data.frame printing in knitr so all print(table) calls
-# render as styled HTML tables automatically
-knit_print.data.frame <- function(x, ...) {
-  knitr::asis_output(
+# Consistent HTML table renderer for report/slides
+pretty_print_table <- function(df, caption = NULL) {
+  knitr::kable(df, format = "html", escape = FALSE, caption = caption) %>%
     kableExtra::kable_styling(
-      knitr::kable(x, format = "html"),
-      bootstrap_options = c("striped", "hover", "condensed"),
+      bootstrap_options = c("striped", "hover", "condensed", "responsive"),
       full_width = TRUE,
-      font_size = 11
-    )
-  )
+      font_size = 12,
+      position = "left"
+    ) %>%
+    kableExtra::scroll_box(width = "100%", height = "420px")
 }
