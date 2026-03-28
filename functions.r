@@ -1283,3 +1283,4 @@ knit_print.data.frame <- function(x, ...) {
     )
   )
 }
+registerS3method("knit_print", "data.frame", knit_print.data.frame)
