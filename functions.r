@@ -787,24 +787,45 @@ nri_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
-    verbose = TRUE
+    verbose = TRUE,
+    version = "Asymptomatic Screening"
 ) {
+  valid_versions <- c("Asymptomatic Screening", "Symptomatic Triage")
+  if (!(version %in% valid_versions)) {
+    stop("`version` must be one of: 'Asymptomatic Screening' or 'Symptomatic Triage'.")
+  }
   
   # Default populations if not specified
   if (is.null(populations)) {
-    populations <- list(
-      "All" = PCa_iv_covariates_GRS_predhorizon,
-      "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
-      "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
-      "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
-      "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
-      "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
-      "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
-      "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
-      "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
-      "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
-      "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
-    )
+    if (version == "Asymptomatic Screening") {
+      populations <- list(
+        "All" = PCa_iv_covariates_GRS_predhorizon,
+        "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+        "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+        "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+        "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+        "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+        "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+        "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+        "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+        "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+        "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+      )
+    } else if (version == "Symptomatic Triage") {
+      populations <- list(
+        "All" = PCa_iv_covariates_GRS_predhorizon2,
+        "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
+        "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
+        "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
+        "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2,
+        "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly2,
+        "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly2,
+        "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly2,
+        "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly2,
+        "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly2,
+        "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly2
+      )
+    }
   }
   
   # Default GRS list if not specified
@@ -979,6 +1000,8 @@ nri_table <- function(
 
 ## Function to compute logistic regression for all outcome × GRS × population × covariate combinations ───
 ## 
+## Version 1 - for Logistic_Regressions_testing_Conti_GRS.R
+##
 ## How it works:
 ##   For each combination of (outcome, population, GRS, covariates):
 ##     - Fit a logistic regression model
@@ -1001,25 +1024,46 @@ logreg_table <- function(
     covariates_list = list(NULL, "Age", "rs72725854_T"),  # uses list() so NULL is preserved as a distinct option
     include_age_only = TRUE,
     plot_roc = FALSE,
-    verbose = TRUE
+    verbose = TRUE,
+    version = "Asymptomatic Screening"
 ) {
+  valid_versions <- c("Asymptomatic Screening", "Symptomatic Triage")
+  if (!(version %in% valid_versions)) {
+    stop("`version` must be one of: 'Asymptomatic Screening' or 'Symptomatic Triage'.")
+  }
   
   # Default populations if not specified
   
   if (is.null(populations)) {
-    populations <- list(
-      "All" = PCa_iv_covariates_GRS_predhorizon,
-      "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
-      "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
-      "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
-      "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
-      "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
-      "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
-      "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
-      "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
-      "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
-      "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
-    )
+    if (version == "Asymptomatic Screening") {
+      populations <- list(
+        "All" = PCa_iv_covariates_GRS_predhorizon,
+        "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+        "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+        "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+        "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+        "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+        "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+        "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+        "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+        "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+        "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+      )
+    } else if (version == "Symptomatic Triage") {
+      populations <- list(
+        "All" = PCa_iv_covariates_GRS_predhorizon2,
+        "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
+        "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
+        "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
+        "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2,
+        "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly2,
+        "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly2,
+        "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly2,
+        "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly2,
+        "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly2,
+        "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly2
+      )
+    }
   }
   
   # Default GRS list if not specified
@@ -1208,3 +1252,4 @@ logreg_table <- function(
   
   return(results)
 }
+
