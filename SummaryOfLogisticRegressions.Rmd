@@ -21,18 +21,29 @@ Setup script 1: Paste "functions.r" here:
 ## This script sets up the packages and functions used in this repository's scripts
 
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
-install.packages("pROC")
-install.packages("RMySQL")
-install.packages("readstata13")
-install.packages("survminer")
-install.packages("tidyverse")
-install.packages("DiagrammeR")
-install.packages("extrafont")
-install.packages("showtext")
-install.packages('readxl')
-install.packages("remotes")
-install.packages("caret")
-install.packages("bigsnpr")      
+
+ensure_package <- function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
+packages_needed <- c(
+  "pROC",
+  "RMySQL",
+  "readstata13",
+  "survminer",
+  "tidyverse",
+  "DiagrammeR",
+  "extrafont",
+  "showtext",
+  "readxl",
+  "remotes",
+  "caret",
+  "bigsnpr"
+)
+
+invisible(lapply(packages_needed, ensure_package))
 
 # Function to run a logistic regression and compute a ROC AUC curve with 95% CIs
 
@@ -5137,13 +5148,19 @@ print(table15)
 
 On a 10-year prediction horizon, Conti’s multiethnicity-weighted GRS, in combination with Age, can stratify diagnosis of prostate cancer effectively
 
-However, on the same 10-year prediction horizon, the same GRS appears to discriminate risk of actionable prostate cancer more accurately in white men compared to black men
+On the same 10-year prediction horizon, the same GRS appears to discriminate risk of actionable prostate cancer more accurately in white men compared to black men. This difference is not significant. The same GRS appears to discriminate risk of severe prostate cancer significantly more accurately in black men compared to white men, but this result is poorly reliable as there is a small sample size (9 cases).
 
 Since it is a GRS built to predict diagnosis of prostate cancer (not to predict a certain severity of prostate cancer), it makes sense that it is better at predicting general diagnosis
 
 ## Now testing: Seibert (2018) and Pagadala (2022)
 
-Seibert’s GRS was trained on “aggressive” prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following: - Gleason score ≥ 7 - Clinical stage T3–T4 - PSA ≥ 10 ng/mL - Nodal metastasis - Distant metastasis
+Seibert’s GRS was trained on “aggressive” prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following: 
+
+- Gleason score ≥ 7 
+- Clinical stage T3–T4 
+- PSA ≥ 10 ng/mL 
+- Nodal metastasis 
+- Distant metastasis
 
 Pagadala’s GRS was trained on age at death from prostate cancer (“fatal PCa”) and age at diagnosis of metastatic PCa
 
@@ -5715,7 +5732,7 @@ If you run logistic regressions with Age as a fixed predictor of all endpoints (
 
 Not quite.
 
-Similarly, if you calculate the Net Reclassification Improvement (NRI) for every combination of Population-GRS-Covariate-Endpoint compared to the equivalent models with Age alone:
+Similarly, if you calculate the Net Reclassification Improvement (NRI) for every combination of Population-GRS-Covariate-Endpoint compared to the equivalent models with Age alone:
 
 -   Black men see a significantly (p \< 0.05) positive NRI with many GRS-endpoint combinations, with Conti, Wang, and Schumacher’s BARCODE1 GRSs providing the greatest improvement (though this varies across endpoints)
 
