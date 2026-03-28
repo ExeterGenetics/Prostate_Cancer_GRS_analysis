@@ -1192,7 +1192,10 @@ print(nri_result)
 
 ## By default, logreg_table() will compute all combinations of population, outcome, GRS, and covariates
 
-bulk <- logreg_table()
+bulk <- logreg_table(
+  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
+                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285")
+)
 
 ## The below block adds, for each row that represents a GRS + Age model, the
 ## equivalent Age-only model, and compares confidence intervals between them
