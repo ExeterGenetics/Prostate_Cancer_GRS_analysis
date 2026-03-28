@@ -650,7 +650,8 @@ nri <- function(data,
                 pred_new = "pred2",
                 pred_old = "pred",
                 positive_level = 1,
-                digits = 3) {
+                digits = 3,
+                show_output = TRUE) {
   
   stopifnot(outcome  %in% names(data))
   stopifnot(pred_new %in% names(data))
@@ -751,7 +752,9 @@ nri <- function(data,
     stringsAsFactors = FALSE
   )
   
-  print(results, row.names = FALSE, na.print = "")
+  if (show_output) {
+    print(results, row.names = FALSE, na.print = "")
+  }
   
   invisible(list(
     NRI          = NRI,
@@ -926,7 +929,8 @@ nri_table <- function(
           outcome = current_outcome,
           predictor = "Age",
           covariates = NULL,
-          plot_roc = FALSE
+          plot_roc = FALSE,
+          show_output = FALSE
         )
         
         reference_data <- age_model$data  # Has pred column (Age-only predictions)
@@ -954,7 +958,8 @@ nri_table <- function(
               outcome = current_outcome,
               predictor = grs_pred,
               covariates = "Age",
-              plot_roc = FALSE
+              plot_roc = FALSE,
+              show_output = FALSE
             )
             
             # grs_model$data now has pred column (Age+GRS predictions)
@@ -972,7 +977,8 @@ nri_table <- function(
               outcome = current_outcome,
               pred_new = "pred2",
               pred_old = "pred",
-              digits = 3
+              digits = 3,
+              show_output = FALSE
             )
             
             # Count cases and controls
@@ -1263,4 +1269,3 @@ logreg_table <- function(
   
   return(results)
 }
-
