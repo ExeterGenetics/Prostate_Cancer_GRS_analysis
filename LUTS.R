@@ -1476,12 +1476,12 @@ print(RR_table$wide_formatted)
 
 # NRI Calculation to compare two models
 
-nri_result <- nri(
-  data = model$data %>% dplyr::mutate(pred2 = model2$data$pred),
-  outcome = model$outcome,
-)
+#nri_result <- nri(
+#  data = model$data %>% dplyr::mutate(pred2 = model2$data$pred),
+#  outcome = model$outcome,
+#)
 
-print(nri_result)
+#print(nri_result)
 
 ######################################################################################
 # Step 10 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
@@ -1491,7 +1491,8 @@ print(nri_result)
 
 bulk2 <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285")
+                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+  version = "Symptomatic Triage"
 )
 
 ## The below block adds, for each row that represents a GRS + Age model, the
@@ -1545,7 +1546,11 @@ subset2 <- formatted2 %>%
 
 ## By default, nri_table() will compute all combinations of population, outcome, and GRS for the NRI comparison between a GRS+Age model vs. an Age-only model
 
-nri_bulk2 <- nri_table()
+nri_bulk2 <- nri_table(
+  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
+                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+  version = "Symptomatic Triage"
+)
 
 nri_bulk2 <- nri_bulk2 %>%
   dplyr::mutate(
