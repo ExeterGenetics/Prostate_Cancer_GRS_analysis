@@ -20,7 +20,8 @@ packages_needed <- c(
   "readxl",
   "remotes",
   "caret",
-  "bigsnpr"
+  "bigsnpr",
+  "kableExtra"
 )
 
 invisible(lapply(packages_needed, ensure_package))
@@ -1268,4 +1269,17 @@ logreg_table <- function(
   }
   
   return(results)
+}
+
+# Override default data.frame printing in knitr so all print(table) calls
+# render as styled HTML tables automatically
+knit_print.data.frame <- function(x, ...) {
+  knitr::asis_output(
+    kableExtra::kable_styling(
+      knitr::kable(x, format = "html"),
+      bootstrap_options = c("striped", "hover", "condensed"),
+      full_width = TRUE,
+      font_size = 11
+    )
+  )
 }

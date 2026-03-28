@@ -1,7 +1,7 @@
 ---
-title: "Summary of Logistic Regressions"
-output: ioslides_presentation
-date: "2026-03-27"
+title: "document version"
+output: html_document
+date: "2026-03-28"
 ---
 
 ```{r, include=FALSE}
@@ -40,7 +40,8 @@ packages_needed <- c(
   "readxl",
   "remotes",
   "caret",
-  "bigsnpr"
+  "bigsnpr",
+  "kableExtra"
 )
 
 invisible(lapply(packages_needed, ensure_package))
@@ -1288,6 +1289,19 @@ logreg_table <- function(
   }
   
   return(results)
+}
+
+# Override default data.frame printing in knitr so all print(table) calls
+# render as styled HTML tables automatically
+knit_print.data.frame <- function(x, ...) {
+  knitr::asis_output(
+    kableExtra::kable_styling(
+      knitr::kable(x, format = "html"),
+      bootstrap_options = c("striped", "hover", "condensed"),
+      full_width = TRUE,
+      font_size = 11
+    )
+  )
 }
 
 ```
@@ -4240,7 +4254,7 @@ Ethnicity is based on self-report and clustered as follows:
 
 Note: Genetic similarity is the preferred term for what is called “Genomic Ancestry” in the UK Biobank
 
-## Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
+# Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
 
 ```{r, echo=FALSE}
 
@@ -4583,7 +4597,8 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
                      covariates = "ContimultiethnicGRS267",
-                     plot_roc = TRUE)
+                     plot_roc = TRUE,
+                    show_output = FALSE)
 
 ################################################################################
 # Visually inspecting how well top 10% of pred stratifies prostate cancer risk #
@@ -4680,7 +4695,8 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
                      covariates = "ContimultiethnicGRS267",
-                     plot_roc = TRUE)
+                     plot_roc = TRUE,
+                    show_output = FALSE)
 
 
 
@@ -4757,7 +4773,7 @@ print(IRMplot2)
 
 Ratio = (lift ratio from plot output)
 
-## Top 20% of Integrated Risk Model “pred” score vs. bottom 90%
+## Top 20% of Integrated Risk Model “pred” score vs. bottom 80%
 
 (Conti’s Multiethnic GRS + Age)
 
@@ -4767,7 +4783,8 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
                      covariates = "ContimultiethnicGRS267",
-                     plot_roc = TRUE)
+                     plot_roc = TRUE,
+                    show_output = FALSE)
 
 ## Step 2: Set variables and labels
 
@@ -4848,7 +4865,8 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
                      covariates = "ContimultiethnicGRS267",
-                     plot_roc = TRUE)
+                     plot_roc = TRUE,
+                    show_output = FALSE)
 
 
 ## Step 2: Set variables and labels
@@ -5562,7 +5580,8 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
                      covariates = NULL,
-                     plot_roc = TRUE)
+                     plot_roc = TRUE,
+                    show_output = FALSE)
 
 
 ## Step 2: Set variables and labels
@@ -5656,7 +5675,8 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
                      covariates = NULL,
-                     plot_roc = TRUE)
+                     plot_roc = TRUE,
+                    show_output = FALSE)
 
 
 ## Step 2: Set variables and labels
@@ -5843,7 +5863,7 @@ Note: Genetic similarity is the preferred term for what is called “Genomic Anc
 library(dplyr)
 library(pROC)
 
-table1 <- formatted %>%                        
+table36 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
@@ -5851,7 +5871,7 @@ table1 <- formatted %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table1)
+print(table36)
 
 ```
 
@@ -5862,7 +5882,7 @@ print(table1)
 library(dplyr)
 library(pROC)
 
-table1 <- formatted %>%                        
+table37 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
@@ -5870,7 +5890,7 @@ table1 <- formatted %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table1)
+print(table37)
 
 ```
 
@@ -5881,7 +5901,7 @@ print(table1)
 library(dplyr)
 library(pROC)
 
-table1 <- formatted %>%                        
+table38 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
@@ -5889,7 +5909,7 @@ table1 <- formatted %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table1)
+print(table38)
 
 ```
 
@@ -5900,7 +5920,7 @@ print(table1)
 library(dplyr)
 library(pROC)
 
-table1 <- formatted %>%                        
+table39 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
@@ -5908,7 +5928,7 @@ table1 <- formatted %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-print(table1)
+print(table39)
 
 ```
 
@@ -5921,4 +5941,3 @@ print(table1)
 - Large confidence intervals suggest the UKB is statistically underpowered to accurately compare GRS performance for this purpose
 
 - Partially explained by the fact that, of the 14,076 UKB participants who report LUTS, 13,370 (95%) are White
-
