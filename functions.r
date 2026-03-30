@@ -791,10 +791,12 @@ nri <- function(data,
 ##        - Store in results dataframe
 ##
 ## Returns: dataframe with columns:
-##   - Outcome, Population, GRS
+##   - Outcome, Population, Predictor
 ##   - N_Cases, N_Controls
 ##   - NRI, NRI_CI_Lower, NRI_CI_Upper, p_NRI
 ##   - NRI_Cases, NRI_Controls (component NRIs)
+##   - Cases_Percent_Reclassified_Up, Cases_Percent_Reclassified_Down
+##   - Controls_Percent_Reclassified_Up, Controls_Percent_Reclassified_Down
 
 nri_table <- function(
     populations = NULL,
@@ -893,7 +895,7 @@ nri_table <- function(
   results <- data.frame(
     Outcome = character(),
     Population = character(),
-    GRS = character(),
+    Predictor = character(),
     N_Cases = integer(),
     N_Controls = integer(),
     NRI = numeric(),
@@ -902,6 +904,10 @@ nri_table <- function(
     p_NRI = numeric(),
     NRI_Cases = numeric(),
     NRI_Controls = numeric(),
+    Cases_Percent_Reclassified_Up = numeric(),
+    Cases_Percent_Reclassified_Down = numeric(),
+    Controls_Percent_Reclassified_Up = numeric(),
+    Controls_Percent_Reclassified_Down = numeric(),
     stringsAsFactors = FALSE
   )
   
@@ -992,7 +998,7 @@ nri_table <- function(
             results <- rbind(results, data.frame(
               Outcome = current_outcome,
               Population = pop_name,
-              GRS = grs_pred,
+              Predictor = grs_pred,
               N_Cases = n_cases,
               N_Controls = n_controls,
               NRI = nri_result$NRI,
@@ -1001,6 +1007,10 @@ nri_table <- function(
               p_NRI = nri_result$p_NRI,
               NRI_Cases = nri_result$NRI_cases,
               NRI_Controls = nri_result$NRI_controls,
+              Cases_Percent_Reclassified_Up = nri_result$p_up_cases * 100,
+              Cases_Percent_Reclassified_Down = nri_result$p_down_cases * 100,
+              Controls_Percent_Reclassified_Up = nri_result$p_up_controls * 100,
+              Controls_Percent_Reclassified_Down = nri_result$p_down_controls * 100,
               stringsAsFactors = FALSE
             ))
             

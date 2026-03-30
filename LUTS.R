@@ -1493,7 +1493,7 @@ print(RR_table$wide_formatted)
 
 bulk2 <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   version = "Symptomatic Triage"
 )
 
@@ -1550,7 +1550,7 @@ subset2 <- formatted2 %>%
 
 nri_bulk2 <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   version = "Symptomatic Triage"
 )
 

@@ -811,10 +811,12 @@ nri <- function(data,
 ##        - Store in results dataframe
 ##
 ## Returns: dataframe with columns:
-##   - Outcome, Population, GRS
+##   - Outcome, Population, Predictor
 ##   - N_Cases, N_Controls
 ##   - NRI, NRI_CI_Lower, NRI_CI_Upper, p_NRI
 ##   - NRI_Cases, NRI_Controls (component NRIs)
+##   - Cases_Percent_Reclassified_Up, Cases_Percent_Reclassified_Down
+##   - Controls_Percent_Reclassified_Up, Controls_Percent_Reclassified_Down
 
 nri_table <- function(
     populations = NULL,
@@ -913,7 +915,7 @@ nri_table <- function(
   results <- data.frame(
     Outcome = character(),
     Population = character(),
-    GRS = character(),
+    Predictor = character(),
     N_Cases = integer(),
     N_Controls = integer(),
     NRI = numeric(),
@@ -922,6 +924,10 @@ nri_table <- function(
     p_NRI = numeric(),
     NRI_Cases = numeric(),
     NRI_Controls = numeric(),
+    Cases_Percent_Reclassified_Up = numeric(),
+    Cases_Percent_Reclassified_Down = numeric(),
+    Controls_Percent_Reclassified_Up = numeric(),
+    Controls_Percent_Reclassified_Down = numeric(),
     stringsAsFactors = FALSE
   )
   
@@ -1012,7 +1018,7 @@ nri_table <- function(
             results <- rbind(results, data.frame(
               Outcome = current_outcome,
               Population = pop_name,
-              GRS = grs_pred,
+              Predictor = grs_pred,
               N_Cases = n_cases,
               N_Controls = n_controls,
               NRI = nri_result$NRI,
@@ -1021,6 +1027,10 @@ nri_table <- function(
               p_NRI = nri_result$p_NRI,
               NRI_Cases = nri_result$NRI_cases,
               NRI_Controls = nri_result$NRI_controls,
+              Cases_Percent_Reclassified_Up = nri_result$p_up_cases * 100,
+              Cases_Percent_Reclassified_Down = nri_result$p_down_cases * 100,
+              Controls_Percent_Reclassified_Up = nri_result$p_up_controls * 100,
+              Controls_Percent_Reclassified_Down = nri_result$p_down_controls * 100,
               stringsAsFactors = FALSE
             ))
             
@@ -2453,7 +2463,7 @@ ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = NULL,
+                    covariates = "GenomicsPLC_PRS",
                     plot_roc = TRUE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
@@ -2511,7 +2521,7 @@ print(RR_table$wide_formatted)
 
 bulk <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   version = "Asymptomatic Screening"
 )
 
@@ -2568,7 +2578,7 @@ subset <- formatted %>%
 
 nri_bulk <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   version = "Asymptomatic Screening"
 )
 
@@ -4091,7 +4101,7 @@ print(RR_table$wide_formatted)
 
 bulk2 <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   version = "Symptomatic Triage"
 )
 
@@ -4148,7 +4158,7 @@ subset2 <- formatted2 %>%
 
 nri_bulk2 <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   version = "Symptomatic Triage"
 )
 
@@ -5529,6 +5539,25 @@ pretty_print_table(table34)
 
 Conclusion: Although Wang (2023) had 19,391 cases and 61,608 controls of African Ancestry men for their GWAS (compared to Conti’s 10,368 cases and 10,986 controls), the UK Biobank is statistically underpowered to detect any significant difference
 
+## Conti (2021) vs Genomics PLC PRS (2024): Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
+
+```{r, echo=FALSE}
+
+table35 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "GenomicsPLC_PRS",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+pretty_print_table(table35)
+
+```
+
+Conclusion:
+
 ## Is Age doing the heavy lifting in these models?
 
 If even the Schumacher (2018) GRS produces statistically similar ROC AUCs compared to Conti (2021) in Black and Mixed men, how do we know that the GRS is actually improving the models?
@@ -5537,7 +5566,7 @@ Now, let’s go back and test Age alone as a predictor:
 
 ```{r, echo=FALSE}
 
-table35 <- formatted %>%                        
+table36 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | Predictor == "Age" & (Covariates == "None"),
@@ -5545,13 +5574,33 @@ table35 <- formatted %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-pretty_print_table(table35)
+pretty_print_table(table36)
 
 ```
 
 Conclusion: The GRS significantly improves prediction in White men, but we are statistically underpowered to determine whether it’s actually an improvement on stratifying by age in Black and Mixed men.
 
-This slide only shows that Age is significantly better an “Any prostate cancer” risk predictor for Black men than White men on a 10-year prediction horizon, but this trend is also true of: - Any prostate cancer, any time after the assessment centre - Any prostate cancer on a 2-year prediction horizon - Any prostate cancer on a 5-year prediction horizon - Actionable prostate cancer, on a 2-year prediction horizon - Severe prostate cancer, on a 10-year prediction horizon
+This only shows that Age is significantly better an “Any prostate cancer” risk predictor for Black men than White men on a 10-year prediction horizon, but this trend is also true of:
+
+```{r, echo=FALSE}
+
+table37 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "Age" & (Covariates == "None"),
+  #  Outcome == "PrCa_10yrs",
+  ) %>%
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+pretty_print_table(table37)
+
+```
+
+ - Any prostate cancer, any time after the assessment centre 
+ - Any prostate cancer on a 2-year prediction horizon 
+ - Any prostate cancer on a 5-year prediction horizon 
+ - Actionable prostate cancer, on a 2-year prediction horizon 
+ - Severe prostate cancer, on a 10-year prediction horizon
 
 There is no significant difference between white and black men with the following endpoints:
 
@@ -5680,7 +5729,7 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                      predictor = "Age",
                      covariates = NULL,
                      plot_roc = TRUE,
-                    show_output = FALSE)
+                     show_output = FALSE)
 
 
 ## Step 2: Set variables and labels
@@ -5756,13 +5805,43 @@ print(IRMplot6)
 
 ## Other prediction horizons/prostate cancer severity levels?
 
-If you run logistic regressions with Age as a fixed predictor of all endpoints (any prostate cancer, actionable, severe, etc.), for all prediction horizons, and for all populations, with and without a GRS: No GRS significantly improves prediction for Black men
+If you run logistic regressions with Age as a fixed predictor of all endpoints (any prostate cancer, actionable, severe, etc.), for all prediction horizons, with and without a GRS:
+
+```{r, echo=FALSE}
+
+table38 <- formatted %>%                        
+  dplyr::filter(                          
+    Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | (Predictor == "WangAfricanGRS444" & Covariates == "Age") | (Predictor == "SchumacherGRS145" & Covariates == "Age") | (Predictor == "BARCODE1GRS129" & Covariates == "Age") | (Predictor == "SeibertGRS52" & Covariates == "Age")  | (Predictor == "PagadalaGRS285" & Covariates == "Age"),
+    #Outcome == "PrCa_10yrs",
+  ) %>%
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
+
+pretty_print_table(table38)
+
+```
+
+- No GRS significantly improves prediction for Black men
 
 ## Does this mean the GRSs are useless for Black men?
 
 Not quite.
 
-Similarly, if you calculate the Net Reclassification Improvement (NRI) for every combination of Population-GRS-Covariate-Endpoint compared to the equivalent models with Age alone:
+Similarly, if you calculate the Net Reclassification Improvement (NRI) for every combination of GRS-Covariate-Endpoint compared to the equivalent models with Age alone:
+
+```{r, echo=FALSE}
+
+table39 <- nri_bulk %>%                        
+  dplyr::filter(                          
+    Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | (Predictor == "WangAfricanGRS444" & Covariates == "Age") | (Predictor == "SchumacherGRS145" & Covariates == "Age") | (Predictor == "BARCODE1GRS129" & Covariates == "Age") | (Predictor == "SeibertGRS52" & Covariates == "Age")  | (Predictor == "PagadalaGRS285" & Covariates == "Age"),
+    #Outcome == "PrCa_10yrs",
+  ) %>%
+  dplyr::select(c("Outcome", "Population", "Predictor", "NRI", "NRI_CI_Lower", "NRI_CI_Upper", "p_NRI", "N_Cases", "N_Controls", "NRI_significant"))
+
+pretty_print_table(table39)
+
+```
 
 -   Black men see a significantly (p \< 0.05) positive NRI with many GRS-endpoint combinations, with Conti, Wang, and Schumacher’s BARCODE1 GRSs providing the greatest improvement (though this varies across endpoints)
 
@@ -5808,7 +5887,6 @@ Anyone with any of the following ICD10 codes in their HES records or in the canc
 
 -   C61: Malignant neoplasm of prostate
 -   Z85.4: Personal History of malignant neoplasm of genital organs
--   R97.2: Elevated prostate specific antigen [PSA]
 -   D07.5: Carcinoma in situ of prostate
 -   D40.0: Neoplasm of uncertain behavior of prostate
 -   N42.3: Dysplasia of prostate
@@ -5827,8 +5905,6 @@ Anyone with any of the following codes in their OPCS records:
 -   Y35: Introduction Material Radioactive Removable NOC
 -   Y36: Introduction Material Non-removable NOC
 -   T85.6: Block dissection of pelvic lymph nodes
--   M70.2: Perineal needle biopsy of prostate
--   M70.3: Rectal needle biopsy of prostate
 -   N04: Orchidectomy
 -   M65: Endoscopic resection of prostate
 -   M68: Endoscopic insertion of prosthesis into prostate
@@ -5867,7 +5943,7 @@ Note: Genetic similarity is the preferred term for what is called “Genomic Anc
 library(dplyr)
 library(pROC)
 
-table36 <- formatted2 %>%                        
+table40 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
@@ -5875,7 +5951,7 @@ table36 <- formatted2 %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-pretty_print_table(table36)
+pretty_print_table(table40)
 
 ```
 
@@ -5886,7 +5962,7 @@ pretty_print_table(table36)
 library(dplyr)
 library(pROC)
 
-table37 <- formatted2 %>%                        
+table41 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
@@ -5894,7 +5970,7 @@ table37 <- formatted2 %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-pretty_print_table(table37)
+pretty_print_table(table41)
 
 ```
 
@@ -5905,7 +5981,7 @@ pretty_print_table(table37)
 library(dplyr)
 library(pROC)
 
-table38 <- formatted2 %>%                        
+table42 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
@@ -5913,7 +5989,7 @@ table38 <- formatted2 %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-pretty_print_table(table38)
+pretty_print_table(table42)
 
 ```
 
@@ -5924,7 +6000,7 @@ pretty_print_table(table38)
 library(dplyr)
 library(pROC)
 
-table39 <- formatted2 %>%                        
+table43 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
@@ -5932,7 +6008,7 @@ table39 <- formatted2 %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
-pretty_print_table(table39)
+pretty_print_table(table43)
 
 ```
 
