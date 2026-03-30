@@ -1062,12 +1062,21 @@ exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostat
 
 exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
                                  'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
-                                 'R972',     # R97.2: Elevated prostate specific antigen [PSA]
+                                 #'R972',     # R97.2: Elevated prostate specific antigen [PSA]
                                  'D075',     # D07.5: Carcinoma in situ of prostate
                                  'D400',     # D40.0: Neoplasm of uncertain behavior of prostate
                                  'N423')     # N42.3: Dysplasia of prostate
 )%>%
   dplyr::select("eid", "diag_icd10")
+
+exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
+                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
+                                           #'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+                                           'D075',    # D07.5: Carcinoma in situ of prostate
+                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
+)%>%
+  dplyr::select("eid", "ICD10")
 
 exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                'M611',      # M61.1: Radical prostatectomy
@@ -1081,8 +1090,8 @@ exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                'Y35',       # Y35: Introduction Material Radioactive Removable NOC
                                'Y36',       # Y36: Introduction Material Non-removable NOC
                                'T856',      # T85.6: Block dissection of pelvic lymph nodes
-                               'M702',      # M70.2: Perineal needle biopsy of prostate
-                               'M703',      # M70.3: Rectal needle biopsy of prostate
+                               #'M702',      # M70.2: Perineal needle biopsy of prostate
+                               #'M703',      # M70.3: Rectal needle biopsy of prostate
                                'N04',       # N04: Orchidectomy
                                'M65',       # M65: Endoscopic resection of prostate
                                'M68',       # M68: Endoscopic insertion of prosthesis into prostate
@@ -1091,15 +1100,6 @@ exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                'M712')      # M71.2: Implantation of radioactive substance into prostate
 ) %>%
   dplyr::select("eid", "oper4")
-
-exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
-                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
-                                           'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
-                                           'D075',    # D07.5: Carcinoma in situ of prostate
-                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
-                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
-)%>%
-  dplyr::select("eid", "ICD10")
 
 possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
 possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
