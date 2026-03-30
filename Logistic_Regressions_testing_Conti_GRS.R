@@ -460,7 +460,7 @@ iv <- iv %>%
 
 covariates <- read_csv("Age_Sex_PRS_GA.csv")
 covariates <- covariates %>% 
-  rename('Age' = 'p21022', 'Sex' = 'p31', 'GenomicsPLC_PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genomic_ancestry' = 'p30079')
+  rename('Age' = 'p21022', 'Sex' = 'p31', 'GenomicsPLC_PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genetic_similarity' = 'p30079')
 
 
 ethnicity <- read_csv("ethnicity.csv")
@@ -581,7 +581,7 @@ AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%
 
 GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability1 or AncestryProbability 2 depending on preference
 GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
-  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
+  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genetic_similarity"))
 
 GRS_plus_ancestry <- GRS_plus_ancestry %>%
   dplyr::mutate(
@@ -998,33 +998,33 @@ PCa_iv_covariates_GRS_predhorizon_BlackMixed <- PCa_iv_covariates_GRS_predhorizo
 # Prediction horizons for European participants
 
 PCa_iv_covariates_GRS_predhorizon_EUROnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "European ancestry (EUR)")
+  dplyr::filter(Genetic_similarity == "European ancestry (EUR)")
 
 # Prediction horizons for African participants
 
 PCa_iv_covariates_GRS_predhorizon_AFROnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "African ancestry (AFR)")
+  dplyr::filter(Genetic_similarity == "African ancestry (AFR)")
 
 # Prediction horizons for East Asian participants
 
 PCa_iv_covariates_GRS_predhorizon_EASOnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "East Asian ancestry (EAS)")
+  dplyr::filter(Genetic_similarity == "East Asian ancestry (EAS)")
 
 # Prediction horizons for Central/South Asian participants
 
 PCa_iv_covariates_GRS_predhorizon_CSAOnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "Central/South Asian ancestry (CSA)")
+  dplyr::filter(Genetic_similarity == "Central/South Asian ancestry (CSA)")
 #dplyr::filter(ethnicity_group_narrow == "South Asian")
 
 # Prediction horizons for Middle Eastern participants
 
 PCa_iv_covariates_GRS_predhorizon_MIDOnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "Middle Eastern ancestry (MID)")
+  dplyr::filter(Genetic_similarity == "Middle Eastern ancestry (MID)")
 
 # Prediction horizons for Admixed American participants
 
 PCa_iv_covariates_GRS_predhorizon_AMROnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "Admixed American ancestry (AMR)")
+  dplyr::filter(Genetic_similarity == "Admixed American ancestry (AMR)")
 
 
 

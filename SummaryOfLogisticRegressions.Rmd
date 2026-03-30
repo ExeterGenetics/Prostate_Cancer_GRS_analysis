@@ -1785,7 +1785,7 @@ iv <- iv %>%
 
 covariates <- read_csv("Age_Sex_PRS_GA.csv")
 covariates <- covariates %>% 
-  rename('Age' = 'p21022', 'Sex' = 'p31', 'GenomicsPLC_PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genomic_ancestry' = 'p30079')
+  rename('Age' = 'p21022', 'Sex' = 'p31', 'GenomicsPLC_PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genetic_similarity' = 'p30079')
 
 
 ethnicity <- read_csv("ethnicity.csv")
@@ -1906,7 +1906,7 @@ AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%
 
 GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability1 or AncestryProbability 2 depending on preference
 GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
-  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
+  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genetic_similarity"))
 
 GRS_plus_ancestry <- GRS_plus_ancestry %>%
   dplyr::mutate(
@@ -2323,33 +2323,33 @@ PCa_iv_covariates_GRS_predhorizon_BlackMixed <- PCa_iv_covariates_GRS_predhorizo
 # Prediction horizons for European participants
 
 PCa_iv_covariates_GRS_predhorizon_EUROnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "European ancestry (EUR)")
+  dplyr::filter(Genetic_similarity == "European ancestry (EUR)")
 
 # Prediction horizons for African participants
 
 PCa_iv_covariates_GRS_predhorizon_AFROnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "African ancestry (AFR)")
+  dplyr::filter(Genetic_similarity == "African ancestry (AFR)")
 
 # Prediction horizons for East Asian participants
 
 PCa_iv_covariates_GRS_predhorizon_EASOnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "East Asian ancestry (EAS)")
+  dplyr::filter(Genetic_similarity == "East Asian ancestry (EAS)")
 
 # Prediction horizons for Central/South Asian participants
 
 PCa_iv_covariates_GRS_predhorizon_CSAOnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "Central/South Asian ancestry (CSA)")
+  dplyr::filter(Genetic_similarity == "Central/South Asian ancestry (CSA)")
 #dplyr::filter(ethnicity_group_narrow == "South Asian")
 
 # Prediction horizons for Middle Eastern participants
 
 PCa_iv_covariates_GRS_predhorizon_MIDOnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "Middle Eastern ancestry (MID)")
+  dplyr::filter(Genetic_similarity == "Middle Eastern ancestry (MID)")
 
 # Prediction horizons for Admixed American participants
 
 PCa_iv_covariates_GRS_predhorizon_AMROnly <- PCa_iv_covariates_GRS_predhorizon %>%
-  dplyr::filter(Genomic_ancestry == "Admixed American ancestry (AMR)")
+  dplyr::filter(Genetic_similarity == "Admixed American ancestry (AMR)")
 
 
 
@@ -3366,7 +3366,7 @@ iv <- iv %>%
 
 covariates <- read_csv("Age_Sex_PRS_GA.csv")
 covariates <- covariates %>% 
-  rename('Age_at_assess_centre' = 'p21022', 'Sex' = 'p31', 'GenomicsPLC_PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genomic_ancestry' = 'p30079')
+  rename('Age_at_assess_centre' = 'p21022', 'Sex' = 'p31', 'GenomicsPLC_PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genetic_similarity' = 'p30079')
 
 
 ethnicity <- read_csv("ethnicity.csv")
@@ -3488,7 +3488,7 @@ AncestryProbability2 <- read.csv("AncestryProbability2.csv") %>%
 
 GRS_plus_ancestry <- merge(All_Conti_GRS, AncestryProbability2, all=T, by="eid") # Change y to either AncestryProbability1 or AncestryProbability 2 depending on preference
 GRS_plus_ancestry <- merge(GRS_plus_ancestry, covariates, by = "eid", all.x=T) %>%
-  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genomic_ancestry"))
+  dplyr::select(c("eid", "ContimultiethnicGRS", "top10_all_ContimultiethnicGRS", "ContiEuropeanGRS", "top10_all_ContiEuropeanGRS", "ContiAfricanGRS", "top10_all_ContiAfricanGRS", "ContiEast_AsianGRS", "top10_all_ContiEast_AsianGRS", "ContiHispanicGRS", "top10_all_ContiHispanicGRS", "ContimultiethnicGRS267", "top10_all_ContimultiethnicGRS267", "ContiEuropeanGRS265", "top10_all_ContiEuropeanGRS265", "ContiAfricanGRS246", "top10_all_ContiAfricanGRS246", "ContiEast_AsianGRS222", "top10_all_ContiEast_AsianGRS222", "ContiHispanicGRS253", "top10_all_ContiHispanicGRS253", "AMR", "AFR", "CSA", "EAS", "EUR", "MID", "Genetic_similarity"))
 
 GRS_plus_ancestry <- GRS_plus_ancestry %>%
   dplyr::mutate(
@@ -3903,33 +3903,33 @@ PCa_iv_covariates_GRS_predhorizon_BlackMixed2 <- PCa_iv_covariates_GRS_predhoriz
 # Prediction horizons for European participants
 
 PCa_iv_covariates_GRS_predhorizon_EUROnly2 <- PCa_iv_covariates_GRS_predhorizon2 %>%
-  dplyr::filter(Genomic_ancestry == "European ancestry (EUR)")
+  dplyr::filter(Genetic_similarity == "European ancestry (EUR)")
 
 # Prediction horizons for African participants
 
 PCa_iv_covariates_GRS_predhorizon_AFROnly2 <- PCa_iv_covariates_GRS_predhorizon2 %>%
-  dplyr::filter(Genomic_ancestry == "African ancestry (AFR)")
+  dplyr::filter(Genetic_similarity == "African ancestry (AFR)")
 
 # Prediction horizons for East Asian participants
 
 PCa_iv_covariates_GRS_predhorizon_EASOnly2 <- PCa_iv_covariates_GRS_predhorizon2 %>%
-  dplyr::filter(Genomic_ancestry == "East Asian ancestry (EAS)")
+  dplyr::filter(Genetic_similarity == "East Asian ancestry (EAS)")
 
 # Prediction horizons for Central/South Asian participants
 
 PCa_iv_covariates_GRS_predhorizon_CSAOnly2 <- PCa_iv_covariates_GRS_predhorizon2 %>%
-  dplyr::filter(Genomic_ancestry == "Central/South Asian ancestry (CSA)")
+  dplyr::filter(Genetic_similarity == "Central/South Asian ancestry (CSA)")
 #dplyr::filter(ethnicity_group_narrow == "South Asian")
 
 # Prediction horizons for Middle Eastern participants
 
 PCa_iv_covariates_GRS_predhorizon_MIDOnly2 <- PCa_iv_covariates_GRS_predhorizon2 %>%
-  dplyr::filter(Genomic_ancestry == "Middle Eastern ancestry (MID)")
+  dplyr::filter(Genetic_similarity == "Middle Eastern ancestry (MID)")
 
 # Prediction horizons for Admixed American participants
 
 PCa_iv_covariates_GRS_predhorizon_AMROnly2 <- PCa_iv_covariates_GRS_predhorizon2 %>%
-  dplyr::filter(Genomic_ancestry == "Admixed American ancestry (AMR)")
+  dplyr::filter(Genetic_similarity == "Admixed American ancestry (AMR)")
 
 
 
@@ -4357,7 +4357,16 @@ HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_meta
 
 HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
   dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s", "Genomic_ancestry" = "hgdp_tgp_meta.Genetic.region")
+  dplyr::rename("IID" = "s") %>%
+  dplyr::mutate("Genetic_similarity" = case_when(
+    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
+    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
+    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
+    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
+    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
+    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
+    TRUE ~ NA_character_
+  ))
 
 HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
 HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
@@ -4374,14 +4383,14 @@ test_population <- HGDP_1KG_PCs_og_w_labels              # Publicly available PC
 #test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
 #test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
 
-HGDP_1KG_PC_plot <- ggplot(test_population, aes(x = PC1, y = PC2, color = Genomic_ancestry)) +
+HGDP_1KG_PC_plot <- ggplot(test_population, aes(x = PC1, y = PC2, color = Genetic_similarity)) +
   geom_point(size = 0.5) +
   theme_minimal() +
   # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
   labs(
     x = "Principal Component 1",
     y = "Principal Component 2",
-    color = "Genomic ancestry"
+    color = "Genetic Similarity"
   )
 
 print(HGDP_1KG_PC_plot)
@@ -4409,7 +4418,16 @@ HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_meta
 
 HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
   dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s", "Genomic_ancestry" = "hgdp_tgp_meta.Genetic.region")
+  dplyr::rename("IID" = "s") %>%
+  dplyr::mutate("Genetic_similarity" = case_when(
+    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
+    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
+    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
+    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
+    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
+    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
+    TRUE ~ NA_character_
+  ))
 
 HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
 HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
@@ -4426,14 +4444,14 @@ HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylab
 #test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
 test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
 
-UKB_PC_plot1 <- ggplot(test_population %>% dplyr::filter(!is.na(Genomic_ancestry)), aes(x = PC1, y = PC2, color = Genomic_ancestry)) +
+UKB_PC_plot1 <- ggplot(test_population %>% dplyr::filter(!is.na(Genetic_similarity)), aes(x = PC1, y = PC2, color = Genetic_similarity)) +
   geom_point(size = 0.5) +
   theme_minimal() +
   # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
   labs(
     x = "Principal Component 1",
     y = "Principal Component 2",
-    color = "Genomic ancestry"
+    color = "Genetic Similarity"
   )
 
 print(UKB_PC_plot1)
@@ -4459,7 +4477,16 @@ HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_meta
 
 HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
   dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s", "Genomic_ancestry" = "hgdp_tgp_meta.Genetic.region")
+  dplyr::rename("IID" = "s") %>%
+  dplyr::mutate("Genetic_similarity" = case_when(
+    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
+    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
+    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
+    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
+    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
+    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
+    TRUE ~ NA_character_
+  ))
 
 HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
 HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
@@ -4476,14 +4503,14 @@ HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylab
 #test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
 test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
 
-UKB_PC_plot1 <- ggplot(test_population, aes(x = PC1, y = PC2, color = Genomic_ancestry)) +
+UKB_PC_plot1 <- ggplot(test_population, aes(x = PC1, y = PC2, color = Genetic_similarity)) +
   geom_point(size = 0.5) +
   theme_minimal() +
   # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
   labs(
     x = "Principal Component 1",
     y = "Principal Component 2",
-    color = "Genomic ancestry"
+    color = "Genetic Similarity"
   )
 
 print(UKB_PC_plot1)
@@ -4511,7 +4538,16 @@ HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_meta
 
 HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
   dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s", "Genomic_ancestry" = "hgdp_tgp_meta.Genetic.region")
+  dplyr::rename("IID" = "s") %>%
+  dplyr::mutate("Genetic_similarity" = case_when(
+    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
+    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
+    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
+    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
+    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
+    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
+    TRUE ~ NA_character_
+  ))
 
 HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
 HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")

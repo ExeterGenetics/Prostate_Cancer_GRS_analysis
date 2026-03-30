@@ -17,7 +17,16 @@ HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_meta
 
 HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
   dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s", "Genomic_ancestry" = "hgdp_tgp_meta.Genetic.region")
+  dplyr::rename("IID" = "s") %>%
+  dplyr::mutate("Genetic_similarity" = case_when(
+    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
+    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
+    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
+    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
+    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
+    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
+    TRUE ~ NA_character_
+  ))
 
 HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
 HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
@@ -34,13 +43,13 @@ HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylab
 #test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
 test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
 
-ggplot(test_population, aes(x = PC1, y = PC2, color = Genomic_ancestry)) +
+ggplot(test_population, aes(x = PC1, y = PC2, color = Genetic_similarity)) +
   geom_point(size = 0.5) +
   theme_minimal() +
   # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
   labs(
     x = "Principal Component 1",
     y = "Principal Component 2",
-    color = "Genomic ancestry"
+    color = "Genetic Similarity"
   )
 
