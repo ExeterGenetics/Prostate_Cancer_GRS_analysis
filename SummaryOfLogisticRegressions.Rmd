@@ -4717,7 +4717,7 @@ df_bar <- dataframe %>%
 
 
 
-# 2) Plot 
+# 2) Plot & Calculate Risk Ratio
 IRMplot1 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
                    y = pct)) +
   geom_col(width = 0.6, fill = ex_bright_green) +
@@ -4733,11 +4733,16 @@ IRMplot1 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
   ex_green_theme +
   theme_minimal()
 
+# Extract risk ratio from df_bar
+irm_plot1_rate_top <- df_bar$pct[df_bar$top == TRUE]
+irm_plot1_rate_bottom <- df_bar$pct[df_bar$top == FALSE]
+irm_plot1_rr <- irm_plot1_rate_top / irm_plot1_rate_bottom
+
 print(IRMplot1)
 
 ```
 
-Ratio = (lift ratio from plot output)
+Ratio = `r round(irm_plot1_rr, 2)`
 
 ```{r, echo=FALSE}
 
@@ -4801,7 +4806,7 @@ df_bar <- dataframe %>%
 
 
 
-# 2) Plot 
+# 2) Plot & Calculate Risk Ratio
 IRMplot2 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
                    y = pct)) +
   geom_col(width = 0.6, fill = ex_bright_green) +
@@ -4817,11 +4822,15 @@ IRMplot2 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
   ex_green_theme +
   theme_minimal()
 
+irm_plot2_rate_top <- df_bar$pct[df_bar$top == TRUE]
+irm_plot2_rate_bottom <- df_bar$pct[df_bar$top == FALSE]
+irm_plot2_rr <- irm_plot2_rate_top / irm_plot2_rate_bottom
+
 print(IRMplot2)
 
 ```
 
-Ratio = (lift ratio from plot output)
+Ratio = `r round(irm_plot2_rr, 2)`
 
 ## Top 20% of Integrated Risk Model “pred” score vs. bottom 80%
 
@@ -4887,7 +4896,7 @@ df_bar <- dataframe %>%
 
 
 
-# 2) Plot 
+# 2) Plot & Calculate Risk Ratio
 IRMplot3 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
                    y = pct)) +
   geom_col(width = 0.6, fill = ex_bright_green) +
@@ -4903,11 +4912,15 @@ IRMplot3 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
   ex_green_theme +
   theme_minimal()
 
+irm_plot3_rate_top <- df_bar$pct[df_bar$top == TRUE]
+irm_plot3_rate_bottom <- df_bar$pct[df_bar$top == FALSE]
+irm_plot3_rr <- irm_plot3_rate_top / irm_plot3_rate_bottom
+
 print(IRMplot3)
 
 ```
 
-Ratio = (lift ratio from plot output)
+Ratio = `r round(irm_plot3_rr, 2)`
 
 ```{r, echo=FALSE}
 
@@ -4970,7 +4983,7 @@ df_bar <- dataframe %>%
 
 
 
-# 2) Plot 
+# 2) Plot & Calculate Risk Ratio
 IRMplot4 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
                    y = pct)) +
   geom_col(width = 0.6, fill = ex_bright_green) +
@@ -4986,11 +4999,15 @@ IRMplot4 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
   ex_green_theme +
   theme_minimal()
 
+irm_plot4_rate_top <- df_bar$pct[df_bar$top == TRUE]
+irm_plot4_rate_bottom <- df_bar$pct[df_bar$top == FALSE]
+irm_plot4_rr <- irm_plot4_rate_top / irm_plot4_rate_bottom
+
 print(IRMplot4)
 
 ```
 
-Ratio = (lift ratio from plot output)
+Ratio = `r round(irm_plot4_rr, 2)`
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
@@ -5592,7 +5609,7 @@ pretty_print_table(table35)
 
 ```
 
-Conclusion:
+Conclusion: No significant difference in performance. These results suggest that the Genomics PLC PRS could be just as effective as Conti's multiethnic GRS
 
 ## Is Age doing the heavy lifting in these models?
 
@@ -5605,7 +5622,7 @@ Now, let’s go back and test Age alone as a predictor:
 table36 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | Predictor == "Age" & (Covariates == "None"),
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa_10yrs",
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
@@ -5622,7 +5639,7 @@ This only shows that Age is significantly better an “Any prostate cancer” ri
 
 table37 <- formatted %>%                        
   dplyr::filter(                          
-    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Population == "White" | Population == "Black",
     Predictor == "Age" & (Covariates == "None"),
   #  Outcome == "PrCa_10yrs",
   ) %>%
@@ -5659,7 +5676,7 @@ print(IRMplot2)
 
 ```
 
-Ratio = (add to text here directly from ggplot output)
+Ratio = `r round(irm_plot2_rr, 2)`
 
 ### Age alone
 
@@ -5724,7 +5741,7 @@ df_bar <- dataframe %>%
 
 
 
-# 2) Plot 
+# 2) Plot & Calculate Risk Ratio
 IRMplot5 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
                    y = pct)) +
   geom_col(width = 0.6, fill = ex_bright_green) +
@@ -5740,9 +5757,15 @@ IRMplot5 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
   ex_green_theme +
   theme_minimal()
 
+irm_plot5_rate_top <- df_bar$pct[df_bar$top == TRUE]
+irm_plot5_rate_bottom <- df_bar$pct[df_bar$top == FALSE]
+irm_plot5_rr <- irm_plot5_rate_top / irm_plot5_rate_bottom
+
 print(IRMplot5)
 
 ```
+
+Ratio = `r round(irm_plot5_rr, 2)`
 
 ## Risk Ratio plots to test GRS+Age vs Age alone - top 20% vs bottom 80%
 
@@ -5754,7 +5777,7 @@ print(IRMplot4)
 
 ```
 
-Ratio = (add to text here directly from ggplot output)
+Ratio = `r round(irm_plot4_rr, 2)`
 
 ### Age alone
 
@@ -5819,7 +5842,7 @@ df_bar <- dataframe %>%
 
 
 
-# 2) Plot 
+# 2) Plot & Calculate Risk Ratio
 IRMplot6 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
                    y = pct)) +
   geom_col(width = 0.6, fill = ex_bright_green) +
@@ -5835,9 +5858,15 @@ IRMplot6 <- ggplot(df_bar, aes(x = factor(top, levels = c(FALSE, TRUE)),
   ex_green_theme +
   theme_minimal()
 
+irm_plot6_rate_top <- df_bar$pct[df_bar$top == TRUE]
+irm_plot6_rate_bottom <- df_bar$pct[df_bar$top == FALSE]
+irm_plot6_rr <- irm_plot6_rate_top / irm_plot6_rate_bottom
+
 print(IRMplot6)
 
 ```
+
+Ratio = `r round(irm_plot6_rr, 2)`
 
 ## Other prediction horizons/prostate cancer severity levels?
 
@@ -5873,7 +5902,7 @@ table39 <- nri_bulk %>%
     Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285",
     #Outcome == "PrCa_10yrs",
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "NRI", "NRI_CI_Lower", "NRI_CI_Upper", "p_NRI", "N_Cases", "N_Controls", "NRI_significant"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "NRI", "NRI_CI_Lower", "NRI_CI_Upper", "p_NRI", "N_Cases", "N_Controls", "NRI_significant", "Cases_Percent_Reclassified_Up", "Cases_Percent_Reclassified_Down", "Controls_Percent_Reclassified_Up", "Controls_Percent_Reclassified_Down"))
 
 pretty_print_table(table39)
 
