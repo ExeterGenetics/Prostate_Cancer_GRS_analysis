@@ -5228,13 +5228,13 @@ Since it is a GRS built to predict diagnosis of prostate cancer (not to predict 
 
 ## Now testing: Seibert (2018) and Pagadala (2022)
 
-Seibert’s GRS was trained on “aggressive” prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following: 
+Seibert’s GRS was trained on “aggressive” prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following:
 
-- Gleason score ≥ 7 
-- Clinical stage T3–T4 
-- PSA ≥ 10 ng/mL 
-- Nodal metastasis 
-- Distant metastasis
+-   Gleason score ≥ 7
+-   Clinical stage T3–T4
+-   PSA ≥ 10 ng/mL
+-   Nodal metastasis
+-   Distant metastasis
 
 Pagadala’s GRS was trained on age at death from prostate cancer (“fatal PCa”) and age at diagnosis of metastatic PCa
 
@@ -5632,11 +5632,11 @@ pretty_print_table(table37)
 
 ```
 
- - Any prostate cancer, any time after the assessment centre 
- - Any prostate cancer on a 2-year prediction horizon 
- - Any prostate cancer on a 5-year prediction horizon 
- - Actionable prostate cancer, on a 2-year prediction horizon 
- - Severe prostate cancer, on a 10-year prediction horizon
+-   Any prostate cancer, any time after the assessment centre
+-   Any prostate cancer on a 2-year prediction horizon
+-   Any prostate cancer on a 5-year prediction horizon
+-   Actionable prostate cancer, on a 2-year prediction horizon
+-   Severe prostate cancer, on a 10-year prediction horizon
 
 There is no significant difference between white and black men with the following endpoints:
 
@@ -5857,7 +5857,7 @@ pretty_print_table(table38)
 
 ```
 
-- No GRS significantly improves prediction for Black men
+-   No GRS significantly improves prediction for Black men
 
 ## Does this mean the GRSs are useless for Black men?
 
@@ -5870,7 +5870,7 @@ Similarly, if you calculate the Net Reclassification Improvement (NRI) for every
 table39 <- nri_bulk %>%                        
   dplyr::filter(                          
     Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | (Predictor == "WangAfricanGRS444" & Covariates == "Age") | (Predictor == "SchumacherGRS145" & Covariates == "Age") | (Predictor == "BARCODE1GRS129" & Covariates == "Age") | (Predictor == "SeibertGRS52" & Covariates == "Age")  | (Predictor == "PagadalaGRS285" & Covariates == "Age"),
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285",
     #Outcome == "PrCa_10yrs",
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "NRI", "NRI_CI_Lower", "NRI_CI_Upper", "p_NRI", "N_Cases", "N_Controls", "NRI_significant"))
@@ -5887,7 +5887,7 @@ But another potential GRS application is in symptomatic triage pathways
 
 Which brings us on to…
 
-# Part 2: Symptomatic Triage #
+# Part 2: Symptomatic Triage
 
 Can the GRS predict which men presenting with symptoms to their GP will be diagnosed with prostate cancer in a given timeframe?
 
@@ -6048,12 +6048,12 @@ pretty_print_table(table43)
 
 ```
 
-# Conclusions from this part: #
+# Conclusions from this part:
 
-- Adding age at symptom presentation significantly improves predictive performance for White participants for a 2-, 5-, and 10-year prediction horizon
+-   Adding age at symptom presentation significantly improves predictive performance for White participants for a 2-, 5-, and 10-year prediction horizon
 
-- No evidence to suggest that age significantly improves performance for any other group
+-   No evidence to suggest that age significantly improves performance for any other group
 
-- Large confidence intervals suggest the UKB is statistically underpowered to accurately compare GRS performance for this purpose
+-   Large confidence intervals suggest the UKB is statistically underpowered to accurately compare GRS performance for this purpose
 
-- Partially explained by the fact that, of the 14,076 UKB participants who report LUTS, 13,370 (95%) are White
+-   Partially explained by the fact that, of the 14,076 UKB participants who report LUTS, 13,370 (95%) are White
