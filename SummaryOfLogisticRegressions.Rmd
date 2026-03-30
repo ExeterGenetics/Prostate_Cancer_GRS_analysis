@@ -4296,7 +4296,7 @@ table2 <- formatted %>%
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
     Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
-    Outcome == "PrCa_10yrs",
+    Outcome == "PrCa",
     Covariates == "Age"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
