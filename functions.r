@@ -881,7 +881,9 @@ nri_table <- function(
       "SeibertGRS",
       "PagadalaGRS",
       "SeibertGRS52",
-      "PagadalaGRS285"
+      "PagadalaGRS285",
+      # Genomics PLC GRS
+      "GenomicsPLC_PRS"
     )
   }
   
@@ -1122,7 +1124,9 @@ logreg_table <- function(
       "SeibertGRS",
       "PagadalaGRS",
       "SeibertGRS52",
-      "PagadalaGRS285"
+      "PagadalaGRS285",
+      # Genomics PLC GRS
+      "GenomicsPLC_PRS"
     )
   }
   
