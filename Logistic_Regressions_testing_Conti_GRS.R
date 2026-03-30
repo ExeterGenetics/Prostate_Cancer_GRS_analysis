@@ -1138,7 +1138,7 @@ ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = NULL,
+                    covariates = "GenomicsPLC_PRS",
                     plot_roc = TRUE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
@@ -1196,7 +1196,7 @@ print(RR_table$wide_formatted)
 
 bulk <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   version = "Asymptomatic Screening"
 )
 
@@ -1253,7 +1253,7 @@ subset <- formatted %>%
 
 nri_bulk <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285"),
+               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   version = "Asymptomatic Screening"
 )
 
