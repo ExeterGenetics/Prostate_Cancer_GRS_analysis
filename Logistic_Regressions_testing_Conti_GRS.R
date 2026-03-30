@@ -460,7 +460,7 @@ iv <- iv %>%
 
 covariates <- read_csv("Age_Sex_PRS_GA.csv")
 covariates <- covariates %>% 
-  rename('Age' = 'p21022', 'Sex' = 'p31', 'PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genomic_ancestry' = 'p30079')
+  rename('Age' = 'p21022', 'Sex' = 'p31', 'GenomicsPLC_PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genomic_ancestry' = 'p30079')
 
 
 ethnicity <- read_csv("ethnicity.csv")
@@ -1120,10 +1120,12 @@ ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=
 #   - SchumacherGRS145 (Schumacher's GRS with 145 available SNPs)
 #   - BARCODE1GRS129 (BARCODE1 GRS with 129 available SNPs)
 #
-#    - SeibertGRS (Seibert's GRS (2018))
-#    - PagadalaGRS (Pagadala's GRS (2022))
-#    - SeibertGRS52 (Seibert's GRS with 52 available SNPs)
-#    - PagadalaGRS285 (Pagadala's GRS with 285 available SNPs)
+#   - SeibertGRS (Seibert's GRS (2018))
+#   - PagadalaGRS (Pagadala's GRS (2022))
+#   - SeibertGRS52 (Seibert's GRS with 52 available SNPs)
+#   - PagadalaGRS285 (Pagadala's GRS with 285 available SNPs)
+#
+#   - GenomicsPLC_PRS (Genomics PLC GRS)
 #
 # Set "covariates" to either: (or add multiple using + between covariates)
 #   - (without quote marks) NULL
