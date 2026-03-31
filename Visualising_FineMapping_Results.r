@@ -74,8 +74,23 @@ snp_Wang_BlackOnlyGWAS_edited <- snp_Wang_BlackOnlyGWAS_edited %>%
   arrange(BP_num) %>%
   mutate(BP = factor(BP, levels = unique(BP)))  # lock in numeric order on the x-axis
 
+snp_Wang_BlackOnlyGWAS_peaks <- snp_Wang_BlackOnlyGWAS_edited %>%
+  mutate(
+    is_peak = MAX_PIP > dplyr::lag(MAX_PIP, default = -Inf) &
+      MAX_PIP > dplyr::lead(MAX_PIP, default = -Inf)
+  ) %>%
+  filter(is_peak, MAX_PIP > 0.1)
+
 ggplot(snp_Wang_BlackOnlyGWAS_edited, aes(x = BP, y = MAX_PIP)) +
-  geom_col(wBPth = 0.12, fill = "#04dca4") +
+  geom_col(width = 0.9, fill = "#04dca4") +
+  geom_text(
+    data = snp_Wang_BlackOnlyGWAS_peaks,
+    aes(y = MAX_PIP * 0.5, label = BP),
+    angle = 90,
+    size = 2.2,
+    vjust = 0.5,
+    check_overlap = TRUE
+  ) +
   labs(x = "SNP position on chromosome 8", y = "MAX PIP", title = "") +
   coord_cartesian(expand = FALSE) +
   theme_minimal(base_size = 12) +
@@ -86,7 +101,7 @@ ggplot(snp_Wang_BlackOnlyGWAS_edited, aes(x = BP, y = MAX_PIP)) +
   )
 
 
-## Add MAX PIP to snp_BlackOnlyGWAS
+## Add MAX PIP to snp_BlackOnlyGWAS (Conti)
 
 library(dplyr)
 
@@ -112,8 +127,23 @@ snp_BlackOnlyGWAS_edited <- snp_BlackOnlyGWAS_edited %>%
   arrange(BP_num) %>%
   mutate(BP = factor(BP, levels = unique(BP)))  # lock in numeric order on the x-axis
 
+snp_BlackOnlyGWAS_peaks <- snp_BlackOnlyGWAS_edited %>%
+  mutate(
+    is_peak = MAX_PIP > dplyr::lag(MAX_PIP, default = -Inf) &
+      MAX_PIP > dplyr::lead(MAX_PIP, default = -Inf)
+  ) %>%
+  filter(is_peak, MAX_PIP > 0.1)
+
 ggplot(snp_BlackOnlyGWAS_edited, aes(x = BP, y = MAX_PIP)) +
-  geom_col(wBPth = 0.12, fill = "#04dca4") +
+  geom_col(width = 0.9, fill = "#04dca4") +
+  geom_text(
+    data = snp_BlackOnlyGWAS_peaks,
+    aes(y = MAX_PIP * 0.5, label = BP),
+    angle = 90,
+    size = 2.2,
+    vjust = 0.5,
+    check_overlap = TRUE
+  ) +
   labs(x = "SNP position on chromosome 8", y = "MAX PIP", title = "") +
   coord_cartesian(expand = FALSE) +
   theme_minimal(base_size = 12) +
