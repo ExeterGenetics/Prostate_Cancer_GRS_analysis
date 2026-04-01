@@ -532,7 +532,7 @@ RRtable <- function(data,
       n_in  <- a + b
       n_out <- c + d
       
-      # Haldane–Anscombe if any zero cell
+      # Haldaneâ€“Anscombe if any zero cell
       zero_cell <- any(c(a, b, c, d) == 0L)
       a2 <- if (zero_cell) a + 0.5 else a
       b2 <- if (zero_cell) b + 0.5 else b
@@ -623,7 +623,7 @@ RRtable <- function(data,
     else
       " for Top X% vs Bottom X% (middle excluded). ",
     "95% CI via Katz log method; p-value via Fisher's exact test. ",
-    "Haldane–Anscombe +0.5 applied if any zero cell occurs.",
+    "Haldaneâ€“Anscombe +0.5 applied if any zero cell occurs.",
     if (within_group_bins)
       " Thresholds computed within each group."
     else
@@ -668,7 +668,7 @@ nri <- function(data,
   
   delta <- d[[pred_new]] - d[[pred_old]]
   
-  # ── Cases ──────────────────────────────────────────────────────────────────
+  # â”€â”€ Cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   n_cases         <- sum(is_case)
   n_up_cases      <- sum(delta[is_case]  > 0)
   n_down_cases    <- sum(delta[is_case]  < 0)
@@ -682,7 +682,7 @@ nri <- function(data,
   z_cases         <- NRI_cases / SE_NRI_cases
   p_cases         <- 2 * pnorm(-abs(z_cases))
   
-  # ── Controls ───────────────────────────────────────────────────────────────
+  # â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   n_controls      <- sum(!is_case)
   n_up_controls   <- sum(delta[!is_case] > 0)
   n_down_controls <- sum(delta[!is_case] < 0)
@@ -696,7 +696,7 @@ nri <- function(data,
   z_controls       <- NRI_controls / SE_NRI_controls
   p_controls       <- 2 * pnorm(-abs(z_controls))
   
-  # ── Overall NRI ────────────────────────────────────────────────────────────
+  # â”€â”€ Overall NRI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   NRI             <- NRI_cases + NRI_controls
   SE_NRI          <- sqrt(SE_NRI_cases^2 + SE_NRI_controls^2)
   CI_low_NRI      <- NRI - 1.96 * SE_NRI
@@ -704,7 +704,7 @@ nri <- function(data,
   z_NRI           <- NRI / SE_NRI
   p_NRI           <- 2 * pnorm(-abs(z_NRI))
   
-  # ── Formatting helpers ─────────────────────────────────────────────────────
+  # â”€â”€ Formatting helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   fmt  <- function(x) formatC(x, format = "f", digits = digits)
   fmtp <- function(x) formatC(x, format = "g", digits = 3)
   pct  <- function(x) paste0(formatC(x * 100, format = "f", digits = 1), "%")
@@ -712,7 +712,7 @@ nri <- function(data,
   ci_str <- function(est, lo, hi)
     paste0(fmt(est), " [", fmt(lo), ", ", fmt(hi), "]")
   
-  # ── Results table ──────────────────────────────────────────────────────────
+  # â”€â”€ Results table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   results <- data.frame(
     Component = c(
       "Cases: % reclassified up",
@@ -780,13 +780,13 @@ nri <- function(data,
   ))
 }
 
-## Function to compute NRI for each GRS added to an Age-only reference model ─────────────────────
+## Function to compute NRI for each GRS added to an Age-only reference model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ## 
 ## How it works:
 ##   For each combination of (outcome, population):
-##     1. Fit an Age-only model (reference) → generates pred column
+##     1. Fit an Age-only model (reference) â†’ generates pred column
 ##     2. For each GRS in grs_list:
-##        - Fit Age + GRS model → generates pred2 column
+##        - Fit Age + GRS model â†’ generates pred2 column
 ##        - Calculate NRI(Age+GRS vs Age only)
 ##        - Store in results dataframe
 ##
@@ -920,7 +920,7 @@ nri_table <- function(
     for (pop_name in names(populations)) {
       pop_data <- populations[[pop_name]]
       
-      # ── Fit Age-only reference model ───────────────────────────────────────
+      # â”€â”€ Fit Age-only reference model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (verbose) {
         cat(sprintf("\n=== %s | %s ===\n", current_outcome, pop_name))
         cat("Fitting Age-only reference model...\n")
@@ -944,7 +944,7 @@ nri_table <- function(
         
         reference_data <- age_model$data  # Has pred column (Age-only predictions)
         
-        # ── For each GRS, fit Age+GRS model and calculate NRI ─────────────────
+        # â”€â”€ For each GRS, fit Age+GRS model and calculate NRI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         for (grs_pred in grs_list) {
           combo_count <- combo_count + 1
           
@@ -1028,7 +1028,7 @@ nri_table <- function(
   return(results)
 }
 
-## Function to compute logistic regression for all outcome × GRS × population × covariate combinations ───
+## Function to compute logistic regression for all outcome Ã— GRS Ã— population Ã— covariate combinations â”€â”€â”€
 ## 
 ## Version 1 - for Logistic_Regressions_testing_Conti_GRS.R
 ##
@@ -1044,6 +1044,7 @@ nri_table <- function(
 ##   - Outcome, Population, Predictor, Covariates
 ##   - N_Cases, N_Controls
 ##   - ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper
+##   - OR_per_1SD, OR_per_1SD_CI_Lower, OR_per_1SD_CI_Upper, OR_per_1SD_p
 
 logreg_table <- function(
     populations = NULL,
@@ -1153,6 +1154,10 @@ logreg_table <- function(
     ROC_AUC = numeric(),
     ROC_AUC_CI_Lower = numeric(),
     ROC_AUC_CI_Upper = numeric(),
+    OR_per_1SD = numeric(),
+    OR_per_1SD_CI_Lower = numeric(),
+    OR_per_1SD_CI_Upper = numeric(),
+    OR_per_1SD_p = numeric(),
     stringsAsFactors = FALSE
   )
   
@@ -1207,6 +1212,22 @@ logreg_table <- function(
             # Count cases and controls in the dataset used
             n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
             n_controls <- sum(model$data[[current_outcome]] == 0, na.rm = TRUE)
+
+            # OR per 1 SD increase in predictor (predictors are z-transformed upstream)
+            coef_tbl <- summary(model$model)$coefficients
+            if (grs_pred %in% rownames(coef_tbl)) {
+              beta <- coef_tbl[grs_pred, "Estimate"]
+              se <- coef_tbl[grs_pred, "Std. Error"]
+              p_val <- coef_tbl[grs_pred, "Pr(>|z|)"]
+              or_val <- exp(beta)
+              or_ci_lower <- exp(beta - 1.96 * se)
+              or_ci_upper <- exp(beta + 1.96 * se)
+            } else {
+              or_val <- NA_real_
+              or_ci_lower <- NA_real_
+              or_ci_upper <- NA_real_
+              p_val <- NA_real_
+            }
             
             # Covariate label
             cov_label <- ifelse(is.null(cov), "None", cov)
@@ -1222,6 +1243,10 @@ logreg_table <- function(
               ROC_AUC = auc_val,
               ROC_AUC_CI_Lower = auc_lower,
               ROC_AUC_CI_Upper = auc_upper,
+              OR_per_1SD = or_val,
+              OR_per_1SD_CI_Lower = or_ci_lower,
+              OR_per_1SD_CI_Upper = or_ci_upper,
+              OR_per_1SD_p = p_val,
               stringsAsFactors = FALSE
             ))
             
@@ -1271,6 +1296,10 @@ logreg_table <- function(
               ROC_AUC = auc_val,
               ROC_AUC_CI_Lower = auc_lower,
               ROC_AUC_CI_Upper = auc_upper,
+              OR_per_1SD = NA_real_,
+              OR_per_1SD_CI_Lower = NA_real_,
+              OR_per_1SD_CI_Upper = NA_real_,
+              OR_per_1SD_p = NA_real_,
               stringsAsFactors = FALSE
             ))
             
