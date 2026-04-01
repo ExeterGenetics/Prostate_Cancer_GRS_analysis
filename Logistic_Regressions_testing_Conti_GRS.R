@@ -864,6 +864,24 @@ exclude_withdrawn=function(df){
 
 PCa_iv_covariates_GRS_clean <- exclude_withdrawn(PCa_iv_covariates_GRS_clean)
 
+# Scale to SD units (z-transform)
+
+grs_prs_cols <- names(PCa_iv_covariates_GRS_clean)[
+  grepl("(GRS|PRS)[0-9]*$", names(PCa_iv_covariates_GRS_clean)) &
+    !grepl("^top10_all_", names(PCa_iv_covariates_GRS_clean))
+]
+
+grs_prs_cols <- grs_prs_cols[sapply(PCa_iv_covariates_GRS_clean[grs_prs_cols], is.numeric)]
+
+PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
+  dplyr::mutate(
+    dplyr::across(
+      dplyr::all_of(grs_prs_cols),
+      ~ as.numeric(scale(.x))
+    )
+  )
+
+
 
 
 
@@ -1224,6 +1242,11 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       NA_character_,
       sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
     ),
+    OR_per_1SD_CI_95 = dplyr::if_else(
+      is.na(OR_per_1SD) | is.na(OR_per_1SD_CI_Lower) | is.na(OR_per_1SD_CI_Upper),
+      NA_character_,
+      sprintf("%.4f [%.4f-%.4f]", OR_per_1SD, OR_per_1SD_CI_Lower, OR_per_1SD_CI_Upper)
+    ),
     `GRS+Age > Age?` = dplyr::case_when(
       Covariates != "Age" | Predictor == "Age" ~ NA_character_,
       is.na(ROC_AUC_CI_Lower) | is.na(Age_only_ROC_AUC_CI_Upper) ~ NA_character_,
@@ -1231,7 +1254,7 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
     )
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
 
 ## This block is to view a subset of the bulk logistic regression table. Change
 ## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
@@ -1265,6 +1288,7 @@ nri_bulk <- nri_bulk %>%
       p_NRI >= 0.05 ~ "NO"
     )
   )
+
 
 ## This block is to view a subset of the bulk NRI table. Change the filter to investigate a specific Population, Predictor, or Outcome
 

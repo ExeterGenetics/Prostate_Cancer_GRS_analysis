@@ -1,4 +1,4 @@
----
+﻿---
 title: "document version"
 output: html_document
 date: "2026-03-28"
@@ -552,7 +552,7 @@ RRtable <- function(data,
       n_in  <- a + b
       n_out <- c + d
       
-      # Haldane–Anscombe if any zero cell
+      # Haldaneâ€“Anscombe if any zero cell
       zero_cell <- any(c(a, b, c, d) == 0L)
       a2 <- if (zero_cell) a + 0.5 else a
       b2 <- if (zero_cell) b + 0.5 else b
@@ -643,7 +643,7 @@ RRtable <- function(data,
     else
       " for Top X% vs Bottom X% (middle excluded). ",
     "95% CI via Katz log method; p-value via Fisher's exact test. ",
-    "Haldane–Anscombe +0.5 applied if any zero cell occurs.",
+    "Haldaneâ€“Anscombe +0.5 applied if any zero cell occurs.",
     if (within_group_bins)
       " Thresholds computed within each group."
     else
@@ -688,7 +688,7 @@ nri <- function(data,
   
   delta <- d[[pred_new]] - d[[pred_old]]
   
-  # ── Cases ──────────────────────────────────────────────────────────────────
+  # â”€â”€ Cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   n_cases         <- sum(is_case)
   n_up_cases      <- sum(delta[is_case]  > 0)
   n_down_cases    <- sum(delta[is_case]  < 0)
@@ -702,7 +702,7 @@ nri <- function(data,
   z_cases         <- NRI_cases / SE_NRI_cases
   p_cases         <- 2 * pnorm(-abs(z_cases))
   
-  # ── Controls ───────────────────────────────────────────────────────────────
+  # â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   n_controls      <- sum(!is_case)
   n_up_controls   <- sum(delta[!is_case] > 0)
   n_down_controls <- sum(delta[!is_case] < 0)
@@ -716,7 +716,7 @@ nri <- function(data,
   z_controls       <- NRI_controls / SE_NRI_controls
   p_controls       <- 2 * pnorm(-abs(z_controls))
   
-  # ── Overall NRI ────────────────────────────────────────────────────────────
+  # â”€â”€ Overall NRI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   NRI             <- NRI_cases + NRI_controls
   SE_NRI          <- sqrt(SE_NRI_cases^2 + SE_NRI_controls^2)
   CI_low_NRI      <- NRI - 1.96 * SE_NRI
@@ -724,7 +724,7 @@ nri <- function(data,
   z_NRI           <- NRI / SE_NRI
   p_NRI           <- 2 * pnorm(-abs(z_NRI))
   
-  # ── Formatting helpers ─────────────────────────────────────────────────────
+  # â”€â”€ Formatting helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   fmt  <- function(x) formatC(x, format = "f", digits = digits)
   fmtp <- function(x) formatC(x, format = "g", digits = 3)
   pct  <- function(x) paste0(formatC(x * 100, format = "f", digits = 1), "%")
@@ -732,7 +732,7 @@ nri <- function(data,
   ci_str <- function(est, lo, hi)
     paste0(fmt(est), " [", fmt(lo), ", ", fmt(hi), "]")
   
-  # ── Results table ──────────────────────────────────────────────────────────
+  # â”€â”€ Results table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   results <- data.frame(
     Component = c(
       "Cases: % reclassified up",
@@ -800,13 +800,13 @@ nri <- function(data,
   ))
 }
 
-## Function to compute NRI for each GRS added to an Age-only reference model ─────────────────────
+## Function to compute NRI for each GRS added to an Age-only reference model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ## 
 ## How it works:
 ##   For each combination of (outcome, population):
-##     1. Fit an Age-only model (reference) → generates pred column
+##     1. Fit an Age-only model (reference) â†’ generates pred column
 ##     2. For each GRS in grs_list:
-##        - Fit Age + GRS model → generates pred2 column
+##        - Fit Age + GRS model â†’ generates pred2 column
 ##        - Calculate NRI(Age+GRS vs Age only)
 ##        - Store in results dataframe
 ##
@@ -940,7 +940,7 @@ nri_table <- function(
     for (pop_name in names(populations)) {
       pop_data <- populations[[pop_name]]
       
-      # ── Fit Age-only reference model ───────────────────────────────────────
+      # â”€â”€ Fit Age-only reference model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (verbose) {
         cat(sprintf("\n=== %s | %s ===\n", current_outcome, pop_name))
         cat("Fitting Age-only reference model...\n")
@@ -964,7 +964,7 @@ nri_table <- function(
         
         reference_data <- age_model$data  # Has pred column (Age-only predictions)
         
-        # ── For each GRS, fit Age+GRS model and calculate NRI ─────────────────
+        # â”€â”€ For each GRS, fit Age+GRS model and calculate NRI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         for (grs_pred in grs_list) {
           combo_count <- combo_count + 1
           
@@ -1048,7 +1048,7 @@ nri_table <- function(
   return(results)
 }
 
-## Function to compute logistic regression for all outcome × GRS × population × covariate combinations ───
+## Function to compute logistic regression for all outcome Ã— GRS Ã— population Ã— covariate combinations â”€â”€â”€
 ## 
 ## Version 1 - for Logistic_Regressions_testing_Conti_GRS.R
 ##
@@ -1064,6 +1064,7 @@ nri_table <- function(
 ##   - Outcome, Population, Predictor, Covariates
 ##   - N_Cases, N_Controls
 ##   - ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper
+##   - OR_per_1SD, OR_per_1SD_CI_Lower, OR_per_1SD_CI_Upper, OR_per_1SD_p
 
 logreg_table <- function(
     populations = NULL,
@@ -1173,6 +1174,10 @@ logreg_table <- function(
     ROC_AUC = numeric(),
     ROC_AUC_CI_Lower = numeric(),
     ROC_AUC_CI_Upper = numeric(),
+    OR_per_1SD = numeric(),
+    OR_per_1SD_CI_Lower = numeric(),
+    OR_per_1SD_CI_Upper = numeric(),
+    OR_per_1SD_p = numeric(),
     stringsAsFactors = FALSE
   )
   
@@ -1227,6 +1232,22 @@ logreg_table <- function(
             # Count cases and controls in the dataset used
             n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
             n_controls <- sum(model$data[[current_outcome]] == 0, na.rm = TRUE)
+
+            # OR per 1 SD increase in predictor (predictors are z-transformed upstream)
+            coef_tbl <- summary(model$model)$coefficients
+            if (grs_pred %in% rownames(coef_tbl)) {
+              beta <- coef_tbl[grs_pred, "Estimate"]
+              se <- coef_tbl[grs_pred, "Std. Error"]
+              p_val <- coef_tbl[grs_pred, "Pr(>|z|)"]
+              or_val <- exp(beta)
+              or_ci_lower <- exp(beta - 1.96 * se)
+              or_ci_upper <- exp(beta + 1.96 * se)
+            } else {
+              or_val <- NA_real_
+              or_ci_lower <- NA_real_
+              or_ci_upper <- NA_real_
+              p_val <- NA_real_
+            }
             
             # Covariate label
             cov_label <- ifelse(is.null(cov), "None", cov)
@@ -1242,6 +1263,10 @@ logreg_table <- function(
               ROC_AUC = auc_val,
               ROC_AUC_CI_Lower = auc_lower,
               ROC_AUC_CI_Upper = auc_upper,
+              OR_per_1SD = or_val,
+              OR_per_1SD_CI_Lower = or_ci_lower,
+              OR_per_1SD_CI_Upper = or_ci_upper,
+              OR_per_1SD_p = p_val,
               stringsAsFactors = FALSE
             ))
             
@@ -1291,6 +1316,10 @@ logreg_table <- function(
               ROC_AUC = auc_val,
               ROC_AUC_CI_Lower = auc_lower,
               ROC_AUC_CI_Upper = auc_upper,
+              OR_per_1SD = NA_real_,
+              OR_per_1SD_CI_Lower = NA_real_,
+              OR_per_1SD_CI_Upper = NA_real_,
+              OR_per_1SD_p = NA_real_,
               stringsAsFactors = FALSE
             ))
             
@@ -2189,6 +2218,24 @@ exclude_withdrawn=function(df){
 
 PCa_iv_covariates_GRS_clean <- exclude_withdrawn(PCa_iv_covariates_GRS_clean)
 
+# Scale to SD units (z-transform)
+
+grs_prs_cols <- names(PCa_iv_covariates_GRS_clean)[
+  grepl("(GRS|PRS)[0-9]*$", names(PCa_iv_covariates_GRS_clean)) &
+    !grepl("^top10_all_", names(PCa_iv_covariates_GRS_clean))
+]
+
+grs_prs_cols <- grs_prs_cols[sapply(PCa_iv_covariates_GRS_clean[grs_prs_cols], is.numeric)]
+
+PCa_iv_covariates_GRS_clean <- PCa_iv_covariates_GRS_clean %>%
+  dplyr::mutate(
+    dplyr::across(
+      dplyr::all_of(grs_prs_cols),
+      ~ as.numeric(scale(.x))
+    )
+  )
+
+
 
 
 
@@ -2549,6 +2596,11 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       NA_character_,
       sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
     ),
+    OR_per_1SD_CI_95 = dplyr::if_else(
+      is.na(OR_per_1SD) | is.na(OR_per_1SD_CI_Lower) | is.na(OR_per_1SD_CI_Upper),
+      NA_character_,
+      sprintf("%.4f [%.4f-%.4f]", OR_per_1SD, OR_per_1SD_CI_Lower, OR_per_1SD_CI_Upper)
+    ),
     `GRS+Age > Age?` = dplyr::case_when(
       Covariates != "Age" | Predictor == "Age" ~ NA_character_,
       is.na(ROC_AUC_CI_Lower) | is.na(Age_only_ROC_AUC_CI_Upper) ~ NA_character_,
@@ -2556,7 +2608,7 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
     )
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
 
 ## This block is to view a subset of the bulk logistic regression table. Change
 ## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
@@ -3772,6 +3824,25 @@ exclude_withdrawn=function(df){
 
 PCa_iv_covariates_GRS_clean2 <- exclude_withdrawn(PCa_iv_covariates_GRS_clean2)
 
+# Scale to SD units (z-transform)
+
+grs_prs_cols <- names(PCa_iv_covariates_GRS_clean2)[
+  grepl("(GRS|PRS)[0-9]*$", names(PCa_iv_covariates_GRS_clean2)) &
+    !grepl("^top10_all_", names(PCa_iv_covariates_GRS_clean2))
+]
+
+grs_prs_cols <- grs_prs_cols[sapply(PCa_iv_covariates_GRS_clean2[grs_prs_cols], is.numeric)]
+
+PCa_iv_covariates_GRS_clean2 <- PCa_iv_covariates_GRS_clean2 %>%
+  dplyr::mutate(
+    dplyr::across(
+      dplyr::all_of(grs_prs_cols),
+      ~ as.numeric(scale(.x))
+    )
+  )
+
+
+
 ##################################################################################
 # Step 6 - Set prediction horizons, including for general/actionable/severe PrCa #
 ##################################################################################
@@ -4129,6 +4200,11 @@ formatted2 <- bulk2 %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       NA_character_,
       sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
     ),
+    OR_per_1SD_CI_95 = dplyr::if_else(
+      is.na(OR_per_1SD) | is.na(OR_per_1SD_CI_Lower) | is.na(OR_per_1SD_CI_Upper),
+      NA_character_,
+      sprintf("%.4f [%.4f-%.4f]", OR_per_1SD, OR_per_1SD_CI_Lower, OR_per_1SD_CI_Upper)
+    ),
     `GRS+Age > Age?` = dplyr::case_when(
       Covariates != "Age" | Predictor == "Age" ~ NA_character_,
       is.na(ROC_AUC_CI_Lower) | is.na(Age_only_ROC_AUC_CI_Upper) ~ NA_character_,
@@ -4136,7 +4212,7 @@ formatted2 <- bulk2 %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
     )
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
 
 ## This block is to view a subset of the bulk logistic regression table. Change
 ## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
@@ -4191,7 +4267,7 @@ Can the GRS predict which men in the UKB will be diagnosed with prostate cancer 
 
 *General:*
 
--   Females (based on self-report of “Sex”. Using “Genetic Sex” did not alter the results)
+-   Females (based on self-report of â€œSexâ€. Using â€œGenetic Sexâ€ did not alter the results)
 
 -   Anyone without linked genetic data (imputed genotypes)
 
@@ -4252,9 +4328,9 @@ Genetic similarity\* is defined by Pan-UKB study (Karczewski et al., 2025)
 
 Prostate cancer cases defined as:
 
--   At least one “C61” or “185” event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
--   At least one “C61” event in Cancer Registry
--   At least one “C61” event in death records as “Cause of Death”
+-   At least one â€œC61â€ or â€œ185â€ event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
+-   At least one â€œC61â€ event in Cancer Registry
+-   At least one â€œC61â€ event in death records as â€œCause of Deathâ€
 
 Ethnicity is based on self-report and clustered as follows:
 
@@ -4266,7 +4342,7 @@ Ethnicity is based on self-report and clustered as follows:
 -   East Asian = Chinese
 -   Other = Other ethnic group, Any other mixed background, Prefer not to answer, Do not know, Mixed, NA, Any other Asian background, White and Asian, Asian or Asian British
 
-Note: Genetic similarity is the preferred term for what is called “Genomic Ancestry” in the UK Biobank
+Note: Genetic similarity is the preferred term for what is called â€œGenomic Ancestryâ€ in the UK Biobank
 
 # Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
 
@@ -4282,7 +4358,7 @@ table1 <- formatted %>%
     Outcome == "PrCa",
     Covariates == "None"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table1)
 
@@ -4299,7 +4375,7 @@ table2 <- formatted %>%
     Outcome == "PrCa",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table2)
 
@@ -4318,7 +4394,7 @@ table3 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table3)
 
@@ -4332,7 +4408,7 @@ But what does "Genetic Similarity" even mean?
 
 -   Statistically compared Biobank participants to HGDP + 1000 genomes
 
--   Is now the Biobank’s built-in “Genomic Ancestry” variable
+-   Is now the Biobankâ€™s built-in â€œGenomic Ancestryâ€ variable
 
 -   Problem: strict clustering method that excluded \>50,000 participants
 
@@ -4586,11 +4662,11 @@ print(UKB_PC_plot1)
 
 -   Train random forest model on reference panel Principal Components, as predictors of population group (EUR, AFR, EAS, CSA, AMR, MID)
 
--   Use same random forest model to predict UKB participants’ likelihood of fitting into these population groups
+-   Use same random forest model to predict UKB participantsâ€™ likelihood of fitting into these population groups
 
 -   Exclude anyone who does not have \>50% probability of fitting any group
 
--   Everyone else gets a “Genomic Ancestry” (preferred erm: Genetic Similarity”) label
+-   Everyone else gets a â€œGenomic Ancestryâ€ (preferred erm: Genetic Similarityâ€) label
 
 Why not just use the probabilities to weight the GRS?
 
@@ -4615,7 +4691,7 @@ table1 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table1)
 
@@ -4623,7 +4699,7 @@ pretty_print_table(table1)
 
 Conclusion: No significant difference compared to using multiethnic GRS weightings
 
-Since ROC AUCs were most similar across groups at the 10-year prediction horizon, let’s see how well these integrated risk models can stratify participants:
+Since ROC AUCs were most similar across groups at the 10-year prediction horizon, letâ€™s see how well these integrated risk models can stratify participants:
 
 ## Reference (Stratification using GRS alone)
 
@@ -4637,9 +4713,9 @@ dxdownload("Callum/External_figures/GRSstratification.png")
 
 Risk ratio = \~1.7 Risk ratio \~ 2.7
 
-## Top 10% of Integrated Risk Model “pred” score vs. bottom 90%
+## Top 10% of Integrated Risk Model â€œpredâ€ score vs. bottom 90%
 
-(Conti’s Multiethnic GRS + Age)
+(Contiâ€™s Multiethnic GRS + Age)
 
 ```{r, echo=FALSE}
 
@@ -4832,9 +4908,9 @@ print(IRMplot2)
 
 Ratio = `r round(irm_plot2_rr, 2)`
 
-## Top 20% of Integrated Risk Model “pred” score vs. bottom 80%
+## Top 20% of Integrated Risk Model â€œpredâ€ score vs. bottom 80%
 
-(Conti’s Multiethnic GRS + Age)
+(Contiâ€™s Multiethnic GRS + Age)
 
 ```{r, echo=FALSE}
 
@@ -5020,7 +5096,7 @@ table4 <- formatted %>%
     Outcome == "PrCa",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table4)
 
@@ -5037,7 +5113,7 @@ table5 <- formatted %>%
     Outcome == "PrCa_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table5)
 
@@ -5054,7 +5130,7 @@ table6 <- formatted %>%
     Outcome == "PrCa_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table6)
 
@@ -5071,15 +5147,15 @@ table7 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table7)
 
 ```
 
-## So far, we’ve looked at general prostate cancer diagnoses
+## So far, weâ€™ve looked at general prostate cancer diagnoses
 
-But prostate cancer often has an overdiagnosis problem – cancers that are never expected to cause harm in a person’s natural lifespan are unnecessarily treated
+But prostate cancer often has an overdiagnosis problem â€“ cancers that are never expected to cause harm in a personâ€™s natural lifespan are unnecessarily treated
 
 ```{r, echo=FALSE}
 
@@ -5095,9 +5171,9 @@ At best, for every 2 lives saved, 12 would likely be overtreated using a PSA tes
 
 Now, repeating the analysis for "actionable" and "severe" prostate cancer, with these phenotypes defined as follows:
 
--   “Actionable” = radiotherapy, prostate surgery, or anti-androgen treatments, within 2 years of diagnosis, or any of the Severe criteria
+-   â€œActionableâ€ = radiotherapy, prostate surgery, or anti-androgen treatments, within 2 years of diagnosis, or any of the Severe criteria
 
--   “Severe” = chemotherapy or death from cancer, within 2 years of diagnosis
+-   â€œSevereâ€ = chemotherapy or death from cancer, within 2 years of diagnosis
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
@@ -5110,7 +5186,7 @@ table8 <- formatted %>%
     Outcome == "PrCa_actionable",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table8)
 
@@ -5127,7 +5203,7 @@ table9 <- formatted %>%
     Outcome == "PrCa_actionable_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "Covariates",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Covariates", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table9)
 
@@ -5144,7 +5220,7 @@ table10 <- formatted %>%
     Outcome == "PrCa_actionable_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table10)
 
@@ -5161,7 +5237,7 @@ table11 <- formatted %>%
     Outcome == "PrCa_actionable_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table11)
 
@@ -5178,7 +5254,7 @@ table12 <- formatted %>%
     Outcome == "PrCa_severe",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table12)
 
@@ -5195,7 +5271,7 @@ table13 <- formatted %>%
     Outcome == "PrCa_severe_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table13)
 
@@ -5212,7 +5288,7 @@ table14 <- formatted %>%
     Outcome == "PrCa_severe_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table14)
 
@@ -5229,7 +5305,7 @@ table15 <- formatted %>%
     Outcome == "PrCa_severe_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table15)
 
@@ -5237,7 +5313,7 @@ pretty_print_table(table15)
 
 # Conclusions so far
 
-On a 10-year prediction horizon, Conti’s multiethnicity-weighted GRS, in combination with Age, can stratify diagnosis of prostate cancer effectively
+On a 10-year prediction horizon, Contiâ€™s multiethnicity-weighted GRS, in combination with Age, can stratify diagnosis of prostate cancer effectively
 
 On the same 10-year prediction horizon, the same GRS appears to discriminate risk of actionable prostate cancer more accurately in white men compared to black men. This difference is not significant. The same GRS appears to discriminate risk of severe prostate cancer significantly more accurately in black men compared to white men, but this result is poorly reliable as there is a small sample size (9 cases).
 
@@ -5245,15 +5321,15 @@ Since it is a GRS built to predict diagnosis of prostate cancer (not to predict 
 
 ## Now testing: Seibert (2018) and Pagadala (2022)
 
-Seibert’s GRS was trained on “aggressive” prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following:
+Seibertâ€™s GRS was trained on â€œaggressiveâ€ prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following:
 
--   Gleason score ≥ 7
--   Clinical stage T3–T4
--   PSA ≥ 10 ng/mL
+-   Gleason score â‰¥â€¯7
+-   Clinical stage T3â€“T4
+-   PSA â‰¥â€¯10â€¯ng/mL
 -   Nodal metastasis
 -   Distant metastasis
 
-Pagadala’s GRS was trained on age at death from prostate cancer (“fatal PCa”) and age at diagnosis of metastatic PCa
+Pagadalaâ€™s GRS was trained on age at death from prostate cancer (â€œfatal PCaâ€) and age at diagnosis of metastatic PCa
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
@@ -5266,7 +5342,7 @@ table16 <- formatted %>%
     Outcome == "PrCa_actionable",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table16)
 
@@ -5283,7 +5359,7 @@ table17 <- formatted %>%
     Outcome == "PrCa_actionable_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table17)
 
@@ -5300,7 +5376,7 @@ table18 <- formatted %>%
     Outcome == "PrCa_actionable_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table18)
 
@@ -5317,7 +5393,7 @@ table19 <- formatted %>%
     Outcome == "PrCa_actionable_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table19)
 
@@ -5334,7 +5410,7 @@ table20 <- formatted %>%
     Outcome == "PrCa_severe",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table20)
 
@@ -5351,7 +5427,7 @@ table21 <- formatted %>%
     Outcome == "PrCa_severe_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table21)
 
@@ -5368,7 +5444,7 @@ table22 <- formatted %>%
     Outcome == "PrCa_severe_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table22)
 
@@ -5385,7 +5461,7 @@ table23 <- formatted %>%
     Outcome == "PrCa_severe_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table23)
 
@@ -5402,7 +5478,7 @@ table24 <- formatted %>%
     Outcome == "PrCa_actionable",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table24)
 
@@ -5419,7 +5495,7 @@ table25 <- formatted %>%
     Outcome == "PrCa_actionable_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table25)
 
@@ -5436,7 +5512,7 @@ table26 <- formatted %>%
     Outcome == "PrCa_actionable_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table26)
 
@@ -5453,7 +5529,7 @@ table27 <- formatted %>%
     Outcome == "PrCa_actionable_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table27)
 
@@ -5470,7 +5546,7 @@ table28 <- formatted %>%
     Outcome == "PrCa_severe",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table28)
 
@@ -5487,7 +5563,7 @@ table29 <- formatted %>%
     Outcome == "PrCa_severe_2yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table29)
 
@@ -5504,7 +5580,7 @@ table30 <- formatted %>%
     Outcome == "PrCa_severe_5yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table30)
 
@@ -5521,19 +5597,19 @@ table31 <- formatted %>%
     Outcome == "PrCa_severe_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table31)
 
 ```
 
-Both perform either significantly worse or not significantly different from Conti’s cross-ancestry GRS at predicting actionable and severe prostate cancer, across all groups
+Both perform either significantly worse or not significantly different from Contiâ€™s cross-ancestry GRS at predicting actionable and severe prostate cancer, across all groups
 
-No evidence to show that the Seibert (2018) or Pagadala (2022) GRSs work better than Conti’s for this purpose
+No evidence to show that the Seibert (2018) or Pagadala (2022) GRSs work better than Contiâ€™s for this purpose
 
 # Other Genetic Risk Scores
 
-Conti’s score looks promising, but are other publicly-available GRSs performing better?
+Contiâ€™s score looks promising, but are other publicly-available GRSs performing better?
 
 ## Conti (2021) vs Schumacher (2018) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
@@ -5546,13 +5622,13 @@ table32 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table32)
 
 ```
 
-Conclusion: Although Schumacher (2018) built their GRS on a GWAS of \~140,000 individuals of European Ancestry only, there is no significant decrease in performance compared to using Conti’s GRS based on a GWAS of \~234,000 invididuals, \~21,000 of which were of African ancestry
+Conclusion: Although Schumacher (2018) built their GRS on a GWAS of \~140,000 individuals of European Ancestry only, there is no significant decrease in performance compared to using Contiâ€™s GRS based on a GWAS of \~234,000 invididuals, \~21,000 of which were of African ancestry
 
 ## Conti (2021) vs BARCODE1 (2020) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
@@ -5565,13 +5641,13 @@ table33 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table33)
 
 ```
 
-Conclusion: The BARCODE1 GRS is effectively the same as Schumacher’s (minus 17 variants), so same as before: no significant decrease in predictive performance compared to Conti’s cross-ancestry score
+Conclusion: The BARCODE1 GRS is effectively the same as Schumacherâ€™s (minus 17 variants), so same as before: no significant decrease in predictive performance compared to Contiâ€™s cross-ancestry score
 
 ## Conti (2021) vs Wang (2023) African GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
@@ -5584,13 +5660,13 @@ table34 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table34)
 
 ```
 
-Conclusion: Although Wang (2023) had 19,391 cases and 61,608 controls of African Ancestry men for their GWAS (compared to Conti’s 10,368 cases and 10,986 controls), the UK Biobank is statistically underpowered to detect any significant difference
+Conclusion: Although Wang (2023) had 19,391 cases and 61,608 controls of African Ancestry men for their GWAS (compared to Contiâ€™s 10,368 cases and 10,986 controls), the UK Biobank is statistically underpowered to detect any significant difference
 
 ## Conti (2021) vs Genomics PLC PRS (2024): Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
@@ -5603,7 +5679,7 @@ table35 <- formatted %>%
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table35)
 
@@ -5615,7 +5691,7 @@ Conclusion: No significant difference in performance. These results suggest that
 
 If even the Schumacher (2018) GRS produces statistically similar ROC AUCs compared to Conti (2021) in Black and Mixed men, how do we know that the GRS is actually improving the models?
 
-Now, let’s go back and test Age alone as a predictor:
+Now, let's go back and test Age alone as a predictor:
 
 ```{r, echo=FALSE}
 
@@ -5625,15 +5701,15 @@ table36 <- formatted %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa_10yrs",
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table36)
 
 ```
 
-Conclusion: The GRS significantly improves prediction in White men, but we are statistically underpowered to determine whether it’s actually an improvement on stratifying by age in Black and Mixed men.
+Conclusion: The GRS significantly improves prediction in White men, but we are statistically underpowered to determine whether itâ€™s actually an improvement on stratifying by age in Black and Mixed men.
 
-This only shows that Age is significantly better an “Any prostate cancer” risk predictor for Black men than White men on a 10-year prediction horizon, but this trend is also true of:
+This only shows that Age is significantly better an â€œAny prostate cancerâ€ risk predictor for Black men than White men on a 10-year prediction horizon, but this trend is also true of:
 
 ```{r, echo=FALSE}
 
@@ -5643,7 +5719,7 @@ table37 <- formatted %>%
     Predictor == "Age" & (Covariates == "None"),
   #  Outcome == "PrCa_10yrs",
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table37)
 
@@ -5664,7 +5740,7 @@ There is no significant difference between white and black men with the followin
 -   Severe prostate cancer, on a 2-year prediction horizon
 -   Severe prostate cancer, on a 5-year prediction horizon
 
-So basically, Age is consistently a better predictor of “Any prostate cancer” in Black men compared to White men, and is hit-or-miss for actionable/severe prostate cancer regarding this trend.
+So basically, Age is consistently a better predictor of â€œAny prostate cancerâ€ in Black men compared to White men, and is hit-or-miss for actionable/severe prostate cancer regarding this trend.
 
 ## Risk Ratio plots to test GRS+Age vs Age alone - top 10% vs bottom 90%
 
@@ -5908,13 +5984,13 @@ pretty_print_table(table39)
 
 ```
 
--   Black men see a significantly (p \< 0.05) positive NRI with many GRS-endpoint combinations, with Conti, Wang, and Schumacher’s BARCODE1 GRSs providing the greatest improvement (though this varies across endpoints)
+-   Black men see a significantly (p \< 0.05) positive NRI with many GRS-endpoint combinations, with Conti, Wang, and Schumacherâ€™s BARCODE1 GRSs providing the greatest improvement (though this varies across endpoints)
 
-## So far, we’ve evaluated GRS utility as a screening tool for asymptomatic men
+## So far, weâ€™ve evaluated GRS utility as a screening tool for asymptomatic men
 
 But another potential GRS application is in symptomatic triage pathways
 
-Which brings us on to…
+Which brings us on toâ€¦
 
 # Part 2: Symptomatic Triage
 
@@ -5924,7 +6000,7 @@ Can the GRS predict which men presenting with symptoms to their GP will be diagn
 
 *General:*
 
--   Females (based on self-report of “Sex”. Using “Genetic Sex” did not alter the results)
+-   Females (based on self-report of â€œSexâ€. Using â€œGenetic Sexâ€ did not alter the results)
 
 -   Anyone without linked genetic data (imputed genotypes)
 
@@ -5985,9 +6061,9 @@ Genetic similarity\* is defined by Pan-UKB study (Karczewski et al., 2025)
 
 Prostate cancer cases defined as:
 
--   At least one “C61” or “185” event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
--   At least one “C61” event in Cancer Registry
--   At least one “C61” event in death records as “Cause of Death”
+-   At least one â€œC61â€ or â€œ185â€ event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
+-   At least one â€œC61â€ event in Cancer Registry
+-   At least one â€œC61â€ event in death records as â€œCause of Deathâ€
 
 Ethnicity is based on self-report and clustered as follows:
 
@@ -5999,7 +6075,7 @@ Ethnicity is based on self-report and clustered as follows:
 -   East Asian = Chinese
 -   Other = Other ethnic group, Any other mixed background, Prefer not to answer, Do not know, Mixed, NA, Any other Asian background, White and Asian, Asian or Asian British
 
-Note: Genetic similarity is the preferred term for what is called “Genomic Ancestry” in the UK Biobank
+Note: Genetic similarity is the preferred term for what is called â€œGenomic Ancestryâ€ in the UK Biobank
 
 ## Risk stratification of any prostate cancer diagnosis, any time after symptom presentation
 
@@ -6014,7 +6090,7 @@ table40 <- formatted2 %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table40)
 
@@ -6033,7 +6109,7 @@ table41 <- formatted2 %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa_2yrs"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table41)
 
@@ -6052,7 +6128,7 @@ table42 <- formatted2 %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa_5yrs"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table42)
 
@@ -6071,7 +6147,7 @@ table43 <- formatted2 %>%
     (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
     Outcome == "PrCa_10yrs"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table43)
 
@@ -6086,3 +6162,4 @@ pretty_print_table(table43)
 -   Large confidence intervals suggest the UKB is statistically underpowered to accurately compare GRS performance for this purpose
 
 -   Partially explained by the fact that, of the 14,076 UKB participants who report LUTS, 13,370 (95%) are White
+
