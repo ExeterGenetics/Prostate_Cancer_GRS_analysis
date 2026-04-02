@@ -532,7 +532,7 @@ RRtable <- function(data,
       n_in  <- a + b
       n_out <- c + d
       
-      # Haldaneâ€“Anscombe if any zero cell
+      # Haldane-Anscombe if any zero cell
       zero_cell <- any(c(a, b, c, d) == 0L)
       a2 <- if (zero_cell) a + 0.5 else a
       b2 <- if (zero_cell) b + 0.5 else b
@@ -623,7 +623,7 @@ RRtable <- function(data,
     else
       " for Top X% vs Bottom X% (middle excluded). ",
     "95% CI via Katz log method; p-value via Fisher's exact test. ",
-    "Haldaneâ€“Anscombe +0.5 applied if any zero cell occurs.",
+    "Haldane-Anscombe +0.5 applied if any zero cell occurs.",
     if (within_group_bins)
       " Thresholds computed within each group."
     else
@@ -668,7 +668,7 @@ nri <- function(data,
   
   delta <- d[[pred_new]] - d[[pred_old]]
   
-  # â”€â”€ Cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Cases ------------------------------------------------------------------
   n_cases         <- sum(is_case)
   n_up_cases      <- sum(delta[is_case]  > 0)
   n_down_cases    <- sum(delta[is_case]  < 0)
@@ -682,7 +682,7 @@ nri <- function(data,
   z_cases         <- NRI_cases / SE_NRI_cases
   p_cases         <- 2 * pnorm(-abs(z_cases))
   
-  # â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Controls ---------------------------------------------------------------
   n_controls      <- sum(!is_case)
   n_up_controls   <- sum(delta[!is_case] > 0)
   n_down_controls <- sum(delta[!is_case] < 0)
@@ -696,7 +696,7 @@ nri <- function(data,
   z_controls       <- NRI_controls / SE_NRI_controls
   p_controls       <- 2 * pnorm(-abs(z_controls))
   
-  # â”€â”€ Overall NRI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Overall NRI ------------------------------------------------------------
   NRI             <- NRI_cases + NRI_controls
   SE_NRI          <- sqrt(SE_NRI_cases^2 + SE_NRI_controls^2)
   CI_low_NRI      <- NRI - 1.96 * SE_NRI
@@ -704,7 +704,7 @@ nri <- function(data,
   z_NRI           <- NRI / SE_NRI
   p_NRI           <- 2 * pnorm(-abs(z_NRI))
   
-  # â”€â”€ Formatting helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Formatting helpers -----------------------------------------------------
   fmt  <- function(x) formatC(x, format = "f", digits = digits)
   fmtp <- function(x) formatC(x, format = "g", digits = 3)
   pct  <- function(x) paste0(formatC(x * 100, format = "f", digits = 1), "%")
@@ -712,7 +712,7 @@ nri <- function(data,
   ci_str <- function(est, lo, hi)
     paste0(fmt(est), " [", fmt(lo), ", ", fmt(hi), "]")
   
-  # â”€â”€ Results table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Results table ----------------------------------------------------------
   results <- data.frame(
     Component = c(
       "Cases: % reclassified up",
@@ -780,13 +780,13 @@ nri <- function(data,
   ))
 }
 
-## Function to compute NRI for each GRS added to an Age-only reference model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+## Function to compute NRI for each GRS added to an Age-only reference model ---------------------
 ## 
 ## How it works:
 ##   For each combination of (outcome, population):
-##     1. Fit an Age-only model (reference) â†’ generates pred column
+##     1. Fit an Age-only model (reference) ? generates pred column
 ##     2. For each GRS in grs_list:
-##        - Fit Age + GRS model â†’ generates pred2 column
+##        - Fit Age + GRS model ? generates pred2 column
 ##        - Calculate NRI(Age+GRS vs Age only)
 ##        - Store in results dataframe
 ##
@@ -920,7 +920,7 @@ nri_table <- function(
     for (pop_name in names(populations)) {
       pop_data <- populations[[pop_name]]
       
-      # â”€â”€ Fit Age-only reference model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      # -- Fit Age-only reference model ---------------------------------------
       if (verbose) {
         cat(sprintf("\n=== %s | %s ===\n", current_outcome, pop_name))
         cat("Fitting Age-only reference model...\n")
@@ -944,7 +944,7 @@ nri_table <- function(
         
         reference_data <- age_model$data  # Has pred column (Age-only predictions)
         
-        # â”€â”€ For each GRS, fit Age+GRS model and calculate NRI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # -- For each GRS, fit Age+GRS model and calculate NRI -----------------
         for (grs_pred in grs_list) {
           combo_count <- combo_count + 1
           
@@ -1028,7 +1028,7 @@ nri_table <- function(
   return(results)
 }
 
-## Function to compute logistic regression for all outcome Ã— GRS Ã— population Ã— covariate combinations â”€â”€â”€
+## Function to compute logistic regression for all outcome x GRS x population x covariate combinations ---
 ## 
 ## Version 1 - for Logistic_Regressions_testing_Conti_GRS.R
 ##

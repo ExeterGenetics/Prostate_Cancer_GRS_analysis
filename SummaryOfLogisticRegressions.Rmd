@@ -1,10 +1,10 @@
-﻿---
+---
 title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
 date: "2026-03-28"
 ---
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache = TRUE}
 
 knitr::opts_chunk$set(
   echo = FALSE,
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 Setup script 1: Paste "functions.r" here:
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache = TRUE}
 
 ## This script sets up the packages and functions used in this repository's scripts
 
@@ -552,7 +552,7 @@ RRtable <- function(data,
       n_in  <- a + b
       n_out <- c + d
       
-      # Haldaneâ€“Anscombe if any zero cell
+      # Haldane-Anscombe if any zero cell
       zero_cell <- any(c(a, b, c, d) == 0L)
       a2 <- if (zero_cell) a + 0.5 else a
       b2 <- if (zero_cell) b + 0.5 else b
@@ -643,7 +643,7 @@ RRtable <- function(data,
     else
       " for Top X% vs Bottom X% (middle excluded). ",
     "95% CI via Katz log method; p-value via Fisher's exact test. ",
-    "Haldaneâ€“Anscombe +0.5 applied if any zero cell occurs.",
+    "Haldane-Anscombe +0.5 applied if any zero cell occurs.",
     if (within_group_bins)
       " Thresholds computed within each group."
     else
@@ -688,7 +688,7 @@ nri <- function(data,
   
   delta <- d[[pred_new]] - d[[pred_old]]
   
-  # â”€â”€ Cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Cases ------------------------------------------------------------------
   n_cases         <- sum(is_case)
   n_up_cases      <- sum(delta[is_case]  > 0)
   n_down_cases    <- sum(delta[is_case]  < 0)
@@ -702,7 +702,7 @@ nri <- function(data,
   z_cases         <- NRI_cases / SE_NRI_cases
   p_cases         <- 2 * pnorm(-abs(z_cases))
   
-  # â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Controls ---------------------------------------------------------------
   n_controls      <- sum(!is_case)
   n_up_controls   <- sum(delta[!is_case] > 0)
   n_down_controls <- sum(delta[!is_case] < 0)
@@ -716,7 +716,7 @@ nri <- function(data,
   z_controls       <- NRI_controls / SE_NRI_controls
   p_controls       <- 2 * pnorm(-abs(z_controls))
   
-  # â”€â”€ Overall NRI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ---- Overall NRI ------------------------------------------------------------
   NRI             <- NRI_cases + NRI_controls
   SE_NRI          <- sqrt(SE_NRI_cases^2 + SE_NRI_controls^2)
   CI_low_NRI      <- NRI - 1.96 * SE_NRI
@@ -724,7 +724,7 @@ nri <- function(data,
   z_NRI           <- NRI / SE_NRI
   p_NRI           <- 2 * pnorm(-abs(z_NRI))
   
-  # â”€â”€ Formatting helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Formatting helpers -----------------------------------------------------
   fmt  <- function(x) formatC(x, format = "f", digits = digits)
   fmtp <- function(x) formatC(x, format = "g", digits = 3)
   pct  <- function(x) paste0(formatC(x * 100, format = "f", digits = 1), "%")
@@ -732,7 +732,7 @@ nri <- function(data,
   ci_str <- function(est, lo, hi)
     paste0(fmt(est), " [", fmt(lo), ", ", fmt(hi), "]")
   
-  # â”€â”€ Results table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Results table ----------------------------------------------------------
   results <- data.frame(
     Component = c(
       "Cases: % reclassified up",
@@ -800,13 +800,13 @@ nri <- function(data,
   ))
 }
 
-## Function to compute NRI for each GRS added to an Age-only reference model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+## Function to compute NRI for each GRS added to an Age-only reference model ---------------------
 ## 
 ## How it works:
 ##   For each combination of (outcome, population):
-##     1. Fit an Age-only model (reference) â†’ generates pred column
+##     1. Fit an Age-only model (reference) ? generates pred column
 ##     2. For each GRS in grs_list:
-##        - Fit Age + GRS model â†’ generates pred2 column
+##        - Fit Age + GRS model ? generates pred2 column
 ##        - Calculate NRI(Age+GRS vs Age only)
 ##        - Store in results dataframe
 ##
@@ -940,7 +940,7 @@ nri_table <- function(
     for (pop_name in names(populations)) {
       pop_data <- populations[[pop_name]]
       
-      # â”€â”€ Fit Age-only reference model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      # -- Fit Age-only reference model ---------------------------------------
       if (verbose) {
         cat(sprintf("\n=== %s | %s ===\n", current_outcome, pop_name))
         cat("Fitting Age-only reference model...\n")
@@ -964,7 +964,7 @@ nri_table <- function(
         
         reference_data <- age_model$data  # Has pred column (Age-only predictions)
         
-        # â”€â”€ For each GRS, fit Age+GRS model and calculate NRI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # -- For each GRS, fit Age+GRS model and calculate NRI -----------------
         for (grs_pred in grs_list) {
           combo_count <- combo_count + 1
           
@@ -1048,7 +1048,7 @@ nri_table <- function(
   return(results)
 }
 
-## Function to compute logistic regression for all outcome Ã— GRS Ã— population Ã— covariate combinations â”€â”€â”€
+## Function to compute logistic regression for all outcome x GRS x population x covariate combinations ---
 ## 
 ## Version 1 - for Logistic_Regressions_testing_Conti_GRS.R
 ##
@@ -1350,7 +1350,7 @@ pretty_print_table <- function(df, caption = NULL) {
 
 Setup script 2: Paste "Logistic_Regressions_testing_Conti_GRS.R" here:
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache = TRUE}
 
 ######### Logistic Regression Application - testing Conti's GRSs #########
 
@@ -2656,7 +2656,7 @@ nri_subset <- nri_bulk %>%
 
 Setup script 3: Paste "LUTS.R" here:
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache = TRUE}
 
 #############################################################################
 # Symptomatic Angle - how well can GRS predict Prostate cancer diagnosis in #
@@ -4267,7 +4267,7 @@ Can the GRS predict which men in the UKB will be diagnosed with prostate cancer 
 
 *General:*
 
--   Females (based on self-report of â€œSexâ€. Using â€œGenetic Sexâ€ did not alter the results)
+-   Females (based on self-report of "Sex". Using "Genetic Sex" did not alter the results)
 
 -   Anyone without linked genetic data (imputed genotypes)
 
@@ -4324,13 +4324,13 @@ Anyone with any of the following codes in their OPCS records:
 
 Age = Age at initial assessment centre visit
 
-Genetic similarity\* is defined by Pan-UKB study (Karczewski et al., 2025)
+Genetic similarity* is defined by Pan-UKB study (Karczewski et al., 2025)
 
 Prostate cancer cases defined as:
 
--   At least one â€œC61â€ or â€œ185â€ event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
--   At least one â€œC61â€ event in Cancer Registry
--   At least one â€œC61â€ event in death records as â€œCause of Deathâ€
+-   At least one "C61" or "185" event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
+-   At least one "C61" event in Cancer Registry
+-   At least one "C61" event in death records as "Cause of Death"
 
 Ethnicity is based on self-report and clustered as follows:
 
@@ -4342,11 +4342,11 @@ Ethnicity is based on self-report and clustered as follows:
 -   East Asian = Chinese
 -   Other = Other ethnic group, Any other mixed background, Prefer not to answer, Do not know, Mixed, NA, Any other Asian background, White and Asian, Asian or Asian British
 
-Note: Genetic similarity is the preferred term for what is called â€œGenomic Ancestryâ€ in the UK Biobank
+Note: Genetic similarity is the preferred term for what is called "Genomic Ancestry" in the UK Biobank
 
 # Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
@@ -4366,7 +4366,7 @@ pretty_print_table(table1)
 
 ## Logistic Regression Table 2: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre when combined with Age?
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table2 <- formatted %>%                        
   dplyr::filter(                          
@@ -4385,7 +4385,7 @@ Conclusion: Age always helps, and using the African-specific weightings makes ve
 
 ## Logistic Regression Table 3: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis within 10 years after the assessment centre when combined with Age?
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table3 <- formatted %>%                        
   dplyr::filter(                          
@@ -4408,15 +4408,15 @@ But what does "Genetic Similarity" even mean?
 
 -   Statistically compared Biobank participants to HGDP + 1000 genomes
 
--   Is now the Biobankâ€™s built-in â€œGenomic Ancestryâ€ variable
+-   Is now the Biobank's built-in 'Genomic Ancestry' variable
 
--   Problem: strict clustering method that excluded \>50,000 participants
+-   Problem: strict clustering method that excluded >50,000 participants
 
-    -   Anyone who did not have \>50% probability of fitting into a particular cluster (EUR, AFR, EAS, CSA, MID, AMR) was excluded
+    -   Anyone who did not have >50% probability of fitting into a particular cluster (EUR, AFR, EAS, CSA, MID, AMR) was excluded
 
 ## Principal Components plot 1: HGDP+1KG Reference Panel
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(ggplot2)
 
@@ -4477,7 +4477,7 @@ This is the reference panel (HGDP+1KG)
 
 ## Principal Components plot 2: UK Biobank Participants who were successfully clustered
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(ggplot2)
 
@@ -4536,7 +4536,7 @@ print(UKB_PC_plot1)
 
 ## Principal Components plot 3: all UK Biobank Participants
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(ggplot2)
 
@@ -4597,7 +4597,7 @@ This is what it looks like when you include participants who were not successful
 
 ## Principal Components plot 4: UK Biobank Participants by self-reported ethnicity
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(ggplot2)
 
@@ -4662,19 +4662,19 @@ print(UKB_PC_plot1)
 
 -   Train random forest model on reference panel Principal Components, as predictors of population group (EUR, AFR, EAS, CSA, AMR, MID)
 
--   Use same random forest model to predict UKB participantsâ€™ likelihood of fitting into these population groups
+-   Use same random forest model to predict UKB participants' likelihood of fitting into these population groups
 
--   Exclude anyone who does not have \>50% probability of fitting any group
+-   Exclude anyone who does not have >50% probability of fitting any group
 
--   Everyone else gets a â€œGenomic Ancestryâ€ (preferred erm: Genetic Similarityâ€) label
+-   Everyone else gets a "Genomic Ancestry" (preferred term: "Genetic Similarity") label
 
 Why not just use the probabilities to weight the GRS?
 
 ## Using probabilities to weight GRS
 
-Adjusted GRS =\
-\
-(EUR\*ContiEuropeanGRS265) + (AFR\*ContiAfricanGRS246) + (EAS\*ContiEast_AsianGRS222) + (AMR\*ContiHispanicGRS253) + (CSA\*ContimultiethnicGRS267) + (MID\*ContimultiethnicGRS267)
+Adjusted GRS =
+
+(EUR*ContiEuropeanGRS265) + (AFR*ContiAfricanGRS246) + (EAS*ContiEast_AsianGRS222) + (AMR*ContiHispanicGRS253) + (CSA*ContimultiethnicGRS267) + (MID*ContimultiethnicGRS267)
 
 Where EUR/AFR/EAS/AMR/CSA/MID is the PROBABILITY of fitting in each of the population clusters
 
@@ -4682,7 +4682,7 @@ So someone who has a 50% AFR and 50% EUR probability will have a GRS that is hal
 
 ## Does it work?
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table1 <- formatted %>%                        
   dplyr::filter(                          
@@ -4699,11 +4699,11 @@ pretty_print_table(table1)
 
 Conclusion: No significant difference compared to using multiethnic GRS weightings
 
-Since ROC AUCs were most similar across groups at the 10-year prediction horizon, letâ€™s see how well these integrated risk models can stratify participants:
+Since ROC AUCs were most similar across groups at the 10-year prediction horizon, let's see how well these integrated risk models can stratify participants:
 
 ## Reference (Stratification using GRS alone)
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 dxdownload("Callum/External_figures/GRSstratification.png")
 
@@ -4711,13 +4711,13 @@ dxdownload("Callum/External_figures/GRSstratification.png")
 
 ![](GRSstratification.png)
 
-Risk ratio = \~1.7 Risk ratio \~ 2.7
+Risk ratio = ~1.7 Risk ratio ~ 2.7
 
-## Top 10% of Integrated Risk Model â€œpredâ€ score vs. bottom 90%
+## Top 10% of Integrated Risk Model "pred" score vs. bottom 90%
 
-(Contiâ€™s Multiethnic GRS + Age)
+(Conti's Multiethnic GRS + Age)
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -4820,7 +4820,7 @@ print(IRMplot1)
 
 Ratio = `r round(irm_plot1_rr, 2)`
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -4908,11 +4908,11 @@ print(IRMplot2)
 
 Ratio = `r round(irm_plot2_rr, 2)`
 
-## Top 20% of Integrated Risk Model â€œpredâ€ score vs. bottom 80%
+## Top 20% of Integrated Risk Model 'pred' score vs. bottom 80%
 
-(Contiâ€™s Multiethnic GRS + Age)
+(Conti's Multiethnic GRS + Age)
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -4998,7 +4998,7 @@ print(IRMplot3)
 
 Ratio = `r round(irm_plot3_rr, 2)`
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -5087,7 +5087,7 @@ Ratio = `r round(irm_plot4_rr, 2)`
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table4 <- formatted %>%                        
   dplyr::filter(                          
@@ -5104,7 +5104,7 @@ pretty_print_table(table4)
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table5 <- formatted %>%                        
   dplyr::filter(                          
@@ -5121,7 +5121,7 @@ pretty_print_table(table5)
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table6 <- formatted %>%                        
   dplyr::filter(                          
@@ -5138,7 +5138,7 @@ pretty_print_table(table6)
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table7 <- formatted %>%                        
   dplyr::filter(                          
@@ -5153,11 +5153,11 @@ pretty_print_table(table7)
 
 ```
 
-## So far, weâ€™ve looked at general prostate cancer diagnoses
+## So far, we've looked at general prostate cancer diagnoses
 
-But prostate cancer often has an overdiagnosis problem â€“ cancers that are never expected to cause harm in a personâ€™s natural lifespan are unnecessarily treated
+But prostate cancer often has an overdiagnosis problem ' cancers that are never expected to cause harm in a person's natural lifespan are unnecessarily treated
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 dxdownload("Callum/External_figures/CRUKprostatecancerscreening.png")
 
@@ -5165,19 +5165,25 @@ dxdownload("Callum/External_figures/CRUKprostatecancerscreening.png")
 
 ![](CRUKprostatecancerscreening.png)
 
-Overdiagnosis and overtreatment leads to harmful effects on healthy men: [Dushimova, 2025] - urinary incontinence - erectile dysfunction - bowel dysfunction - sepsis - psychological stress
+Overdiagnosis and overtreatment leads to harmful effects on healthy men: [Dushimova, 2025] 
+
+- urinary incontinence 
+- erectile dysfunction 
+- bowel dysfunction 
+- sepsis 
+- psychological stress
 
 At best, for every 2 lives saved, 12 would likely be overtreated using a PSA test for screening
 
 Now, repeating the analysis for "actionable" and "severe" prostate cancer, with these phenotypes defined as follows:
 
--   â€œActionableâ€ = radiotherapy, prostate surgery, or anti-androgen treatments, within 2 years of diagnosis, or any of the Severe criteria
+-   'Actionable' = radiotherapy, prostate surgery, or anti-androgen treatments, within 2 years of diagnosis, or any of the Severe criteria
 
--   â€œSevereâ€ = chemotherapy or death from cancer, within 2 years of diagnosis
+-   'Severe' = chemotherapy or death from cancer, within 2 years of diagnosis
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table8 <- formatted %>%                        
   dplyr::filter(                          
@@ -5194,7 +5200,7 @@ pretty_print_table(table8)
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table9 <- formatted %>%                        
   dplyr::filter(                          
@@ -5211,7 +5217,7 @@ pretty_print_table(table9)
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table10 <- formatted %>%                        
   dplyr::filter(                          
@@ -5228,7 +5234,7 @@ pretty_print_table(table10)
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table11 <- formatted %>%                        
   dplyr::filter(                          
@@ -5245,7 +5251,7 @@ pretty_print_table(table11)
 
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table12 <- formatted %>%                        
   dplyr::filter(                          
@@ -5262,7 +5268,7 @@ pretty_print_table(table12)
 
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table13 <- formatted %>%                        
   dplyr::filter(                          
@@ -5279,7 +5285,7 @@ pretty_print_table(table13)
 
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table14 <- formatted %>%                        
   dplyr::filter(                          
@@ -5296,7 +5302,7 @@ pretty_print_table(table14)
 
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table15 <- formatted %>%                        
   dplyr::filter(                          
@@ -5313,7 +5319,7 @@ pretty_print_table(table15)
 
 # Conclusions so far
 
-On a 10-year prediction horizon, Contiâ€™s multiethnicity-weighted GRS, in combination with Age, can stratify diagnosis of prostate cancer effectively
+On a 10-year prediction horizon, Conti's multiethnicity-weighted GRS, in combination with Age, can stratify diagnosis of prostate cancer effectively
 
 On the same 10-year prediction horizon, the same GRS appears to discriminate risk of actionable prostate cancer more accurately in white men compared to black men. This difference is not significant. The same GRS appears to discriminate risk of severe prostate cancer significantly more accurately in black men compared to white men, but this result is poorly reliable as there is a small sample size (9 cases).
 
@@ -5321,19 +5327,19 @@ Since it is a GRS built to predict diagnosis of prostate cancer (not to predict 
 
 ## Now testing: Seibert (2018) and Pagadala (2022)
 
-Seibertâ€™s GRS was trained on â€œaggressiveâ€ prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following:
+Seibert's GRS was trained on 'aggressive' prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following:
 
--   Gleason score â‰¥â€¯7
--   Clinical stage T3â€“T4
--   PSA â‰¥â€¯10â€¯ng/mL
+-   Gleason score >=7
+-   Clinical stage T3'T4
+-   PSA >=10 ng/mL
 -   Nodal metastasis
 -   Distant metastasis
 
-Pagadalaâ€™s GRS was trained on age at death from prostate cancer (â€œfatal PCaâ€) and age at diagnosis of metastatic PCa
+Pagadala's GRS was trained on age at death from prostate cancer ('fatal PCa') and age at diagnosis of metastatic PCa
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table16 <- formatted %>%                        
   dplyr::filter(                          
@@ -5350,7 +5356,7 @@ pretty_print_table(table16)
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table17 <- formatted %>%                        
   dplyr::filter(                          
@@ -5367,7 +5373,7 @@ pretty_print_table(table17)
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table18 <- formatted %>%                        
   dplyr::filter(                          
@@ -5384,7 +5390,7 @@ pretty_print_table(table18)
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table19 <- formatted %>%                        
   dplyr::filter(                          
@@ -5401,7 +5407,7 @@ pretty_print_table(table19)
 
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table20 <- formatted %>%                        
   dplyr::filter(                          
@@ -5418,7 +5424,7 @@ pretty_print_table(table20)
 
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table21 <- formatted %>%                        
   dplyr::filter(                          
@@ -5435,7 +5441,7 @@ pretty_print_table(table21)
 
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table22 <- formatted %>%                        
   dplyr::filter(                          
@@ -5452,7 +5458,7 @@ pretty_print_table(table22)
 
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table23 <- formatted %>%                        
   dplyr::filter(                          
@@ -5469,7 +5475,7 @@ pretty_print_table(table23)
 
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table24 <- formatted %>%                        
   dplyr::filter(                          
@@ -5486,7 +5492,7 @@ pretty_print_table(table24)
 
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table25 <- formatted %>%                        
   dplyr::filter(                          
@@ -5503,7 +5509,7 @@ pretty_print_table(table25)
 
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table26 <- formatted %>%                        
   dplyr::filter(                          
@@ -5520,7 +5526,7 @@ pretty_print_table(table26)
 
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table27 <- formatted %>%                        
   dplyr::filter(                          
@@ -5537,7 +5543,7 @@ pretty_print_table(table27)
 
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table28 <- formatted %>%                        
   dplyr::filter(                          
@@ -5554,7 +5560,7 @@ pretty_print_table(table28)
 
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table29 <- formatted %>%                        
   dplyr::filter(                          
@@ -5571,7 +5577,7 @@ pretty_print_table(table29)
 
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table30 <- formatted %>%                        
   dplyr::filter(                          
@@ -5588,7 +5594,7 @@ pretty_print_table(table30)
 
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table31 <- formatted %>%                        
   dplyr::filter(                          
@@ -5603,17 +5609,17 @@ pretty_print_table(table31)
 
 ```
 
-Both perform either significantly worse or not significantly different from Contiâ€™s cross-ancestry GRS at predicting actionable and severe prostate cancer, across all groups
+Both perform either significantly worse or not significantly different from Conti's cross-ancestry GRS at predicting actionable and severe prostate cancer, across all groups
 
-No evidence to show that the Seibert (2018) or Pagadala (2022) GRSs work better than Contiâ€™s for this purpose
+No evidence to show that the Seibert (2018) or Pagadala (2022) GRSs work better than Conti's for this purpose
 
 # Other Genetic Risk Scores
 
-Contiâ€™s score looks promising, but are other publicly-available GRSs performing better?
+Conti's score looks promising, but are other publicly-available GRSs performing better?
 
 ## Conti (2021) vs Schumacher (2018) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table32 <- formatted %>%                        
   dplyr::filter(                          
@@ -5628,11 +5634,11 @@ pretty_print_table(table32)
 
 ```
 
-Conclusion: Although Schumacher (2018) built their GRS on a GWAS of \~140,000 individuals of European Ancestry only, there is no significant decrease in performance compared to using Contiâ€™s GRS based on a GWAS of \~234,000 invididuals, \~21,000 of which were of African ancestry
+Conclusion: Although Schumacher (2018) built their GRS on a GWAS of ~140,000 individuals of European Ancestry only, there is no significant decrease in performance compared to using Conti's GRS based on a GWAS of ~234,000 invididuals, ~21,000 of which were of African ancestry
 
 ## Conti (2021) vs BARCODE1 (2020) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table33 <- formatted %>%                        
   dplyr::filter(                          
@@ -5647,11 +5653,11 @@ pretty_print_table(table33)
 
 ```
 
-Conclusion: The BARCODE1 GRS is effectively the same as Schumacherâ€™s (minus 17 variants), so same as before: no significant decrease in predictive performance compared to Contiâ€™s cross-ancestry score
+Conclusion: The BARCODE1 GRS is effectively the same as Schumacher's (minus 17 variants), so same as before: no significant decrease in predictive performance compared to Conti's cross-ancestry score
 
 ## Conti (2021) vs Wang (2023) African GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table34 <- formatted %>%                        
   dplyr::filter(                          
@@ -5666,11 +5672,11 @@ pretty_print_table(table34)
 
 ```
 
-Conclusion: Although Wang (2023) had 19,391 cases and 61,608 controls of African Ancestry men for their GWAS (compared to Contiâ€™s 10,368 cases and 10,986 controls), the UK Biobank is statistically underpowered to detect any significant difference
+Conclusion: Although Wang (2023) had 19,391 cases and 61,608 controls of African Ancestry men for their GWAS (compared to Conti's 10,368 cases and 10,986 controls), the UK Biobank is statistically underpowered to detect any significant difference
 
 ## Conti (2021) vs Genomics PLC PRS (2024): Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table35 <- formatted %>%                        
   dplyr::filter(                          
@@ -5693,7 +5699,7 @@ If even the Schumacher (2018) GRS produces statistically similar ROC AUCs compar
 
 Now, let's go back and test Age alone as a predictor:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table36 <- formatted %>%                        
   dplyr::filter(                          
@@ -5707,11 +5713,11 @@ pretty_print_table(table36)
 
 ```
 
-Conclusion: The GRS significantly improves prediction in White men, but we are statistically underpowered to determine whether itâ€™s actually an improvement on stratifying by age in Black and Mixed men.
+Conclusion: The GRS significantly improves prediction in White men, but we are statistically underpowered to determine whether it's actually an improvement on stratifying by age in Black and Mixed men.
 
-This only shows that Age is significantly better an â€œAny prostate cancerâ€ risk predictor for Black men than White men on a 10-year prediction horizon, but this trend is also true of:
+This only shows that Age is significantly better an 'Any prostate cancer' risk predictor for Black men than White men on a 10-year prediction horizon, but this trend is also true of:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table37 <- formatted %>%                        
   dplyr::filter(                          
@@ -5740,13 +5746,13 @@ There is no significant difference between white and black men with the followin
 -   Severe prostate cancer, on a 2-year prediction horizon
 -   Severe prostate cancer, on a 5-year prediction horizon
 
-So basically, Age is consistently a better predictor of â€œAny prostate cancerâ€ in Black men compared to White men, and is hit-or-miss for actionable/severe prostate cancer regarding this trend.
+So basically, Age is consistently a better predictor of 'Any prostate cancer' in Black men compared to White men, and is hit-or-miss for actionable/severe prostate cancer regarding this trend.
 
 ## Risk Ratio plots to test GRS+Age vs Age alone - top 10% vs bottom 90%
 
 ### GRS + Age
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 print(IRMplot2)
 
@@ -5756,7 +5762,7 @@ Ratio = `r round(irm_plot2_rr, 2)`
 
 ### Age alone
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -5847,7 +5853,7 @@ Ratio = `r round(irm_plot5_rr, 2)`
 
 ### GRS + Age
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 print(IRMplot4)
 
@@ -5857,7 +5863,7 @@ Ratio = `r round(irm_plot4_rr, 2)`
 
 ### Age alone
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -5948,7 +5954,7 @@ Ratio = `r round(irm_plot6_rr, 2)`
 
 ### White men (bins are based within the White group, not global bins)
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
                     outcome = "PrCa_10yrs",
@@ -6015,7 +6021,7 @@ pretty_print_table(ORtable_combined1)
 
 ### Black men (bins are based within the Black group, not global bins)
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
@@ -6082,7 +6088,7 @@ pretty_print_table(ORtable_combined2)
 
 ### White and Black men (bins are now global)
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                     outcome = "PrCa_10yrs",
@@ -6156,7 +6162,7 @@ pretty_print_table(ORtable_combined3)
 
 If you run logistic regressions with Age as a fixed predictor of all endpoints (any prostate cancer, actionable, severe, etc.), for all prediction horizons, with and without a GRS:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table38 <- formatted %>%                        
   dplyr::filter(                          
@@ -6178,7 +6184,7 @@ Not quite.
 
 Similarly, if you calculate the Net Reclassification Improvement (NRI) for every combination of GRS-Covariate-Endpoint compared to the equivalent models with Age alone:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 table39 <- nri_bulk %>%                        
   dplyr::filter(                          
@@ -6192,13 +6198,13 @@ pretty_print_table(table39)
 
 ```
 
--   Black men see a significantly (p \< 0.05) positive NRI with many GRS-endpoint combinations, with Conti, Wang, and Schumacherâ€™s BARCODE1 GRSs providing the greatest improvement (though this varies across endpoints)
+-   Black men see a significantly (p <= 0.05) positive NRI with many GRS-endpoint combinations, with Conti, Wang, and Schumacher's BARCODE1 GRSs providing the greatest improvement (though this varies across endpoints)
 
-## So far, weâ€™ve evaluated GRS utility as a screening tool for asymptomatic men
+## So far, we've evaluated GRS utility as a screening tool for asymptomatic men
 
 But another potential GRS application is in symptomatic triage pathways
 
-Which brings us on toâ€¦
+Which brings us on to...
 
 # Part 2: Symptomatic Triage
 
@@ -6208,7 +6214,7 @@ Can the GRS predict which men presenting with symptoms to their GP will be diagn
 
 *General:*
 
--   Females (based on self-report of â€œSexâ€. Using â€œGenetic Sexâ€ did not alter the results)
+-   Females (based on self-report of 'Sex'. Using 'Genetic Sex' did not alter the results)
 
 -   Anyone without linked genetic data (imputed genotypes)
 
@@ -6265,13 +6271,13 @@ Anyone with any of the following codes in their OPCS records:
 
 Age = Age at symptom presentation
 
-Genetic similarity\* is defined by Pan-UKB study (Karczewski et al., 2025)
+Genetic similarity* is defined by Pan-UKB study (Karczewski et al., 2025)
 
 Prostate cancer cases defined as:
 
--   At least one â€œC61â€ or â€œ185â€ event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
--   At least one â€œC61â€ event in Cancer Registry
--   At least one â€œC61â€ event in death records as â€œCause of Deathâ€
+-   At least one 'C61' or '185' event in Hospital Records (only if the diagnosis is confirmed in the cancer registry or death records)
+-   At least one 'C61' event in Cancer Registry
+-   At least one 'C61' event in death records as 'Cause of Death'
 
 Ethnicity is based on self-report and clustered as follows:
 
@@ -6283,11 +6289,11 @@ Ethnicity is based on self-report and clustered as follows:
 -   East Asian = Chinese
 -   Other = Other ethnic group, Any other mixed background, Prefer not to answer, Do not know, Mixed, NA, Any other Asian background, White and Asian, Asian or Asian British
 
-Note: Genetic similarity is the preferred term for what is called â€œGenomic Ancestryâ€ in the UK Biobank
+Note: Genetic similarity is the preferred term for what is called 'Genomic Ancestry' in the UK Biobank
 
 ## Risk stratification of any prostate cancer diagnosis, any time after symptom presentation
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
@@ -6306,7 +6312,7 @@ pretty_print_table(table40)
 
 ## Risk stratification of any prostate cancer diagnosis, 2 years after symptom presentation
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
@@ -6325,7 +6331,7 @@ pretty_print_table(table41)
 
 ## Risk stratification of any prostate cancer diagnosis, 5 years after symptom presentation
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
@@ -6344,7 +6350,7 @@ pretty_print_table(table42)
 
 ## Risk stratification of any prostate cancer diagnosis, 10 years after symptom presentation
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
