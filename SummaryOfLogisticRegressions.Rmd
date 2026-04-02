@@ -1,5 +1,5 @@
 ﻿---
-title: "document version"
+title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
 date: "2026-03-28"
 ---
@@ -5946,7 +5946,7 @@ Ratio = `r round(irm_plot6_rr, 2)`
 
 ## Odds Ratio tables to test GRS+Age vs Age alone, in White men vs. Black men, on a 10-year prediction horizon
 
-### White men
+### White men (bins are based within the White group, not global bins)
 
 ```{r, echo=FALSE}
 
@@ -6013,7 +6013,7 @@ pretty_print_table(ORtable_combined1)
 
 ```
 
-### Black men
+### Black men (bins are based within the Black group, not global bins)
 
 ```{r, echo=FALSE}
 
@@ -6077,6 +6077,78 @@ ORtable_combined2 <- GRSAlone %>%
   left_join(Age_GRS, by = "Bin")
 
 pretty_print_table(ORtable_combined2)
+
+```
+
+### White and Black men (bins are now global)
+
+```{r, echo=FALSE}
+
+model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
+                    outcome = "PrCa_10yrs",
+                    predictor = "ContimultiethnicGRS267",
+                    covariates = NULL,
+                    plot_roc = FALSE,
+                    show_output = FALSE)
+
+model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
+                    outcome = "PrCa_10yrs",
+                    predictor = "Age",
+                    covariates = NULL,
+                    plot_roc = FALSE,
+                    show_output = FALSE)
+
+model3 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
+                    outcome = "PrCa_10yrs",
+                    predictor = "Age",
+                    covariates = "ContimultiethnicGRS267",
+                    plot_roc = FALSE,
+                    show_output = FALSE)
+
+ORtable_GRSalone <- ORtable(
+  data = model$data,
+  outcome = model$outcome,
+  group_col = "ethnicity_group_narrow",       
+  positive_level = 1,        # 1 denotes positive outcome
+  use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
+)
+
+
+ORtable_Agealone <- ORtable(
+  data = model2$data,
+  outcome = model2$outcome,
+  group_col = "ethnicity_group_narrow",       
+  positive_level = 1,        # 1 denotes positive outcome
+  use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
+)
+
+ORtable_Age_GRS <- ORtable(
+  data = model3$data,
+  outcome = model3$outcome,
+  group_col = "ethnicity_group_narrow",       
+  positive_level = 1,        # 1 denotes positive outcome
+  use_existing_cols = FALSE  # If in doubt, leave as FALSE. Set to TRUE if you have already created "predtopXX" columns for the desired bins and want to reuse them (must be global bins, not within-group bins)
+)
+
+GRSAlone <- ORtable_GRSalone$wide_formatted %>%
+  dplyr::rename("White men, GRS alone" = "White") %>%
+  dplyr::rename("Black men, GRS alone" = "Black")
+
+AgeAlone <- ORtable_Agealone$wide_formatted %>%
+  dplyr::rename("White men, Age alone" = "White") %>%
+  dplyr::rename("Black men, Age alone" = "Black")
+
+Age_GRS <- ORtable_Age_GRS$wide_formatted %>%
+  dplyr::rename("White men, Age + GRS" = "White") %>%
+  dplyr::rename("Black men, Age + GRS" = "Black")
+
+
+ORtable_combined3 <- GRSAlone %>%
+  left_join(AgeAlone, by = "Bin") %>%
+  left_join(Age_GRS, by = "Bin") %>%
+  dplyr::select(c("Bin", "White men, GRS alone", "White men, Age alone", "White men, Age + GRS", "Black men, GRS alone", "Black men, Age alone", "Black men, Age + GRS"))
+
+pretty_print_table(ORtable_combined3)
 
 ```
 
