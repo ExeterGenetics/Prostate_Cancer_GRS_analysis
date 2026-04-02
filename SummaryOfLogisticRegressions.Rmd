@@ -5155,7 +5155,7 @@ pretty_print_table(table7)
 
 ## So far, we've looked at general prostate cancer diagnoses
 
-But prostate cancer often has an overdiagnosis problem ' cancers that are never expected to cause harm in a person's natural lifespan are unnecessarily treated
+But prostate cancer often has an overdiagnosis problem - cancers that are never expected to cause harm in a person's natural lifespan are unnecessarily treated
 
 ```{r, echo=FALSE, cache = TRUE}
 
@@ -5330,7 +5330,7 @@ Since it is a GRS built to predict diagnosis of prostate cancer (not to predict 
 Seibert's GRS was trained on 'aggressive' prostate cancer as the primary endpoint, which was defined as not eligible for active surveillance per NCCN; operationally, any of the following:
 
 -   Gleason score >=7
--   Clinical stage T3'T4
+-   Clinical stage T3-T4
 -   PSA >=10 ng/mL
 -   Nodal metastasis
 -   Distant metastasis
