@@ -1448,19 +1448,20 @@ ggplot(data=PCa_iv_covariates_GRS_predhorizon2, aes(x=ContimultiethnicGRS,colour
 #   - rs72725854_T (carrier status of rs72725854 risk allele)
 #
 
-
 # Logistic Regression
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = NULL,
+                    covariates = "ContimultiethnicGRS267",
+                    subset_controls = TRUE,                  # Set to TRUE to randomly subset controls to match number of cases 
                     plot_roc = TRUE)
 
-model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2, ## model2 is used for NRI comparison with model1
+model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly2, ## model2 is used for NRI comparison with model1
                      outcome = "PrCa_10yrs",
-                     predictor = "ContimultiethnicGRS",
-                     covariates = "Age",
+                     predictor = "Age",
+                     covariates = "ContimultiethnicGRS267",
+                     subset_controls = FALSE,                  # Set to TRUE to randomly subset controls to match number of cases 
                      plot_roc = TRUE)
 
 # Confusion Matrix
@@ -1513,6 +1514,7 @@ print(RR_table$wide_formatted)
 bulk2 <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                 "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
   version = "Symptomatic Triage"
 )
 
@@ -1575,6 +1577,7 @@ subset2 <- formatted2 %>%
 nri_bulk2 <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                 "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
   version = "Symptomatic Triage"
 )
 
