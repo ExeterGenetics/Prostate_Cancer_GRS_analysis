@@ -1455,7 +1455,7 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
                     covariates = "ContimultiethnicGRS267",
-                    subset_controls = TRUE,                  # Set to TRUE to randomly subset controls to match number of cases 
+                    subset_controls = FALSE,                  # Set to TRUE to randomly subset controls to match number of cases 
                     plot_roc = TRUE,
                     plot_pr = TRUE)
 
