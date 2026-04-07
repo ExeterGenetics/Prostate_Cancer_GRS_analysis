@@ -7,6 +7,7 @@
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
 library(ggplot2)
+library(PRROC)
 library(pROC)
 library(epiR)
 
@@ -1158,14 +1159,16 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     predictor = "Age",
                     covariates = "ContimultiethnicGRS267",
                     subset_controls = TRUE,                  # Set to TRUE to randomly subset controls to match number of cases 
-                    plot_roc = TRUE)
+                    plot_roc = TRUE,
+                    plot_pr = TRUE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
                      covariates = "ContimultiethnicGRS267",
                      subset_controls = FALSE,                  # Set to TRUE to randomly subset controls to match number of cases 
-                     plot_roc = TRUE)
+                     plot_roc = TRUE,
+                     plot_pr = TRUE)
 
 # Confusion Matrix
 

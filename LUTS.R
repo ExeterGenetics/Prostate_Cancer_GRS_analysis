@@ -11,6 +11,7 @@ library(readr)
 library(readstata13)
 library(ggplot2)
 library(pROC)
+library(PRROC)
 library(matrixStats)
 library(survminer)
 library(survival)
@@ -1455,14 +1456,16 @@ model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
                     predictor = "Age",
                     covariates = "ContimultiethnicGRS267",
                     subset_controls = TRUE,                  # Set to TRUE to randomly subset controls to match number of cases 
-                    plot_roc = TRUE)
+                    plot_roc = TRUE,
+                    plot_pr = TRUE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly2, ## model2 is used for NRI comparison with model1
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
                      covariates = "ContimultiethnicGRS267",
                      subset_controls = FALSE,                  # Set to TRUE to randomly subset controls to match number of cases 
-                     plot_roc = TRUE)
+                     plot_roc = TRUE,
+                     plot_pr = TRUE)
 
 # Confusion Matrix
 

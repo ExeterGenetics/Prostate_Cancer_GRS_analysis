@@ -10,6 +10,8 @@ ensure_package <- function(pkg) {
 
 packages_needed <- c(
   "pROC",
+  "PRROC",
+  "epiR",
   "RMySQL",
   "readstata13",
   "survminer",
@@ -56,6 +58,7 @@ run_logreg <- function(data,
                        covariates = NULL,
                        subset_controls = FALSE,
                        plot_roc = TRUE,
+                       plot_pr = FALSE,
                        show_output = TRUE) {
 
   if (isTRUE(subset_controls)) {
@@ -99,13 +102,36 @@ run_logreg <- function(data,
     print(roc_obj)
   }
   
+  pr_obj <- NULL
+  if (plot_pr) {
+    labels <- as.numeric(data[[outcome]] == 1)
+    scores <- data$pred
+    keep <- !is.na(labels) & !is.na(scores)
+    labels_clean <- labels[keep]
+    scores_clean <- scores[keep]
+    
+    pr_obj <- pr.curve(scores.class0 = scores_clean[labels_clean == 1],
+                       scores.class1 = scores_clean[labels_clean == 0],
+                       curve = TRUE)
+    
+    if (plot_pr && show_output) {
+      plot(pr_obj, main = paste("Precision-Recall Curve:", predictor),
+           xlab = "Recall", ylab = "Precision")
+    }
+    
+    if (show_output) {
+      print(pr_obj)
+    }
+  }
+  
   return(list(
     model = logreg,
     data = data,
     outcome = outcome,
     predictor = predictor,
     covariates = covariates,
-    roc = roc_obj
+    roc = roc_obj,
+    pr = pr_obj
   ))
 }
 
