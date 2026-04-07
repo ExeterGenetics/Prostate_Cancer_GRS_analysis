@@ -109,14 +109,24 @@ run_logreg <- function(data,
     keep <- !is.na(labels) & !is.na(scores)
     labels_clean <- labels[keep]
     scores_clean <- scores[keep]
+    prevalence <- mean(labels_clean == 1)
     
     pr_obj <- pr.curve(scores.class0 = scores_clean[labels_clean == 1],
                        scores.class1 = scores_clean[labels_clean == 0],
                        curve = TRUE)
     
     if (plot_pr && show_output) {
-      plot(pr_obj, main = paste("Precision-Recall Curve:", predictor),
+      model_label <- if (is.null(covariates)) {
+        predictor
+      } else {
+        paste(predictor, "+", paste(covariates, collapse = " + "))
+      }
+      plot(pr_obj, main = paste("Precision-Recall Curve:", model_label),
            xlab = "Recall", ylab = "Precision")
+            abline(h = prevalence, col = "red", lty = 2, lwd = 2)
+            legend("bottomleft",
+              legend = paste0("Outcome prevalence = ", sprintf("%.3f", prevalence)),
+              col = "red", lty = 2, lwd = 2, bty = "n")
     }
     
     if (show_output) {
@@ -1099,6 +1109,7 @@ nri_table <- function(
 ## Returns: dataframe with columns:
 ##   - Outcome, Population, Predictor, Covariates
 ##   - N_Cases, N_Controls
+##   - Prevalence, PR_AUC
 ##   - ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper
 ##   - OR_per_1SD, OR_per_1SD_CI_Lower, OR_per_1SD_CI_Upper, OR_per_1SD_p
 
@@ -1208,6 +1219,8 @@ logreg_table <- function(
     Covariates = character(),
     N_Cases = integer(),
     N_Controls = integer(),
+    Prevalence = numeric(),
+    PR_AUC = numeric(),
     ROC_AUC = numeric(),
     ROC_AUC_CI_Lower = numeric(),
     ROC_AUC_CI_Upper = numeric(),
@@ -1257,6 +1270,7 @@ logreg_table <- function(
               covariates = cov,
               subset_controls = subset_controls,
               plot_roc = plot_roc,
+              plot_pr = TRUE,
               show_output = FALSE
             )
             
@@ -1266,6 +1280,11 @@ logreg_table <- function(
             auc_ci <- as.numeric(roc_obj$ci)  # Returns [lower, AUC, upper]
             auc_lower <- auc_ci[1]
             auc_upper <- auc_ci[3]
+
+            # Extract PR AUC and prevalence from rows with non-missing outcome/predictions
+            pr_auc <- as.numeric(model$pr$auc.integral)
+            valid_rows <- !is.na(model$data[[current_outcome]]) & !is.na(model$data$pred)
+            prevalence <- mean(model$data[[current_outcome]][valid_rows] == 1)
             
             # Count cases and controls in the dataset used
             n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
@@ -1298,6 +1317,8 @@ logreg_table <- function(
               Covariates = cov_label,
               N_Cases = n_cases,
               N_Controls = n_controls,
+              Prevalence = prevalence,
+              PR_AUC = pr_auc,
               ROC_AUC = auc_val,
               ROC_AUC_CI_Lower = auc_lower,
               ROC_AUC_CI_Upper = auc_upper,
@@ -1333,6 +1354,7 @@ logreg_table <- function(
               covariates = NULL,
               subset_controls = subset_controls,
               plot_roc = plot_roc,
+              plot_pr = TRUE,
               show_output = FALSE
             )
             
@@ -1341,6 +1363,10 @@ logreg_table <- function(
             auc_ci <- as.numeric(roc_obj$ci)
             auc_lower <- auc_ci[1]
             auc_upper <- auc_ci[3]
+
+            pr_auc <- as.numeric(model$pr$auc.integral)
+            valid_rows <- !is.na(model$data[[current_outcome]]) & !is.na(model$data$pred)
+            prevalence <- mean(model$data[[current_outcome]][valid_rows] == 1)
             
             n_cases <- sum(model$data[[current_outcome]] == 1, na.rm = TRUE)
             n_controls <- sum(model$data[[current_outcome]] == 0, na.rm = TRUE)
@@ -1352,6 +1378,8 @@ logreg_table <- function(
               Covariates = "None",
               N_Cases = n_cases,
               N_Controls = n_controls,
+              Prevalence = prevalence,
+              PR_AUC = pr_auc,
               ROC_AUC = auc_val,
               ROC_AUC_CI_Lower = auc_lower,
               ROC_AUC_CI_Upper = auc_upper,
