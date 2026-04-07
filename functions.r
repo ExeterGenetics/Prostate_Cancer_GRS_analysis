@@ -1401,6 +1401,264 @@ logreg_table <- function(
   return(results)
 }
 
+## Function to quantify feature importance in integrated GRS+Age models ---------
+##
+## How it works:
+##   For each (outcome, population, GRS):
+##     1. Build a common analysis dataset with complete rows for outcome + GRS + Age
+##     2. Fit full model: outcome ~ GRS + Age
+##     3. Fit reduced models: outcome ~ Age and outcome ~ GRS
+##     4. Quantify feature importance with:
+##        - Likelihood-ratio test (LRT) drop-in-fit statistics
+##        - Delta ROC AUC (full minus reduced)
+##     5. Report adjusted ORs for GRS and Age from the full model
+
+feature_importance_table <- function(
+    populations = NULL,
+    grs_list = NULL,
+    outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
+                 "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
+                 "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    subset_controls = FALSE,
+    verbose = TRUE,
+    version = "Asymptomatic Screening"
+) {
+  valid_versions <- c("Asymptomatic Screening", "Symptomatic Triage")
+  if (!(version %in% valid_versions)) {
+    stop("`version` must be one of: 'Asymptomatic Screening' or 'Symptomatic Triage'.")
+  }
+
+  # Default populations if not specified
+  if (is.null(populations)) {
+    if (version == "Asymptomatic Screening") {
+      populations <- list(
+        "All" = PCa_iv_covariates_GRS_predhorizon,
+        "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+        "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+        "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+        "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+        "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+        "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+        "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+        "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+        "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+        "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+      )
+    } else if (version == "Symptomatic Triage") {
+      populations <- list(
+        "All" = PCa_iv_covariates_GRS_predhorizon2,
+        "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
+        "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
+        "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
+        "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2,
+        "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly2,
+        "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly2,
+        "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly2,
+        "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly2,
+        "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly2,
+        "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly2
+      )
+    }
+  }
+
+  # Default GRS list if not specified
+  if (is.null(grs_list)) {
+    grs_list <- c(
+      "ContimultiethnicGRS", "ContiEuropeanGRS", "ContiAfricanGRS", "ContiEast_AsianGRS", "ContiHispanicGRS",
+      "ContiadjustedGRS", "ContimultiethnicGRS267", "ContiEuropeanGRS265", "ContiAfricanGRS246",
+      "ContiEast_AsianGRS222", "ContiHispanicGRS253", "ContiORadjustedGRS", "WangmultiethnicGRS",
+      "WangEuropeanGRS", "WangAfricanGRS", "WangEast_AsianGRS", "WangHispanicGRS", "WangmultiethnicGRS450",
+      "WangEuropeanGRS445", "WangAfricanGRS444", "WangEast_AsianGRS379", "WangHispanicGRS446",
+      "SchumacherGRS", "BARCODE1GRS", "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS", "PagadalaGRS",
+      "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"
+    )
+  }
+
+  grs_list <- setdiff(grs_list, "Age")
+
+  results <- data.frame(
+    Outcome = character(),
+    Population = character(),
+    Predictor = character(),
+    N = integer(),
+    N_Cases = integer(),
+    N_Controls = integer(),
+    Full_ROC_AUC = numeric(),
+    Age_only_ROC_AUC = numeric(),
+    GRS_only_ROC_AUC = numeric(),
+    Delta_AUC_drop_GRS = numeric(),
+    Delta_AUC_drop_Age = numeric(),
+    LRT_drop_GRS_ChiSq = numeric(),
+    LRT_drop_GRS_p = numeric(),
+    LRT_drop_Age_ChiSq = numeric(),
+    LRT_drop_Age_p = numeric(),
+    GRS_OR_adj = numeric(),
+    GRS_OR_adj_CI_Lower = numeric(),
+    GRS_OR_adj_CI_Upper = numeric(),
+    GRS_OR_adj_p = numeric(),
+    Age_OR_adj = numeric(),
+    Age_OR_adj_CI_Lower = numeric(),
+    Age_OR_adj_CI_Upper = numeric(),
+    Age_OR_adj_p = numeric(),
+    stringsAsFactors = FALSE
+  )
+
+  total_combos <- length(outcomes) * length(populations) * length(grs_list)
+  combo_count <- 0
+
+  for (current_outcome in outcomes) {
+    for (pop_name in names(populations)) {
+      pop_data <- populations[[pop_name]]
+
+      if (!"Age" %in% colnames(pop_data)) {
+        if (verbose) cat(sprintf("Skipping %s (Age not in data)\n", pop_name))
+        next
+      }
+
+      for (grs_pred in grs_list) {
+        combo_count <- combo_count + 1
+
+        if (verbose) {
+          cat(sprintf("[%d/%d] %s | %s | %s\n", combo_count, total_combos, current_outcome, pop_name, grs_pred))
+        }
+
+        if (!grs_pred %in% colnames(pop_data)) {
+          if (verbose) cat(sprintf("  Skipping %s (not in %s)\n", grs_pred, pop_name))
+          next
+        }
+
+        needed <- c(current_outcome, "Age", grs_pred)
+        analysis_data <- pop_data[stats::complete.cases(pop_data[, needed]), , drop = FALSE]
+
+        if (nrow(analysis_data) == 0) {
+          if (verbose) cat("  Skipping (no complete rows for outcome + Age + GRS)\n")
+          next
+        }
+
+        if (isTRUE(subset_controls)) {
+          analysis_data <- subset_controls_to_case_count(analysis_data, case_col = current_outcome)
+        }
+
+        if (length(unique(analysis_data[[current_outcome]])) < 2) {
+          if (verbose) cat("  Skipping (outcome has <2 classes after filtering)\n")
+          next
+        }
+
+        tryCatch({
+          full_model <- run_logreg(
+            data = analysis_data,
+            outcome = current_outcome,
+            predictor = grs_pred,
+            covariates = "Age",
+            subset_controls = FALSE,
+            plot_roc = FALSE,
+            plot_pr = FALSE,
+            show_output = FALSE
+          )
+
+          age_only_model <- run_logreg(
+            data = analysis_data,
+            outcome = current_outcome,
+            predictor = "Age",
+            covariates = NULL,
+            subset_controls = FALSE,
+            plot_roc = FALSE,
+            plot_pr = FALSE,
+            show_output = FALSE
+          )
+
+          grs_only_model <- run_logreg(
+            data = analysis_data,
+            outcome = current_outcome,
+            predictor = grs_pred,
+            covariates = NULL,
+            subset_controls = FALSE,
+            plot_roc = FALSE,
+            plot_pr = FALSE,
+            show_output = FALSE
+          )
+
+          full_auc <- as.numeric(full_model$roc$auc)
+          age_auc <- as.numeric(age_only_model$roc$auc)
+          grs_auc <- as.numeric(grs_only_model$roc$auc)
+
+          lrt_drop_grs <- anova(age_only_model$model, full_model$model, test = "LRT")
+          lrt_drop_age <- anova(grs_only_model$model, full_model$model, test = "LRT")
+
+          lrt_drop_grs_chisq <- as.numeric(lrt_drop_grs$Deviance[2])
+          lrt_drop_grs_p <- as.numeric(lrt_drop_grs$`Pr(>Chi)`[2])
+          lrt_drop_age_chisq <- as.numeric(lrt_drop_age$Deviance[2])
+          lrt_drop_age_p <- as.numeric(lrt_drop_age$`Pr(>Chi)`[2])
+
+          coef_tbl <- summary(full_model$model)$coefficients
+
+          if (grs_pred %in% rownames(coef_tbl)) {
+            grs_beta <- coef_tbl[grs_pred, "Estimate"]
+            grs_se <- coef_tbl[grs_pred, "Std. Error"]
+            grs_or <- exp(grs_beta)
+            grs_or_ci_lower <- exp(grs_beta - 1.96 * grs_se)
+            grs_or_ci_upper <- exp(grs_beta + 1.96 * grs_se)
+            grs_p <- coef_tbl[grs_pred, "Pr(>|z|)"]
+          } else {
+            grs_or <- NA_real_
+            grs_or_ci_lower <- NA_real_
+            grs_or_ci_upper <- NA_real_
+            grs_p <- NA_real_
+          }
+
+          if ("Age" %in% rownames(coef_tbl)) {
+            age_beta <- coef_tbl["Age", "Estimate"]
+            age_se <- coef_tbl["Age", "Std. Error"]
+            age_or <- exp(age_beta)
+            age_or_ci_lower <- exp(age_beta - 1.96 * age_se)
+            age_or_ci_upper <- exp(age_beta + 1.96 * age_se)
+            age_p <- coef_tbl["Age", "Pr(>|z|)"]
+          } else {
+            age_or <- NA_real_
+            age_or_ci_lower <- NA_real_
+            age_or_ci_upper <- NA_real_
+            age_p <- NA_real_
+          }
+
+          n_cases <- sum(analysis_data[[current_outcome]] == 1, na.rm = TRUE)
+          n_controls <- sum(analysis_data[[current_outcome]] == 0, na.rm = TRUE)
+
+          results <- rbind(results, data.frame(
+            Outcome = current_outcome,
+            Population = pop_name,
+            Predictor = grs_pred,
+            N = nrow(analysis_data),
+            N_Cases = n_cases,
+            N_Controls = n_controls,
+            Full_ROC_AUC = full_auc,
+            Age_only_ROC_AUC = age_auc,
+            GRS_only_ROC_AUC = grs_auc,
+            Delta_AUC_drop_GRS = full_auc - age_auc,
+            Delta_AUC_drop_Age = full_auc - grs_auc,
+            LRT_drop_GRS_ChiSq = lrt_drop_grs_chisq,
+            LRT_drop_GRS_p = lrt_drop_grs_p,
+            LRT_drop_Age_ChiSq = lrt_drop_age_chisq,
+            LRT_drop_Age_p = lrt_drop_age_p,
+            GRS_OR_adj = grs_or,
+            GRS_OR_adj_CI_Lower = grs_or_ci_lower,
+            GRS_OR_adj_CI_Upper = grs_or_ci_upper,
+            GRS_OR_adj_p = grs_p,
+            Age_OR_adj = age_or,
+            Age_OR_adj_CI_Lower = age_or_ci_lower,
+            Age_OR_adj_CI_Upper = age_or_ci_upper,
+            Age_OR_adj_p = age_p,
+            stringsAsFactors = FALSE
+          ))
+        }, error = function(e) {
+          if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+        })
+      }
+    }
+  }
+
+  results
+}
+
 # Consistent HTML table renderer for report/slides
 pretty_print_table <- function(df, caption = NULL) {
   knitr::kable(df, format = "html", escape = FALSE, caption = caption) %>%
