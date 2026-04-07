@@ -1156,13 +1156,15 @@ ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "GenomicsPLC_PRS",
+                    covariates = "ContimultiethnicGRS267",
+                    subset_controls = TRUE,                  # Set to TRUE to randomly subset controls to match number of cases 
                     plot_roc = TRUE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
-                     covariates = "WangAfricanGRS444",
+                     covariates = "ContimultiethnicGRS267",
+                     subset_controls = FALSE,                  # Set to TRUE to randomly subset controls to match number of cases 
                      plot_roc = TRUE)
 
 # Confusion Matrix
@@ -1215,6 +1217,7 @@ print(RR_table$wide_formatted)
 bulk <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
   version = "Asymptomatic Screening"
 )
 
@@ -1277,6 +1280,7 @@ subset <- formatted %>%
 nri_bulk <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
   version = "Asymptomatic Screening"
 )
 

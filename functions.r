@@ -26,15 +26,42 @@ packages_needed <- c(
 
 invisible(lapply(packages_needed, ensure_package))
 
+# Helper: randomly subset controls to match the number of cases for a given outcome column
+subset_controls_to_case_count <- function(df, case_col) {
+  cases    <- df[!is.na(df[[case_col]]) & df[[case_col]] == 1L, , drop = FALSE]
+  controls <- df[!is.na(df[[case_col]]) & df[[case_col]] == 0L, , drop = FALSE]
+
+  ncases    <- nrow(cases)
+  ncontrols <- nrow(controls)
+
+  if (ncases == 0L || ncontrols == 0L) {
+    return(df)
+  }
+
+  if (ncontrols < ncases) {
+    warning("Fewer controls than cases; returning all controls and all cases.")
+  }
+
+  n_to_sample     <- min(ncases, ncontrols)
+  sampled_controls <- controls[sample.int(ncontrols, size = n_to_sample, replace = FALSE), , drop = FALSE]
+
+  dplyr::bind_rows(cases, sampled_controls)
+}
+
 # Function to run a logistic regression and compute a ROC AUC curve with 95% CIs
 
 run_logreg <- function(data,
                        outcome,
                        predictor,
                        covariates = NULL,
+                       subset_controls = FALSE,
                        plot_roc = TRUE,
                        show_output = TRUE) {
-  
+
+  if (isTRUE(subset_controls)) {
+    data <- subset_controls_to_case_count(data, case_col = outcome)
+  }
+
   if (is.null(covariates)) {
     formula <- as.formula(paste(outcome, "~", predictor))
   } else {
@@ -804,6 +831,7 @@ nri_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    subset_controls = FALSE,
     verbose = TRUE,
     version = "Asymptomatic Screening"
 ) {
@@ -938,6 +966,7 @@ nri_table <- function(
           outcome = current_outcome,
           predictor = "Age",
           covariates = NULL,
+          subset_controls = subset_controls,
           plot_roc = FALSE,
           show_output = FALSE
         )
@@ -967,6 +996,7 @@ nri_table <- function(
               outcome = current_outcome,
               predictor = grs_pred,
               covariates = "Age",
+              subset_controls = subset_controls,
               plot_roc = FALSE,
               show_output = FALSE
             )
@@ -1054,6 +1084,7 @@ logreg_table <- function(
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
     covariates_list = list(NULL, "Age", "rs72725854_T"),  # uses list() so NULL is preserved as a distinct option
     include_age_only = TRUE,
+    subset_controls = FALSE,
     plot_roc = FALSE,
     verbose = TRUE,
     version = "Asymptomatic Screening"
@@ -1198,6 +1229,7 @@ logreg_table <- function(
               outcome = current_outcome,
               predictor = grs_pred,
               covariates = cov,
+              subset_controls = subset_controls,
               plot_roc = plot_roc,
               show_output = FALSE
             )
@@ -1273,6 +1305,7 @@ logreg_table <- function(
               outcome = current_outcome,
               predictor = "Age",
               covariates = NULL,
+              subset_controls = subset_controls,
               plot_roc = plot_roc,
               show_output = FALSE
             )
