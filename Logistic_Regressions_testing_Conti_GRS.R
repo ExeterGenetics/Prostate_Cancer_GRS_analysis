@@ -1260,7 +1260,7 @@ formatted <- bulk %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
     )
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Prevalence", "PR_AUC"))
 
 ## This block is to view a subset of the bulk logistic regression table. Change
 ## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
@@ -1305,3 +1305,63 @@ nri_subset <- nri_bulk %>%
     #GRS == "PagadalaGRS",
     #Outcome == "PrCa_severe_10yrs"
   )
+
+
+#############################################################
+# Step 11 - Feature importance in integrated GRS+Age models #
+#############################################################
+
+## For each (Outcome, Population, GRS), this compares the full model (GRS+Age)
+## against Age-only and GRS-only reduced models using:
+##  - LRT drop-in-fit p-values
+##  - Delta AUC (full minus reduced)
+
+FI_bulk <- feature_importance_table(
+  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
+               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,
+  version = "Asymptomatic Screening"
+)
+
+FI_formatted <- FI_bulk %>%
+  dplyr::mutate(
+    Full_ROC_AUC_4dp = sprintf("%.4f", Full_ROC_AUC),
+    Delta_AUC_drop_GRS_4dp = sprintf("%.4f", Delta_AUC_drop_GRS),
+    Delta_AUC_drop_Age_4dp = sprintf("%.4f", Delta_AUC_drop_Age),
+    GRS_OR_adj_CI_95 = dplyr::if_else(
+      is.na(GRS_OR_adj) | is.na(GRS_OR_adj_CI_Lower) | is.na(GRS_OR_adj_CI_Upper),
+      NA_character_,
+      sprintf("%.4f [%.4f-%.4f]", GRS_OR_adj, GRS_OR_adj_CI_Lower, GRS_OR_adj_CI_Upper)
+    ),
+    Age_OR_adj_CI_95 = dplyr::if_else(
+      is.na(Age_OR_adj) | is.na(Age_OR_adj_CI_Lower) | is.na(Age_OR_adj_CI_Upper),
+      NA_character_,
+      sprintf("%.4f [%.4f-%.4f]", Age_OR_adj, Age_OR_adj_CI_Lower, Age_OR_adj_CI_Upper)
+    ),
+    GRS_added_value = dplyr::case_when(
+      is.na(LRT_drop_GRS_p) ~ NA_character_,
+      LRT_drop_GRS_p < 0.05 ~ "YES",
+      TRUE ~ "NO"
+    ),
+    Age_added_value = dplyr::case_when(
+      is.na(LRT_drop_Age_p) ~ NA_character_,
+      LRT_drop_Age_p < 0.05 ~ "YES",
+      TRUE ~ "NO"
+    )
+  ) %>%
+  dplyr::select(
+    Outcome, Population, Predictor, N_Cases, N_Controls,
+    Full_ROC_AUC_4dp,
+    Delta_AUC_drop_GRS_4dp, LRT_drop_GRS_p, GRS_added_value,
+    Delta_AUC_drop_Age_4dp, LRT_drop_Age_p, Age_added_value,
+    GRS_OR_adj_CI_95, Age_OR_adj_CI_95
+  )
+
+FI_subset <- FI_formatted %>%
+  dplyr::filter(
+    Population == "Black"
+    #Outcome == "PrCa"
+    #Predictor == "ContiAfricanGRS246"
+  )
+
+
