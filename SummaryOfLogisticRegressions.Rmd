@@ -46,15 +46,42 @@ packages_needed <- c(
 
 invisible(lapply(packages_needed, ensure_package))
 
+# Helper: randomly subset controls to match the number of cases for a given outcome column
+subset_controls_to_case_count <- function(df, case_col) {
+  cases    <- df[!is.na(df[[case_col]]) & df[[case_col]] == 1L, , drop = FALSE]
+  controls <- df[!is.na(df[[case_col]]) & df[[case_col]] == 0L, , drop = FALSE]
+
+  ncases    <- nrow(cases)
+  ncontrols <- nrow(controls)
+
+  if (ncases == 0L || ncontrols == 0L) {
+    return(df)
+  }
+
+  if (ncontrols < ncases) {
+    warning("Fewer controls than cases; returning all controls and all cases.")
+  }
+
+  n_to_sample     <- min(ncases, ncontrols)
+  sampled_controls <- controls[sample.int(ncontrols, size = n_to_sample, replace = FALSE), , drop = FALSE]
+
+  dplyr::bind_rows(cases, sampled_controls)
+}
+
 # Function to run a logistic regression and compute a ROC AUC curve with 95% CIs
 
 run_logreg <- function(data,
                        outcome,
                        predictor,
                        covariates = NULL,
+                       subset_controls = FALSE,
                        plot_roc = TRUE,
                        show_output = TRUE) {
-  
+
+  if (isTRUE(subset_controls)) {
+    data <- subset_controls_to_case_count(data, case_col = outcome)
+  }
+
   if (is.null(covariates)) {
     formula <- as.formula(paste(outcome, "~", predictor))
   } else {
@@ -716,7 +743,7 @@ nri <- function(data,
   z_controls       <- NRI_controls / SE_NRI_controls
   p_controls       <- 2 * pnorm(-abs(z_controls))
   
-  # ---- Overall NRI ------------------------------------------------------------
+  # -- Overall NRI ------------------------------------------------------------
   NRI             <- NRI_cases + NRI_controls
   SE_NRI          <- sqrt(SE_NRI_cases^2 + SE_NRI_controls^2)
   CI_low_NRI      <- NRI - 1.96 * SE_NRI
@@ -824,6 +851,7 @@ nri_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    subset_controls = FALSE,
     verbose = TRUE,
     version = "Asymptomatic Screening"
 ) {
@@ -958,6 +986,7 @@ nri_table <- function(
           outcome = current_outcome,
           predictor = "Age",
           covariates = NULL,
+          subset_controls = subset_controls,
           plot_roc = FALSE,
           show_output = FALSE
         )
@@ -987,6 +1016,7 @@ nri_table <- function(
               outcome = current_outcome,
               predictor = grs_pred,
               covariates = "Age",
+              subset_controls = subset_controls,
               plot_roc = FALSE,
               show_output = FALSE
             )
@@ -1074,6 +1104,7 @@ logreg_table <- function(
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
     covariates_list = list(NULL, "Age", "rs72725854_T"),  # uses list() so NULL is preserved as a distinct option
     include_age_only = TRUE,
+    subset_controls = FALSE,
     plot_roc = FALSE,
     verbose = TRUE,
     version = "Asymptomatic Screening"
@@ -1218,6 +1249,7 @@ logreg_table <- function(
               outcome = current_outcome,
               predictor = grs_pred,
               covariates = cov,
+              subset_controls = subset_controls,
               plot_roc = plot_roc,
               show_output = FALSE
             )
@@ -1293,6 +1325,7 @@ logreg_table <- function(
               outcome = current_outcome,
               predictor = "Age",
               covariates = NULL,
+              subset_controls = subset_controls,
               plot_roc = plot_roc,
               show_output = FALSE
             )
@@ -2510,13 +2543,15 @@ ggplot(data=PCa_iv_covariates_GRS_predhorizon, aes(x=ContimultiethnicGRS,colour=
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "GenomicsPLC_PRS",
+                    covariates = "ContimultiethnicGRS267",
+                    subset_controls = TRUE,                  # Set to TRUE to randomly subset controls to match number of cases 
                     plot_roc = TRUE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly, ## model2 is used for NRI comparison with model1
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
-                     covariates = "WangAfricanGRS444",
+                     covariates = "ContimultiethnicGRS267",
+                     subset_controls = FALSE,                  # Set to TRUE to randomly subset controls to match number of cases 
                      plot_roc = TRUE)
 
 # Confusion Matrix
@@ -2569,6 +2604,7 @@ print(RR_table$wide_formatted)
 bulk <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
   version = "Asymptomatic Screening"
 )
 
@@ -2631,6 +2667,7 @@ subset <- formatted %>%
 nri_bulk <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
   version = "Asymptomatic Screening"
 )
 
@@ -2642,6 +2679,7 @@ nri_bulk <- nri_bulk %>%
       p_NRI >= 0.05 ~ "NO"
     )
   )
+
 
 ## This block is to view a subset of the bulk NRI table. Change the filter to investigate a specific Population, Predictor, or Outcome
 
@@ -4108,19 +4146,20 @@ ggplot(data=PCa_iv_covariates_GRS_predhorizon2, aes(x=ContimultiethnicGRS,colour
 #   - rs72725854_T (carrier status of rs72725854 risk allele)
 #
 
-
 # Logistic Regression
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = NULL,
+                    covariates = "ContimultiethnicGRS267",
+                    subset_controls = TRUE,                  # Set to TRUE to randomly subset controls to match number of cases 
                     plot_roc = TRUE)
 
-model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2, ## model2 is used for NRI comparison with model1
+model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly2, ## model2 is used for NRI comparison with model1
                      outcome = "PrCa_10yrs",
-                     predictor = "ContimultiethnicGRS",
-                     covariates = "Age",
+                     predictor = "Age",
+                     covariates = "ContimultiethnicGRS267",
+                     subset_controls = FALSE,                  # Set to TRUE to randomly subset controls to match number of cases 
                      plot_roc = TRUE)
 
 # Confusion Matrix
@@ -4173,6 +4212,7 @@ print(RR_table$wide_formatted)
 bulk2 <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                 "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
   version = "Symptomatic Triage"
 )
 
@@ -4235,6 +4275,7 @@ subset2 <- formatted2 %>%
 nri_bulk2 <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                 "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
   version = "Symptomatic Triage"
 )
 
