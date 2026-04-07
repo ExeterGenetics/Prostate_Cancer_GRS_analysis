@@ -23,7 +23,8 @@ packages_needed <- c(
   "remotes",
   "caret",
   "bigsnpr",
-  "kableExtra"
+  "kableExtra",
+  "randomForest"
 )
 
 invisible(lapply(packages_needed, ensure_package))
@@ -1647,6 +1648,220 @@ feature_importance_table <- function(
             Age_OR_adj_CI_Lower = age_or_ci_lower,
             Age_OR_adj_CI_Upper = age_or_ci_upper,
             Age_OR_adj_p = age_p,
+            stringsAsFactors = FALSE
+          ))
+        }, error = function(e) {
+          if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+        })
+      }
+    }
+  }
+
+  results
+}
+
+## Function to compute Random Forest feature importance for integrated GRS+Age models ---
+##
+## How it works:
+##   For each (outcome, population, GRS):
+##     1. Build a complete-case dataset for outcome + GRS + Age
+##     2. Fit a Random Forest: outcome ~ GRS + Age (classification)
+##     3. Extract permutation importance (Mean Decrease Accuracy) for GRS and Age
+##        - This measures how much OOB accuracy drops when each feature's values
+##          are randomly shuffled, i.e. how much the model relies on it
+##     4. Compute OOB ROC AUC from OOB predicted probabilities
+##
+## Returns: dataframe with columns:
+##   - Outcome, Population, Predictor, N, N_Cases, N_Controls
+##   - OOB_ROC_AUC
+##   - GRS_MDA, Age_MDA        (Mean Decrease Accuracy - permutation importance)
+##   - GRS_MDG, Age_MDG        (Mean Decrease Gini - impurity-based, less preferred)
+##   - GRS_Pct_Importance      (GRS_MDA as % of total MDA; relative contribution)
+##   - Age_Pct_Importance
+
+rf_feature_importance_table <- function(
+    populations = NULL,
+    grs_list = NULL,
+    outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
+                 "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
+                 "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    ntree = 500,
+    subset_controls = FALSE,
+    verbose = TRUE,
+    version = "Asymptomatic Screening"
+) {
+  valid_versions <- c("Asymptomatic Screening", "Symptomatic Triage")
+  if (!(version %in% valid_versions)) {
+    stop("`version` must be one of: 'Asymptomatic Screening' or 'Symptomatic Triage'.")
+  }
+
+  if (!requireNamespace("randomForest", quietly = TRUE)) {
+    stop("Package 'randomForest' is required. Install it with install.packages('randomForest').")
+  }
+
+  # Default populations if not specified
+  if (is.null(populations)) {
+    if (version == "Asymptomatic Screening") {
+      populations <- list(
+        "All" = PCa_iv_covariates_GRS_predhorizon,
+        "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+        "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+        "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+        "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+        "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+        "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+        "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+        "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+        "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+        "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+      )
+    } else if (version == "Symptomatic Triage") {
+      populations <- list(
+        "All" = PCa_iv_covariates_GRS_predhorizon2,
+        "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
+        "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
+        "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
+        "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2,
+        "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly2,
+        "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly2,
+        "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly2,
+        "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly2,
+        "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly2,
+        "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly2
+      )
+    }
+  }
+
+  # Default GRS list if not specified
+  if (is.null(grs_list)) {
+    grs_list <- c(
+      "ContimultiethnicGRS", "ContiEuropeanGRS", "ContiAfricanGRS", "ContiEast_AsianGRS", "ContiHispanicGRS",
+      "ContiadjustedGRS", "ContimultiethnicGRS267", "ContiEuropeanGRS265", "ContiAfricanGRS246",
+      "ContiEast_AsianGRS222", "ContiHispanicGRS253", "ContiORadjustedGRS", "WangmultiethnicGRS",
+      "WangEuropeanGRS", "WangAfricanGRS", "WangEast_AsianGRS", "WangHispanicGRS", "WangmultiethnicGRS450",
+      "WangEuropeanGRS445", "WangAfricanGRS444", "WangEast_AsianGRS379", "WangHispanicGRS446",
+      "SchumacherGRS", "BARCODE1GRS", "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS", "PagadalaGRS",
+      "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"
+    )
+  }
+
+  grs_list <- setdiff(grs_list, "Age")
+
+  results <- data.frame(
+    Outcome = character(),
+    Population = character(),
+    Predictor = character(),
+    N = integer(),
+    N_Cases = integer(),
+    N_Controls = integer(),
+    OOB_ROC_AUC = numeric(),
+    GRS_MDA = numeric(),
+    Age_MDA = numeric(),
+    GRS_MDG = numeric(),
+    Age_MDG = numeric(),
+    GRS_Pct_Importance = numeric(),
+    Age_Pct_Importance = numeric(),
+    stringsAsFactors = FALSE
+  )
+
+  total_combos <- length(outcomes) * length(populations) * length(grs_list)
+  combo_count <- 0
+
+  for (current_outcome in outcomes) {
+    for (pop_name in names(populations)) {
+      pop_data <- populations[[pop_name]]
+
+      if (!"Age" %in% colnames(pop_data)) {
+        if (verbose) cat(sprintf("Skipping %s (Age not in data)\n", pop_name))
+        next
+      }
+
+      for (grs_pred in grs_list) {
+        combo_count <- combo_count + 1
+
+        if (verbose) {
+          cat(sprintf("[%d/%d] %s | %s | %s\n", combo_count, total_combos, current_outcome, pop_name, grs_pred))
+        }
+
+        if (!grs_pred %in% colnames(pop_data)) {
+          if (verbose) cat(sprintf("  Skipping %s (not in %s)\n", grs_pred, pop_name))
+          next
+        }
+
+        needed <- c(current_outcome, "Age", grs_pred)
+        analysis_data <- pop_data[stats::complete.cases(pop_data[, needed]), needed, drop = FALSE]
+
+        if (nrow(analysis_data) == 0) {
+          if (verbose) cat("  Skipping (no complete rows)\n")
+          next
+        }
+
+        if (isTRUE(subset_controls)) {
+          analysis_data <- subset_controls_to_case_count(analysis_data, case_col = current_outcome)
+        }
+
+        # outcome must be a factor with exactly 2 levels for RF classification
+        analysis_data[[current_outcome]] <- factor(analysis_data[[current_outcome]])
+
+        if (length(levels(analysis_data[[current_outcome]])) < 2) {
+          if (verbose) cat("  Skipping (outcome has <2 classes after filtering)\n")
+          next
+        }
+
+        tryCatch({
+          rf_formula <- stats::as.formula(paste(current_outcome, "~", grs_pred, "+ Age"))
+
+          rf_model <- randomForest::randomForest(
+            formula = rf_formula,
+            data = analysis_data,
+            ntree = ntree,
+            importance = TRUE,  # enables permutation importance
+            keep.inbag = FALSE
+          )
+
+          # Permutation importance (Mean Decrease Accuracy) - type = 1
+          imp <- randomForest::importance(rf_model, type = 1, scale = TRUE)
+          grs_mda <- imp[grs_pred, "MeanDecreaseAccuracy"]
+          age_mda <- imp["Age", "MeanDecreaseAccuracy"]
+
+          # Gini importance (Mean Decrease Gini) - type = 2
+          imp_gini <- randomForest::importance(rf_model, type = 2)
+          grs_mdg <- imp_gini[grs_pred, "MeanDecreaseGini"]
+          age_mdg <- imp_gini["Age", "MeanDecreaseGini"]
+
+          # Relative importance (% of total MDA, treating negative MDA as 0 for the ratio)
+          total_mda <- max(grs_mda, 0) + max(age_mda, 0)
+          grs_pct <- if (total_mda > 0) max(grs_mda, 0) / total_mda * 100 else NA_real_
+          age_pct <- if (total_mda > 0) max(age_mda, 0) / total_mda * 100 else NA_real_
+
+          # OOB ROC AUC using OOB vote probabilities for the positive class ("1")
+          oob_votes <- rf_model$votes
+          pos_level <- "1"
+          if (!pos_level %in% colnames(oob_votes)) {
+            pos_level <- levels(analysis_data[[current_outcome]])[2]
+          }
+          oob_probs <- oob_votes[, pos_level]
+          true_labels <- as.integer(as.character(analysis_data[[current_outcome]]))
+          oob_roc <- pROC::roc(true_labels ~ oob_probs, quiet = TRUE)
+          oob_auc <- as.numeric(oob_roc$auc)
+
+          n_cases <- sum(as.character(analysis_data[[current_outcome]]) == "1", na.rm = TRUE)
+          n_controls <- sum(as.character(analysis_data[[current_outcome]]) == "0", na.rm = TRUE)
+
+          results <- rbind(results, data.frame(
+            Outcome = current_outcome,
+            Population = pop_name,
+            Predictor = grs_pred,
+            N = nrow(analysis_data),
+            N_Cases = n_cases,
+            N_Controls = n_controls,
+            OOB_ROC_AUC = oob_auc,
+            GRS_MDA = grs_mda,
+            Age_MDA = age_mda,
+            GRS_MDG = grs_mdg,
+            Age_MDG = age_mdg,
+            GRS_Pct_Importance = grs_pct,
+            Age_Pct_Importance = age_pct,
             stringsAsFactors = FALSE
           ))
         }, error = function(e) {

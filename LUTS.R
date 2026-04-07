@@ -1661,4 +1661,51 @@ FI_subset2 <- FI_formatted2 %>%
     #Predictor == "ContiAfricanGRS246"
   )
 
+#################################################################
+# Step 13 - Random Forest feature importance for GRS+Age models #
+#################################################################
+
+## Uses a Random Forest (classification) on outcome ~ GRS + Age.
+## Permutation importance (Mean Decrease Accuracy, MDA) measures how much
+## OOB accuracy drops when each feature's values are randomly shuffled.
+## A higher MDA = the model relies more on that feature.
+## OOB ROC AUC is computed from out-of-bag predicted probabilities.
+
+RF_bulk2 <- rf_feature_importance_table(
+  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
+               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  ntree = 100,
+  subset_controls = FALSE,
+  version = "Symptomatic Triage"
+)
+
+RF_formatted2 <- RF_bulk2 %>%
+  dplyr::mutate(
+    OOB_ROC_AUC_4dp = sprintf("%.4f", OOB_ROC_AUC),
+    GRS_MDA_4dp = sprintf("%.4f", GRS_MDA),
+    Age_MDA_4dp = sprintf("%.4f", Age_MDA),
+    GRS_Pct_Importance_1dp = dplyr::if_else(
+      is.na(GRS_Pct_Importance),
+      NA_character_,
+      sprintf("%.1f%%", GRS_Pct_Importance)
+    ),
+    Age_Pct_Importance_1dp = dplyr::if_else(
+      is.na(Age_Pct_Importance),
+      NA_character_,
+      sprintf("%.1f%%", Age_Pct_Importance)
+    )
+  ) %>%
+  dplyr::select(
+    Outcome, Population, Predictor, N_Cases, N_Controls,
+    OOB_ROC_AUC_4dp,
+    GRS_MDA_4dp, Age_MDA_4dp,
+    GRS_Pct_Importance_1dp, Age_Pct_Importance_1dp
+  )
+
+RF_subset2 <- RF_formatted2 %>%
+  dplyr::filter(
+    Population == "Black"
+    #Outcome == "PrCa"
+    #Predictor == "ContiAfricanGRS246"
+  )
 
