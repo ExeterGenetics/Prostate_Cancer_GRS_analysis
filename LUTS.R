@@ -11,7 +11,6 @@ library(readr)
 library(readstata13)
 library(ggplot2)
 library(pROC)
-library(PRROC)
 library(matrixStats)
 library(survminer)
 library(survival)
@@ -986,6 +985,12 @@ SchumacherGRS145 <- SchumacherGRS145 %>%
   dplyr::rename('SchumacherGRS145' = 'Schumacher_GRS_avg') %>%
   dplyr::mutate(top10_all_SchumacherGRS145 = SchumacherGRS145 >= quantile(SchumacherGRS145, probs = 0.9))
 
+if (!file.exists("BARCODE1GRS_129.tsv") || isTRUE(file.info("BARCODE1GRS_129.tsv")$size == 0)) {
+  dxdownload("Callum/GRSs/BARCODE1GRS_129.tsv", overwrite = TRUE)
+}
+if (!file.exists("BARCODE1GRS_129.tsv") || isTRUE(file.info("BARCODE1GRS_129.tsv")$size == 0)) {
+  stop("BARCODE1GRS_129.tsv is missing or empty after download. Check that the file exists and is non-empty in DNAnexus project path Callum/GRSs/BARCODE1GRS_129.tsv.")
+}
 BARCODE1GRS129 <- read.delim("BARCODE1GRS_129.tsv")
 BARCODE1GRS129 <- BARCODE1GRS129 %>%
   dplyr::select(c("eid", "BARCODE1_GRS_avg")) %>%
@@ -1708,4 +1713,3 @@ RF_subset2 <- RF_formatted2 %>%
     #Outcome == "PrCa"
     #Predictor == "ContiAfricanGRS246"
   )
-

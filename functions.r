@@ -2,15 +2,8 @@
 
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
-ensure_package <- function(pkg) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 packages_needed <- c(
   "pROC",
-  "PRROC",
   "epiR",
   "RMySQL",
   "readstata13",
@@ -27,7 +20,21 @@ packages_needed <- c(
   "randomForest"
 )
 
-invisible(lapply(packages_needed, ensure_package))
+installed_pkgs <- rownames(installed.packages())
+missing_pkgs <- setdiff(packages_needed, installed_pkgs)
+if (length(missing_pkgs) > 0) {
+  stop(
+    paste0(
+      "Missing required packages: ",
+      paste(missing_pkgs, collapse = ", "),
+      ". Install them in a fresh R session before knitting."
+    )
+  )
+}
+
+if (!requireNamespace("rlang", quietly = TRUE) || packageVersion("rlang") < "1.1.6") {
+  stop("rlang >= 1.1.6 is required. Update in a fresh R session before knitting.")
+}
 
 # Helper: randomly subset controls to match the number of cases for a given outcome column
 subset_controls_to_case_count <- function(df, case_col) {
@@ -111,23 +118,40 @@ run_logreg <- function(data,
     labels_clean <- labels[keep]
     scores_clean <- scores[keep]
     prevalence <- mean(labels_clean == 1)
-    
-    pr_obj <- pr.curve(scores.class0 = scores_clean[labels_clean == 1],
-                       scores.class1 = scores_clean[labels_clean == 0],
-                       curve = TRUE)
-    
-    if (plot_pr && show_output) {
-      model_label <- if (is.null(covariates)) {
-        predictor
-      } else {
-        paste(predictor, "+", paste(covariates, collapse = " + "))
+
+    prroc_available <- tryCatch(
+      requireNamespace("PRROC", quietly = TRUE),
+      error = function(e) FALSE
+    )
+
+    if (!prroc_available) {
+      warning("PR curve skipped: PRROC is unavailable or failed to load in this session.")
+    } else {
+      pr_obj <- tryCatch(
+        PRROC::pr.curve(
+          scores.class0 = scores_clean[labels_clean == 1],
+          scores.class1 = scores_clean[labels_clean == 0],
+          curve = TRUE
+        ),
+        error = function(e) {
+          warning(paste0("PR curve skipped due to PRROC error: ", e$message))
+          NULL
+        }
+      )
+
+      if (!is.null(pr_obj) && plot_pr && show_output) {
+        model_label <- if (is.null(covariates)) {
+          predictor
+        } else {
+          paste(predictor, "+", paste(covariates, collapse = " + "))
+        }
+        plot(pr_obj, main = paste("Precision-Recall Curve:", model_label),
+             xlab = "Recall", ylab = "Precision")
+        abline(h = prevalence, col = "red", lty = 2, lwd = 2)
+        legend("bottomleft",
+               legend = paste0("Outcome prevalence = ", sprintf("%.3f", prevalence)),
+               col = "red", lty = 2, lwd = 2, bty = "n")
       }
-      plot(pr_obj, main = paste("Precision-Recall Curve:", model_label),
-           xlab = "Recall", ylab = "Precision")
-            abline(h = prevalence, col = "red", lty = 2, lwd = 2)
-            legend("bottomleft",
-              legend = paste0("Outcome prevalence = ", sprintf("%.3f", prevalence)),
-              col = "red", lty = 2, lwd = 2, bty = "n")
     }
     
     if (show_output) {
