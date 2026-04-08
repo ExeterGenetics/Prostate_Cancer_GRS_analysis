@@ -1,10 +1,10 @@
----
+﻿---
 title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
 date: "2026-04-09"
 ---
 
-```{r, include=FALSE, cache = TRUE}
+```{r setup-opts, include=FALSE, cache = TRUE}
 
 knitr::opts_chunk$set(
   echo = FALSE,
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 Setup script 1: Paste "functions.r" here:
 
-```{r, include=FALSE, cache = TRUE}
+```{r setup-functions, include=FALSE, cache = TRUE}
 
 ## This script sets up the packages and functions used in this repository's scripts
 
@@ -1934,7 +1934,7 @@ pretty_print_table <- function(df, caption = NULL) {
 
 Setup script 2: Paste "Logistic_Regressions_testing_Conti_GRS.R" here:
 
-```{r, include=FALSE, cache = TRUE}
+```{r setup-logreg, include=FALSE, cache = TRUE}
 
 ######### Logistic Regression Application - testing Conti's GRSs #########
 
@@ -3359,7 +3359,7 @@ RF_subset <- RF_formatted %>%
 
 Setup script 3: Paste "LUTS.R" here:
 
-```{r, include=FALSE, cache = TRUE}
+```{r setup-luts, include=FALSE, cache = TRUE}
 
 #############################################################################
 # Symptomatic Angle - how well can GRS predict Prostate cancer diagnosis in #
@@ -5167,7 +5167,7 @@ Note: Genetic similarity is the preferred term for what is called "Genomic Ances
 
 # Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table01-conti-grs-none, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
@@ -5187,7 +5187,7 @@ pretty_print_table(table1)
 
 ## Logistic Regression Table 2: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre when combined with Age?
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table02-conti-grs-age, echo=FALSE, cache = TRUE}
 
 table2 <- formatted %>%                        
   dplyr::filter(                          
@@ -5206,7 +5206,7 @@ Conclusion: Age always helps, and using the African-specific weightings makes ve
 
 ## Logistic Regression Table 3: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis within 10 years after the assessment centre when combined with Age?
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table03-conti-10yr-age, echo=FALSE, cache = TRUE}
 
 table3 <- formatted %>%                        
   dplyr::filter(                          
@@ -5237,7 +5237,7 @@ But what does "Genetic Similarity" even mean?
 
 ## Principal Components plot 1: HGDP+1KG Reference Panel
 
-```{r, echo=FALSE, cache = TRUE}
+```{r pc-plot1-hgdp1kg, echo=FALSE, cache = TRUE}
 
 library(ggplot2)
 
@@ -5298,7 +5298,7 @@ This is the reference panel (HGDP+1KG)
 
 ## Principal Components plot 2: UK Biobank Participants who were successfully clustered
 
-```{r, echo=FALSE, cache = TRUE}
+```{r pc-plot2-ukb-clustered, echo=FALSE, cache = TRUE}
 
 library(ggplot2)
 
@@ -5357,7 +5357,7 @@ print(UKB_PC_plot1)
 
 ## Principal Components plot 3: all UK Biobank Participants
 
-```{r, echo=FALSE, cache = TRUE}
+```{r pc-plot3-ukb-all, echo=FALSE, cache = TRUE}
 
 library(ggplot2)
 
@@ -5418,7 +5418,7 @@ This is what it looks like when you include participants who were not successful
 
 ## Principal Components plot 4: UK Biobank Participants by self-reported ethnicity
 
-```{r, echo=FALSE, cache = TRUE}
+```{r pc-plot4-ukb-ethnicity, echo=FALSE, cache = TRUE}
 
 library(ggplot2)
 
@@ -5503,7 +5503,7 @@ So someone who has a 50% AFR and 50% EUR probability will have a GRS that is hal
 
 ## Does it work?
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table-adj-grs-10yr, echo=FALSE, cache = TRUE}
 
 table1 <- formatted %>%                        
   dplyr::filter(                          
@@ -5524,7 +5524,7 @@ Since ROC AUCs were most similar across groups at the 10-year prediction horizon
 
 ## Reference (Stratification using GRS alone)
 
-```{r, echo=FALSE, cache = TRUE}
+```{r download-grs-stratification, echo=FALSE, cache = TRUE}
 
 dxdownload("Callum/External_figures/GRSstratification.png")
 
@@ -5538,7 +5538,7 @@ Risk ratio = ~1.7 Risk ratio ~ 2.7
 
 (Conti's Multiethnic GRS + Age)
 
-```{r, echo=FALSE, cache = TRUE}
+```{r irm-plot1-all-top10, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -5641,7 +5641,7 @@ print(IRMplot1)
 
 Ratio = `r round(irm_plot1_rr, 2)`
 
-```{r, echo=FALSE, cache = TRUE}
+```{r irm-plot2-black-top10, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -5733,7 +5733,7 @@ Ratio = `r round(irm_plot2_rr, 2)`
 
 (Conti's Multiethnic GRS + Age)
 
-```{r, echo=FALSE, cache = TRUE}
+```{r irm-plot3-white-top20, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -5819,7 +5819,7 @@ print(IRMplot3)
 
 Ratio = `r round(irm_plot3_rr, 2)`
 
-```{r, echo=FALSE, cache = TRUE}
+```{r irm-plot4-black-top20, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -5908,7 +5908,7 @@ Ratio = `r round(irm_plot4_rr, 2)`
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table04-any-prca-age, echo=FALSE, cache = TRUE}
 
 table4 <- formatted %>%                        
   dplyr::filter(                          
@@ -5925,7 +5925,7 @@ pretty_print_table(table4)
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table05-2yr-prca-age, echo=FALSE, cache = TRUE}
 
 table5 <- formatted %>%                        
   dplyr::filter(                          
@@ -5942,7 +5942,7 @@ pretty_print_table(table5)
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table06-5yr-prca-age, echo=FALSE, cache = TRUE}
 
 table6 <- formatted %>%                        
   dplyr::filter(                          
@@ -5959,7 +5959,7 @@ pretty_print_table(table6)
 
 ## Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table07-10yr-prca-age, echo=FALSE, cache = TRUE}
 
 table7 <- formatted %>%                        
   dplyr::filter(                          
@@ -5978,7 +5978,7 @@ pretty_print_table(table7)
 
 But prostate cancer often has an overdiagnosis problem - cancers that are never expected to cause harm in a person's natural lifespan are unnecessarily treated
 
-```{r, echo=FALSE, cache = TRUE}
+```{r download-cruk-png, echo=FALSE, cache = TRUE}
 
 dxdownload("Callum/External_figures/CRUKprostatecancerscreening.png")
 
@@ -6004,7 +6004,7 @@ Now, repeating the analysis for "actionable" and "severe" prostate cancer, with 
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table08-actionable-any-age, echo=FALSE, cache = TRUE}
 
 table8 <- formatted %>%                        
   dplyr::filter(                          
@@ -6021,7 +6021,7 @@ pretty_print_table(table8)
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table09-actionable-2yr-age, echo=FALSE, cache = TRUE}
 
 table9 <- formatted %>%                        
   dplyr::filter(                          
@@ -6038,7 +6038,7 @@ pretty_print_table(table9)
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table10-actionable-5yr-age, echo=FALSE, cache = TRUE}
 
 table10 <- formatted %>%                        
   dplyr::filter(                          
@@ -6055,7 +6055,7 @@ pretty_print_table(table10)
 
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table11-actionable-10yr-age, echo=FALSE, cache = TRUE}
 
 table11 <- formatted %>%                        
   dplyr::filter(                          
@@ -6072,7 +6072,7 @@ pretty_print_table(table11)
 
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table12-severe-any-age, echo=FALSE, cache = TRUE}
 
 table12 <- formatted %>%                        
   dplyr::filter(                          
@@ -6089,7 +6089,7 @@ pretty_print_table(table12)
 
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table13-severe-2yr-age, echo=FALSE, cache = TRUE}
 
 table13 <- formatted %>%                        
   dplyr::filter(                          
@@ -6106,7 +6106,7 @@ pretty_print_table(table13)
 
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table14-severe-5yr-age, echo=FALSE, cache = TRUE}
 
 table14 <- formatted %>%                        
   dplyr::filter(                          
@@ -6123,7 +6123,7 @@ pretty_print_table(table14)
 
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table15-severe-10yr-age, echo=FALSE, cache = TRUE}
 
 table15 <- formatted %>%                        
   dplyr::filter(                          
@@ -6160,7 +6160,7 @@ Pagadala's GRS was trained on age at death from prostate cancer ('fatal PCa') an
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table16-seibert-actionable-any, echo=FALSE, cache = TRUE}
 
 table16 <- formatted %>%                        
   dplyr::filter(                          
@@ -6177,7 +6177,7 @@ pretty_print_table(table16)
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table17-seibert-actionable-2yr, echo=FALSE, cache = TRUE}
 
 table17 <- formatted %>%                        
   dplyr::filter(                          
@@ -6194,7 +6194,7 @@ pretty_print_table(table17)
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table18-seibert-actionable-5yr, echo=FALSE, cache = TRUE}
 
 table18 <- formatted %>%                        
   dplyr::filter(                          
@@ -6211,7 +6211,7 @@ pretty_print_table(table18)
 
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table19-seibert-actionable-10yr, echo=FALSE, cache = TRUE}
 
 table19 <- formatted %>%                        
   dplyr::filter(                          
@@ -6228,7 +6228,7 @@ pretty_print_table(table19)
 
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table20-seibert-severe-any, echo=FALSE, cache = TRUE}
 
 table20 <- formatted %>%                        
   dplyr::filter(                          
@@ -6245,7 +6245,7 @@ pretty_print_table(table20)
 
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table21-seibert-severe-2yr, echo=FALSE, cache = TRUE}
 
 table21 <- formatted %>%                        
   dplyr::filter(                          
@@ -6262,7 +6262,7 @@ pretty_print_table(table21)
 
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table22-seibert-severe-5yr, echo=FALSE, cache = TRUE}
 
 table22 <- formatted %>%                        
   dplyr::filter(                          
@@ -6279,7 +6279,7 @@ pretty_print_table(table22)
 
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table23-seibert-severe-10yr, echo=FALSE, cache = TRUE}
 
 table23 <- formatted %>%                        
   dplyr::filter(                          
@@ -6296,7 +6296,7 @@ pretty_print_table(table23)
 
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table24-pagadala-actionable-any, echo=FALSE, cache = TRUE}
 
 table24 <- formatted %>%                        
   dplyr::filter(                          
@@ -6313,7 +6313,7 @@ pretty_print_table(table24)
 
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table25-pagadala-actionable-2yr, echo=FALSE, cache = TRUE}
 
 table25 <- formatted %>%                        
   dplyr::filter(                          
@@ -6330,7 +6330,7 @@ pretty_print_table(table25)
 
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table26-pagadala-actionable-5yr, echo=FALSE, cache = TRUE}
 
 table26 <- formatted %>%                        
   dplyr::filter(                          
@@ -6347,7 +6347,7 @@ pretty_print_table(table26)
 
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table27-pagadala-actionable-10yr, echo=FALSE, cache = TRUE}
 
 table27 <- formatted %>%                        
   dplyr::filter(                          
@@ -6364,7 +6364,7 @@ pretty_print_table(table27)
 
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table28-pagadala-severe-any, echo=FALSE, cache = TRUE}
 
 table28 <- formatted %>%                        
   dplyr::filter(                          
@@ -6381,7 +6381,7 @@ pretty_print_table(table28)
 
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table29-pagadala-severe-2yr, echo=FALSE, cache = TRUE}
 
 table29 <- formatted %>%                        
   dplyr::filter(                          
@@ -6398,7 +6398,7 @@ pretty_print_table(table29)
 
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table30-pagadala-severe-5yr, echo=FALSE, cache = TRUE}
 
 table30 <- formatted %>%                        
   dplyr::filter(                          
@@ -6415,7 +6415,7 @@ pretty_print_table(table30)
 
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table31-pagadala-severe-10yr, echo=FALSE, cache = TRUE}
 
 table31 <- formatted %>%                        
   dplyr::filter(                          
@@ -6440,7 +6440,7 @@ Conti's score looks promising, but are other publicly-available GRSs performing 
 
 ## Conti (2021) vs Schumacher (2018) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table32-conti-vs-schumacher-10yr, echo=FALSE, cache = TRUE}
 
 table32 <- formatted %>%                        
   dplyr::filter(                          
@@ -6459,7 +6459,7 @@ Conclusion: Although Schumacher (2018) built their GRS on a GWAS of ~140,000 ind
 
 ## Conti (2021) vs BARCODE1 (2020) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table33-conti-vs-barcode1-10yr, echo=FALSE, cache = TRUE}
 
 table33 <- formatted %>%                        
   dplyr::filter(                          
@@ -6478,7 +6478,7 @@ Conclusion: The BARCODE1 GRS is effectively the same as Schumacher's (minus 17 v
 
 ## Conti (2021) vs Wang (2023) African GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table34-conti-vs-wang-10yr, echo=FALSE, cache = TRUE}
 
 table34 <- formatted %>%                        
   dplyr::filter(                          
@@ -6497,7 +6497,7 @@ Conclusion: Although Wang (2023) had 19,391 cases and 61,608 controls of African
 
 ## Conti (2021) vs Genomics PLC PRS (2024): Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table35-conti-vs-genomicspLC-10yr, echo=FALSE, cache = TRUE}
 
 table35 <- formatted %>%                        
   dplyr::filter(                          
@@ -6520,7 +6520,7 @@ If even the Schumacher (2018) GRS produces statistically similar ROC AUCs compar
 
 Now, let's go back and test Age alone as a predictor:
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table36-grs-vs-age-10yr, echo=FALSE, cache = TRUE}
 
 table36 <- formatted %>%                        
   dplyr::filter(                          
@@ -6538,7 +6538,7 @@ Conclusion: The GRS significantly improves prediction in White men, but we are s
 
 This only shows that Age is significantly better an 'Any prostate cancer' risk predictor for Black men than White men on a 10-year prediction horizon, but this trend is also true of:
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table37-age-alone-all, echo=FALSE, cache = TRUE}
 
 table37 <- formatted %>%                        
   dplyr::filter(                          
@@ -6573,7 +6573,7 @@ So basically, Age is consistently a better predictor of 'Any prostate cancer' in
 
 ### GRS + Age
 
-```{r, echo=FALSE, cache = TRUE}
+```{r irm-print-plot2-grsage-top10, echo=FALSE, cache = TRUE}
 
 print(IRMplot2)
 
@@ -6583,7 +6583,7 @@ Ratio = `r round(irm_plot2_rr, 2)`
 
 ### Age alone
 
-```{r, echo=FALSE, cache = TRUE}
+```{r irm-plot5-age-only-black-top10, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -6674,7 +6674,7 @@ Ratio = `r round(irm_plot5_rr, 2)`
 
 ### GRS + Age
 
-```{r, echo=FALSE, cache = TRUE}
+```{r irm-print-plot4-grsage-top20, echo=FALSE, cache = TRUE}
 
 print(IRMplot4)
 
@@ -6684,7 +6684,7 @@ Ratio = `r round(irm_plot4_rr, 2)`
 
 ### Age alone
 
-```{r, echo=FALSE, cache = TRUE}
+```{r irm-plot6-age-only-black-top20, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
@@ -6775,7 +6775,7 @@ Ratio = `r round(irm_plot6_rr, 2)`
 
 ### White men (bins are based within the White group, not global bins)
 
-```{r, echo=FALSE, cache = TRUE}
+```{r or-table-white-within-bins, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
                     outcome = "PrCa_10yrs",
@@ -6842,7 +6842,7 @@ pretty_print_table(ORtable_combined1)
 
 ### Black men (bins are based within the Black group, not global bins)
 
-```{r, echo=FALSE, cache = TRUE}
+```{r or-table-black-within-bins, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
@@ -6909,7 +6909,7 @@ pretty_print_table(ORtable_combined2)
 
 ### White and Black men (bins are now global)
 
-```{r, echo=FALSE, cache = TRUE}
+```{r or-table-wb-global-bins, echo=FALSE, cache = TRUE}
 
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                     outcome = "PrCa_10yrs",
@@ -6983,7 +6983,7 @@ pretty_print_table(ORtable_combined3)
 
 If you run logistic regressions with Age as a fixed predictor of all endpoints (any prostate cancer, actionable, severe, etc.), for all prediction horizons, with and without a GRS:
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table38-all-grs-black-mixed, echo=FALSE, cache = TRUE}
 
 table38 <- formatted %>%                        
   dplyr::filter(                          
@@ -7005,7 +7005,7 @@ Not quite.
 
 Similarly, if you calculate the Net Reclassification Improvement (NRI) for every combination of GRS-Covariate-Endpoint compared to the equivalent models with Age alone:
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table39-nri-black-mixed, echo=FALSE, cache = TRUE}
 
 table39 <- nri_bulk %>%                        
   dplyr::filter(                          
@@ -7025,7 +7025,7 @@ pretty_print_table(table39)
 
 ### Statistical approach
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table40-fi-statistical, echo=FALSE, cache = TRUE}
 
 table40 <- FI_formatted %>%                        
   dplyr::filter(                          
@@ -7040,7 +7040,7 @@ pretty_print_table(table40)
 
 ### Machine Learning (Random Forest) approach
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table41-fi-randomforest, echo=FALSE, cache = TRUE}
 
 table41 <- RF_formatted %>%                        
   dplyr::filter(                          
@@ -7146,7 +7146,7 @@ Note: Genetic similarity is the preferred term for what is called 'Genomic Ances
 
 ## Risk stratification of any prostate cancer diagnosis, any time after symptom presentation
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table42-triage-any-prca, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
@@ -7165,7 +7165,7 @@ pretty_print_table(table42)
 
 ## Risk stratification of any prostate cancer diagnosis, 2 years after symptom presentation
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table43-triage-2yr-prca, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
@@ -7184,7 +7184,7 @@ pretty_print_table(table43)
 
 ## Risk stratification of any prostate cancer diagnosis, 5 years after symptom presentation
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table44-triage-5yr-prca, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
@@ -7203,7 +7203,7 @@ pretty_print_table(table44)
 
 ## Risk stratification of any prostate cancer diagnosis, 10 years after symptom presentation
 
-```{r, echo=FALSE, cache = TRUE}
+```{r table45-triage-10yr-prca, echo=FALSE, cache = TRUE}
 
 library(dplyr)
 library(pROC)
