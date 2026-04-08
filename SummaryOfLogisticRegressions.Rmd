@@ -1,7 +1,7 @@
 ---
 title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
-date: "2026-04-07"
+date: "2026-04-09"
 ---
 
 ```{r, include=FALSE, cache = TRUE}
@@ -4925,7 +4925,7 @@ formatted2 <- bulk2 %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
       ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
     )
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Prevalence", "PR_AUC"))
 
 ## This block is to view a subset of the bulk logistic regression table. Change
 ## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
@@ -6988,7 +6988,7 @@ If you run logistic regressions with Age as a fixed predictor of all endpoints (
 table38 <- formatted %>%                        
   dplyr::filter(                          
     Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | (Predictor == "WangAfricanGRS444" & Covariates == "Age") | (Predictor == "SchumacherGRS145" & Covariates == "Age") | (Predictor == "BARCODE1GRS129" & Covariates == "Age") | (Predictor == "SeibertGRS52" & Covariates == "Age")  | (Predictor == "PagadalaGRS285" & Covariates == "Age"),
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | (Predictor == "WangAfricanGRS444" & Covariates == "Age") | (Predictor == "SchumacherGRS145" & Covariates == "Age") | (Predictor == "BARCODE1GRS129" & Covariates == "Age") | (Predictor == "SeibertGRS52" & Covariates == "Age")  | (Predictor == "PagadalaGRS285" & Covariates == "Age") | (Predictor == "GenomicsPLC_PRS" & Covariates == "Age"),
     #Outcome == "PrCa_10yrs",
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
@@ -7010,7 +7010,7 @@ Similarly, if you calculate the Net Reclassification Improvement (NRI) for every
 table39 <- nri_bulk %>%                        
   dplyr::filter(                          
     Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS",
     #Outcome == "PrCa_10yrs",
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "NRI", "NRI_CI_Lower", "NRI_CI_Upper", "p_NRI", "N_Cases", "N_Controls", "NRI_significant", "Cases_Percent_Reclassified_Up", "Cases_Percent_Reclassified_Down", "Controls_Percent_Reclassified_Up", "Controls_Percent_Reclassified_Down"))
@@ -7030,7 +7030,7 @@ pretty_print_table(table39)
 table40 <- FI_formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS",
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Full_ROC_AUC_4dp", "Delta_AUC_drop_GRS_4dp", "Delta_AUC_drop_Age_4dp", "GRS_OR_adj_CI_95", "Age_OR_adj_CI_95", "GRS_added_value", "Age_added_value", "N_Cases", "N_Controls"))
 
@@ -7045,9 +7045,9 @@ pretty_print_table(table40)
 table41 <- RF_formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS",
   ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Full_ROC_AUC_4dp", "Delta_AUC_drop_GRS_4dp", "Delta_AUC_drop_Age_4dp", "GRS_OR_adj_CI_95", "Age_OR_adj_CI_95", "GRS_added_value", "Age_added_value", "N_Cases", "N_Controls"))
+  dplyr::select(c("Outcome", "Population", "Predictor", "OOB_ROC_AUC_4dp", "GRS_MDA_4dp", "Age_MDA_4dp", "GRS_Pct_Importance_1dp", "Age_Pct_Importance_1dp", "N_Cases", "N_Controls"))
 
 pretty_print_table(table41)
 
