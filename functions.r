@@ -1,5 +1,13 @@
 ## This script sets up the packages and functions used in this repository's scripts
 
+# Validate rlang before loading broader package stack.
+if (!requireNamespace("rlang", quietly = TRUE)) {
+  install.packages("rlang", dependencies = TRUE)
+}
+if (packageVersion("rlang") < "1.1.6") {
+  stop("rlang >= 1.1.6 is required. Restart R, run install.packages('rlang'), then knit again.")
+}
+
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
 packages_needed <- c(
@@ -17,24 +25,17 @@ packages_needed <- c(
   "caret",
   "bigsnpr",
   "kableExtra",
+  "PRROC",
   "randomForest"
 )
 
 installed_pkgs <- rownames(installed.packages())
-missing_pkgs <- setdiff(packages_needed, installed_pkgs)
-if (length(missing_pkgs) > 0) {
-  stop(
-    paste0(
-      "Missing required packages: ",
-      paste(missing_pkgs, collapse = ", "),
-      ". Install them in a fresh R session before knitting."
-    )
-  )
-}
 
-if (!requireNamespace("rlang", quietly = TRUE) || packageVersion("rlang") < "1.1.6") {
-  stop("rlang >= 1.1.6 is required. Update in a fresh R session before knitting.")
+new_pkgs <- packages_needed[!packages_needed %in% installed_pkgs]
+if (length(new_pkgs) > 0) {
+  install.packages(new_pkgs, dependencies = TRUE)
 }
+invisible(lapply(packages_needed, library, character.only = TRUE))
 
 # Helper: randomly subset controls to match the number of cases for a given outcome column
 subset_controls_to_case_count <- function(df, case_col) {
@@ -1307,7 +1308,11 @@ logreg_table <- function(
             auc_upper <- auc_ci[3]
 
             # Extract PR AUC and prevalence from rows with non-missing outcome/predictions
-            pr_auc <- as.numeric(model$pr$auc.integral)
+            pr_auc <- if (!is.null(model$pr) && !is.null(model$pr$auc.integral)) {
+              as.numeric(model$pr$auc.integral)
+            } else {
+              NA_real_
+            }
             valid_rows <- !is.na(model$data[[current_outcome]]) & !is.na(model$data$pred)
             prevalence <- mean(model$data[[current_outcome]][valid_rows] == 1)
             
@@ -1389,7 +1394,11 @@ logreg_table <- function(
             auc_lower <- auc_ci[1]
             auc_upper <- auc_ci[3]
 
-            pr_auc <- as.numeric(model$pr$auc.integral)
+            pr_auc <- if (!is.null(model$pr) && !is.null(model$pr$auc.integral)) {
+              as.numeric(model$pr$auc.integral)
+            } else {
+              NA_real_
+            }
             valid_rows <- !is.na(model$data[[current_outcome]]) & !is.na(model$data$pred)
             prevalence <- mean(model$data[[current_outcome]][valid_rows] == 1)
             

@@ -1148,7 +1148,7 @@ PCa_iv_covariates_GRS_severity2 %>%
 
 PCa_iv_covariates_GRS_clean2 <- PCa_iv_covariates_GRS_clean2 %>%
   dplyr::mutate(
-    PrCa = if_else(PrCa_case == 1, 1L, 0L, missing = 0L),
+    PrCa = if_else(PrCa_case == 1, 1L, 0L, missing = 0L)
   ) %>%
   dplyr::rename(Age = event_age)
 

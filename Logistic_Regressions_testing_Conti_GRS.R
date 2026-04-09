@@ -4,8 +4,6 @@
 
 ## Setup ##
 
-source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
-
 library(ggplot2)
 library(pROC)
 library(epiR)
