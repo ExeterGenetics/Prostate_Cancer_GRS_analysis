@@ -16,9 +16,17 @@ knitr::opts_chunk$set(
 
 Setup script 1: Paste "functions.r" here:
 
-```{r setup-functions, include=FALSE, cache = TRUE}
+```{r setup-functions, include=FALSE, cache = FALSE}
 
 ## This script sets up the packages and functions used in this repository's scripts
+
+# Validate rlang before loading broader package stack.
+if (!requireNamespace("rlang", quietly = TRUE)) {
+  install.packages("rlang", dependencies = TRUE)
+}
+if (packageVersion("rlang") < "1.1.6") {
+  stop("rlang >= 1.1.6 is required. Restart R, run install.packages('rlang'), then knit again.")
+}
 
 source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
@@ -37,24 +45,17 @@ packages_needed <- c(
   "caret",
   "bigsnpr",
   "kableExtra",
+  "PRROC",
   "randomForest"
 )
 
 installed_pkgs <- rownames(installed.packages())
-missing_pkgs <- setdiff(packages_needed, installed_pkgs)
-if (length(missing_pkgs) > 0) {
-  stop(
-    paste0(
-      "Missing required packages: ",
-      paste(missing_pkgs, collapse = ", "),
-      ". Install them in a fresh R session before knitting."
-    )
-  )
-}
 
-if (!requireNamespace("rlang", quietly = TRUE) || packageVersion("rlang") < "1.1.6") {
-  stop("rlang >= 1.1.6 is required. Update in a fresh R session before knitting.")
+new_pkgs <- packages_needed[!packages_needed %in% installed_pkgs]
+if (length(new_pkgs) > 0) {
+  install.packages(new_pkgs, dependencies = TRUE)
 }
+invisible(lapply(packages_needed, library, character.only = TRUE))
 
 # Helper: randomly subset controls to match the number of cases for a given outcome column
 subset_controls_to_case_count <- function(df, case_col) {
@@ -1327,7 +1328,11 @@ logreg_table <- function(
             auc_upper <- auc_ci[3]
 
             # Extract PR AUC and prevalence from rows with non-missing outcome/predictions
-            pr_auc <- as.numeric(model$pr$auc.integral)
+            pr_auc <- if (!is.null(model$pr) && !is.null(model$pr$auc.integral)) {
+              as.numeric(model$pr$auc.integral)
+            } else {
+              NA_real_
+            }
             valid_rows <- !is.na(model$data[[current_outcome]]) & !is.na(model$data$pred)
             prevalence <- mean(model$data[[current_outcome]][valid_rows] == 1)
             
@@ -1409,7 +1414,11 @@ logreg_table <- function(
             auc_lower <- auc_ci[1]
             auc_upper <- auc_ci[3]
 
-            pr_auc <- as.numeric(model$pr$auc.integral)
+            pr_auc <- if (!is.null(model$pr) && !is.null(model$pr$auc.integral)) {
+              as.numeric(model$pr$auc.integral)
+            } else {
+              NA_real_
+            }
             valid_rows <- !is.na(model$data[[current_outcome]]) & !is.na(model$data$pred)
             prevalence <- mean(model$data[[current_outcome]][valid_rows] == 1)
             
@@ -1941,8 +1950,6 @@ Setup script 2: Paste "Logistic_Regressions_testing_Conti_GRS.R" here:
 ## Note: this script requires first running "functions.r"
 
 ## Setup ##
-
-source('https://raw.githubusercontent.com/ExeterGenetics/ukbextractR/main/session_setup.R')
 
 library(ggplot2)
 library(pROC)
@@ -4511,7 +4518,7 @@ PCa_iv_covariates_GRS_severity2 %>%
 
 PCa_iv_covariates_GRS_clean2 <- PCa_iv_covariates_GRS_clean2 %>%
   dplyr::mutate(
-    PrCa = if_else(PrCa_case == 1, 1L, 0L, missing = 0L),
+    PrCa = if_else(PrCa_case == 1, 1L, 0L, missing = 0L)
   ) %>%
   dplyr::rename(Age = event_age)
 
@@ -5165,7 +5172,7 @@ Ethnicity is based on self-report and clustered as follows:
 
 Note: Genetic similarity is the preferred term for what is called "Genomic Ancestry" in the UK Biobank
 
-# Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
+## Logistic Regression Table 1: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre?
 
 ```{r table01-conti-grs-none, echo=FALSE, cache = TRUE}
 
@@ -5185,6 +5192,104 @@ pretty_print_table(table1)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-conti-grs-none, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+
+forestplot1 <- bulk %>%
+  dplyr::filter(
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
+    Outcome == "PrCa",
+    Covariates == "None"
+  ) %>%
+  dplyr::filter(
+    !is.na(ROC_AUC),
+    !is.na(ROC_AUC_CI_Lower),
+    !is.na(ROC_AUC_CI_Upper)
+  ) %>%
+  dplyr::mutate(
+    Population = factor(Population, levels = c("White", "Black", "Mixed", "Black+Mixed"))
+  )
+
+ggplot(
+  forestplot1,
+  aes(x = Population, y = ROC_AUC, color = Predictor)
+) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(
+    aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper),
+    position = position_dodge(width = 0.6),
+    width = 0.2,
+    linewidth = 0.6
+  ) +
+  geom_point(
+    position = position_dodge(width = 0.6),
+    size = 2.5
+  ) +
+  coord_flip() +
+  labs(
+    x = "Population",
+    y = "ROC AUC [95% CI]",
+    color = "Predictor"
+  ) +
+  scale_color_manual(values = c("ContimultiethnicGRS267" = "#00c896", "ContiAfricanGRS246" = "#003c3c")) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-conti-grs-none, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+
+forestplot1 <- bulk %>%
+  dplyr::filter(
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
+    Outcome == "PrCa",
+    Covariates == "None"
+  ) %>%
+  dplyr::filter(
+    !is.na(OR_per_1SD),
+    !is.na(OR_per_1SD_CI_Lower),
+    !is.na(OR_per_1SD_CI_Upper)
+  ) %>%
+  dplyr::mutate(
+    Population = factor(Population, levels = c("White", "Black", "Mixed", "Black+Mixed"))
+  )
+
+ggplot(
+  forestplot1,
+  aes(x = Population, y = OR_per_1SD, color = Predictor)
+) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(
+    aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper),
+    position = position_dodge(width = 0.6),
+    width = 0.2,
+    linewidth = 0.6
+  ) +
+  geom_point(
+    position = position_dodge(width = 0.6),
+    size = 2.5
+  ) +
+  coord_flip() +
+  labs(
+    x = "Population",
+    y = "Odds Ratio per SD [95% CI]",
+    color = "Predictor"
+  ) +
+  scale_color_manual(values = c("ContimultiethnicGRS267" = "#00c896", "ContiAfricanGRS246" = "#003c3c")) +
+  theme_minimal()
+
+```
+
+
+
 ## Logistic Regression Table 2: How do Conti's Multi-ancestry and African-specific GRSs perform in predicting prostate cancer diagnosis any time after the assessment centre when combined with Age?
 
 ```{r table02-conti-grs-age, echo=FALSE, cache = TRUE}
@@ -5199,6 +5304,102 @@ table2 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table2)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-conti-grs-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+
+forestplot2 <- bulk %>%
+  dplyr::filter(
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
+    Outcome == "PrCa",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(
+    !is.na(ROC_AUC),
+    !is.na(ROC_AUC_CI_Lower),
+    !is.na(ROC_AUC_CI_Upper)
+  ) %>%
+  dplyr::mutate(
+    Population = factor(Population, levels = c("White", "Black", "Mixed", "Black+Mixed"))
+  )
+
+ggplot(
+  forestplot2,
+  aes(x = Population, y = ROC_AUC, color = Predictor)
+) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(
+    aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper),
+    position = position_dodge(width = 0.6),
+    width = 0.2,
+    linewidth = 0.6
+  ) +
+  geom_point(
+    position = position_dodge(width = 0.6),
+    size = 2.5
+  ) +
+  coord_flip() +
+  labs(
+    x = "Population",
+    y = "ROC AUC [95% CI]",
+    color = "Predictor"
+  ) +
+  scale_color_manual(values = c("ContimultiethnicGRS267" = "#00c896", "ContiAfricanGRS246" = "#003c3c")) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-conti-grs-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+
+forestplot2 <- bulk %>%
+  dplyr::filter(
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
+    Outcome == "PrCa",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(
+    !is.na(OR_per_1SD),
+    !is.na(OR_per_1SD_CI_Lower),
+    !is.na(OR_per_1SD_CI_Upper)
+  ) %>%
+  dplyr::mutate(
+    Population = factor(Population, levels = c("White", "Black", "Mixed", "Black+Mixed"))
+  )
+
+ggplot(
+  forestplot2,
+  aes(x = Population, y = OR_per_1SD, color = Predictor)
+) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(
+    aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper),
+    position = position_dodge(width = 0.6),
+    width = 0.2,
+    linewidth = 0.6
+  ) +
+  geom_point(
+    position = position_dodge(width = 0.6),
+    size = 2.5
+  ) +
+  coord_flip() +
+  labs(
+    x = "Population",
+    y = "Odds Ratio per SD [95% CI]",
+    color = "Predictor"
+  ) +
+  scale_color_manual(values = c("ContimultiethnicGRS267" = "#00c896", "ContiAfricanGRS246" = "#003c3c")) +
+  theme_minimal()
 
 ```
 
@@ -5218,6 +5419,94 @@ table3 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table3)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-conti-10yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+
+forestplot3 <- bulk %>%
+  dplyr::filter(
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "AFR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(
+    !is.na(ROC_AUC),
+    !is.na(ROC_AUC_CI_Lower),
+    !is.na(ROC_AUC_CI_Upper)
+  ) %>%
+  dplyr::mutate(
+    Population = factor(Population, levels = c("White", "Black", "Mixed", "Black+Mixed", "AFR"))
+  )
+
+ggplot(
+  forestplot3,
+  aes(x = Population, y = ROC_AUC, color = Predictor)
+) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(
+    aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper),
+    width = 0.2,
+    linewidth = 0.6
+  ) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(
+    x = "Population",
+    y = "ROC AUC [95% CI]",
+    color = "Predictor"
+  ) +
+  scale_color_manual(values = c("ContimultiethnicGRS267" = "#00c896", "ContiAfricanGRS246" = "#003c3c")) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-conti-10yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+
+forestplot3 <- bulk %>%
+  dplyr::filter(
+    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "AFR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(
+    !is.na(OR_per_1SD),
+    !is.na(OR_per_1SD_CI_Lower),
+    !is.na(OR_per_1SD_CI_Upper)
+  ) %>%
+  dplyr::mutate(
+    Population = factor(Population, levels = c("White", "Black", "Mixed", "Black+Mixed", "AFR"))
+  )
+
+ggplot(
+  forestplot3,
+  aes(x = Population, y = OR_per_1SD, color = Predictor)
+) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(
+    aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper),
+    width = 0.2,
+    linewidth = 0.6
+  ) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(
+    x = "Population",
+    y = "Odds Ratio per SD [95% CI]",
+    color = "Predictor"
+  ) +
+  scale_color_manual(values = c("ContimultiethnicGRS267" = "#00c896", "ContiAfricanGRS246" = "#003c3c")) +
+  theme_minimal()
 
 ```
 
@@ -5515,6 +5804,64 @@ table1 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table1)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table-adj-grs-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiORadjustedGRS",
+    Outcome == "PrCa",
+    Covariates == "None"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table-adj-grs-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiORadjustedGRS",
+    Outcome == "PrCa",
+    Covariates == "None"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -5923,6 +6270,66 @@ pretty_print_table(table4)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table04-any-prca-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table04-any-prca-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
 ## Risk Stratification of Any Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
 ```{r table05-2yr-prca-age, echo=FALSE, cache = TRUE}
@@ -5937,6 +6344,66 @@ table5 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table5)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table05-2yr-prca-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table05-2yr-prca-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
 
 ```
 
@@ -5957,6 +6424,66 @@ pretty_print_table(table6)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table06-5yr-prca-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table06-5yr-prca-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
 ## Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
 ```{r table07-10yr-prca-age, echo=FALSE, cache = TRUE}
@@ -5971,6 +6498,66 @@ table7 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table7)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table07-10yr-prca-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table07-10yr-prca-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
 
 ```
 
@@ -6019,6 +6606,66 @@ pretty_print_table(table8)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table08-actionable-any-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table08-actionable-any-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
 ```{r table09-actionable-2yr-age, echo=FALSE, cache = TRUE}
@@ -6033,6 +6680,66 @@ table9 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Covariates", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
 
 pretty_print_table(table9)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table09-actionable-2yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table09-actionable-2yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
 
 ```
 
@@ -6053,6 +6760,66 @@ pretty_print_table(table10)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table10-actionable-5yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table10-actionable-5yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
 ## Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
 ```{r table11-actionable-10yr-age, echo=FALSE, cache = TRUE}
@@ -6067,6 +6834,66 @@ table11 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table11)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table11-actionable-10yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table11-actionable-10yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
 
 ```
 
@@ -6087,6 +6914,66 @@ pretty_print_table(table12)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table12-severe-any-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table12-severe-any-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
 ```{r table13-severe-2yr-age, echo=FALSE, cache = TRUE}
@@ -6101,6 +6988,64 @@ table13 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table13)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table13-severe-2yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table13-severe-2yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6121,6 +7066,64 @@ pretty_print_table(table14)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table14-severe-5yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table14-severe-5yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
 ```{r table15-severe-10yr-age, echo=FALSE, cache = TRUE}
@@ -6137,6 +7140,65 @@ table15 <- formatted %>%
 pretty_print_table(table15)
 
 ```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table15-severe-10yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table15-severe-10yr-age, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "ContimultiethnicGRS267",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 
 # Conclusions so far
 
@@ -6175,6 +7237,64 @@ pretty_print_table(table16)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table16-seibert-actionable-any, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table16-seibert-actionable-any, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
 ```{r table17-seibert-actionable-2yr, echo=FALSE, cache = TRUE}
@@ -6189,6 +7309,64 @@ table17 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table17)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table17-seibert-actionable-2yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table17-seibert-actionable-2yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6209,6 +7387,64 @@ pretty_print_table(table18)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table18-seibert-actionable-5yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table18-seibert-actionable-5yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Seibert (2018) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
 ```{r table19-seibert-actionable-10yr, echo=FALSE, cache = TRUE}
@@ -6223,6 +7459,64 @@ table19 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table19)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table19-seibert-actionable-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table19-seibert-actionable-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6243,6 +7537,64 @@ pretty_print_table(table20)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table20-seibert-severe-any, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table20-seibert-severe-any, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
 ```{r table21-seibert-severe-2yr, echo=FALSE, cache = TRUE}
@@ -6257,6 +7609,64 @@ table21 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table21)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table21-seibert-severe-2yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table21-seibert-severe-2yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6277,6 +7687,64 @@ pretty_print_table(table22)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table22-seibert-severe-5yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table22-seibert-severe-5yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Seibert (2018) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
 ```{r table23-seibert-severe-10yr, echo=FALSE, cache = TRUE}
@@ -6291,6 +7759,64 @@ table23 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table23)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table23-seibert-severe-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table23-seibert-severe-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "SeibertGRS52",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6311,6 +7837,64 @@ pretty_print_table(table24)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table24-pagadala-actionable-any, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table24-pagadala-actionable-any, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 2 years after the Assessment Centre
 
 ```{r table25-pagadala-actionable-2yr, echo=FALSE, cache = TRUE}
@@ -6325,6 +7909,64 @@ table25 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table25)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table25-pagadala-actionable-2yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table25-pagadala-actionable-2yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6345,6 +7987,64 @@ pretty_print_table(table26)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table26-pagadala-actionable-5yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table26-pagadala-actionable-5yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Pagadala (2022) GRS: Risk Stratification of Actionable Prostate Cancer Diagnosis, 10 years after the Assessment Centre
 
 ```{r table27-pagadala-actionable-10yr, echo=FALSE, cache = TRUE}
@@ -6362,6 +8062,64 @@ pretty_print_table(table27)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table27-pagadala-actionable-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table27-pagadala-actionable-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_actionable_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, Any Time after the Assessment Centre
 
 ```{r table28-pagadala-severe-any, echo=FALSE, cache = TRUE}
@@ -6376,6 +8134,63 @@ table28 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table28)
+
+`
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table28-pagadala-severe-any, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table28-pagadala-severe-any, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6396,6 +8211,64 @@ pretty_print_table(table29)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table29-pagadala-severe-2yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table29-pagadala-severe-2yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_2yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Pagadala (2022) GRS: Risk Stratification of Severe Prostate Cancer Diagnosis, 5 years after the Assessment Centre
 
 ```{r table30-pagadala-severe-5yr, echo=FALSE, cache = TRUE}
@@ -6410,6 +8283,64 @@ table30 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table30)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table30-pagadala-severe-5yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table30-pagadala-severe-5yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_5yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6429,6 +8360,65 @@ table31 <- formatted %>%
 pretty_print_table(table31)
 
 ```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table31-pagadala-severe-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table31-pagadala-severe-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    Predictor == "PagadalaGRS285",
+    Outcome == "PrCa_severe_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 
 Both perform either significantly worse or not significantly different from Conti's cross-ancestry GRS at predicting actionable and severe prostate cancer, across all groups
 
@@ -6455,6 +8445,64 @@ pretty_print_table(table32)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table32-conti-vs-schumacher-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "SchumacherGRS145",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table32-conti-vs-schumacher-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "SchumacherGRS145",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 Conclusion: Although Schumacher (2018) built their GRS on a GWAS of ~140,000 individuals of European Ancestry only, there is no significant decrease in performance compared to using Conti's GRS based on a GWAS of ~234,000 invididuals, ~21,000 of which were of African ancestry
 
 ## Conti (2021) vs BARCODE1 (2020) GRS: Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
@@ -6471,6 +8519,64 @@ table33 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table33)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table33-conti-vs-barcode1-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "BARCODE1GRS129",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table33-conti-vs-barcode1-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "BARCODE1GRS129",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6493,6 +8599,64 @@ pretty_print_table(table34)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table34-conti-vs-wang-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "WangAfricanGRS444",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table34-conti-vs-wang-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "WangAfricanGRS444",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 Conclusion: Although Wang (2023) had 19,391 cases and 61,608 controls of African Ancestry men for their GWAS (compared to Conti's 10,368 cases and 10,986 controls), the UK Biobank is statistically underpowered to detect any significant difference
 
 ## Conti (2021) vs Genomics PLC PRS (2024): Risk Stratification of Any Prostate Cancer Diagnosis, 10 years after the Assessment Centre
@@ -6512,6 +8676,64 @@ pretty_print_table(table35)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table35-conti-vs-genomicspLC-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "GenomicsPLC_PRS",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table35-conti-vs-genomicspLC-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "GenomicsPLC_PRS",
+    Outcome == "PrCa_10yrs",
+    Covariates == "Age"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 Conclusion: No significant difference in performance. These results suggest that the Genomics PLC PRS could be just as effective as Conti's multiethnic GRS
 
 ## Is Age doing the heavy lifting in these models?
@@ -6526,11 +8748,67 @@ table36 <- formatted %>%
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
     (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
-    Outcome == "PrCa_10yrs",
+    Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table36)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table36-grs-vs-age-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa_10yrs"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table36-grs-vs-age-10yr, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa_10yrs"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -6543,14 +8821,71 @@ This only shows that Age is significantly better an 'Any prostate cancer' risk p
 table37 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black",
-    Predictor == "Age" & (Covariates == "None"),
-  #  Outcome == "PrCa_10yrs",
+    Predictor == "Age" & (Covariates == "None")
+  #  Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table37)
 
 ```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table37-age-alone-all, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black",
+    Predictor == "Age" & (Covariates == "None")
+  #  Outcome == "PrCa_10yrs"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table37-age-alone-all, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk %>%
+  dplyr::filter(
+Population == "White" | Population == "Black",
+    Predictor == "Age" & (Covariates == "None")
+  #  Outcome == "PrCa_10yrs"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
+  theme_minimal()
+
+```
+
 
 -   Any prostate cancer, any time after the assessment centre
 -   Any prostate cancer on a 2-year prediction horizon
@@ -6988,8 +9323,8 @@ If you run logistic regressions with Age as a fixed predictor of all endpoints (
 table38 <- formatted %>%                        
   dplyr::filter(                          
     Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | (Predictor == "WangAfricanGRS444" & Covariates == "Age") | (Predictor == "SchumacherGRS145" & Covariates == "Age") | (Predictor == "BARCODE1GRS129" & Covariates == "Age") | (Predictor == "SeibertGRS52" & Covariates == "Age")  | (Predictor == "PagadalaGRS285" & Covariates == "Age") | (Predictor == "GenomicsPLC_PRS" & Covariates == "Age"),
-    #Outcome == "PrCa_10yrs",
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | (Predictor == "WangAfricanGRS444" & Covariates == "Age") | (Predictor == "SchumacherGRS145" & Covariates == "Age") | (Predictor == "BARCODE1GRS129" & Covariates == "Age") | (Predictor == "SeibertGRS52" & Covariates == "Age")  | (Predictor == "PagadalaGRS285" & Covariates == "Age") | (Predictor == "GenomicsPLC_PRS" & Covariates == "Age")
+    #Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
 
@@ -7010,8 +9345,8 @@ Similarly, if you calculate the Net Reclassification Improvement (NRI) for every
 table39 <- nri_bulk %>%                        
   dplyr::filter(                          
     Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS",
-    #Outcome == "PrCa_10yrs",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS"
+    #Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "NRI", "NRI_CI_Lower", "NRI_CI_Upper", "p_NRI", "N_Cases", "N_Controls", "NRI_significant", "Cases_Percent_Reclassified_Up", "Cases_Percent_Reclassified_Down", "Controls_Percent_Reclassified_Up", "Controls_Percent_Reclassified_Down"))
 
@@ -7030,7 +9365,7 @@ pretty_print_table(table39)
 table40 <- FI_formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS"
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Full_ROC_AUC_4dp", "Delta_AUC_drop_GRS_4dp", "Delta_AUC_drop_Age_4dp", "GRS_OR_adj_CI_95", "Age_OR_adj_CI_95", "GRS_added_value", "Age_added_value", "N_Cases", "N_Controls"))
 
@@ -7045,7 +9380,7 @@ pretty_print_table(table40)
 table41 <- RF_formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS"
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "OOB_ROC_AUC_4dp", "GRS_MDA_4dp", "Age_MDA_4dp", "GRS_Pct_Importance_1dp", "Age_Pct_Importance_1dp", "N_Cases", "N_Controls"))
 
@@ -7163,6 +9498,62 @@ pretty_print_table(table42)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table42-triage-any-prca, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk2 %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table42-triage-any-prca, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk2 %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Risk stratification of any prostate cancer diagnosis, 2 years after symptom presentation
 
 ```{r table43-triage-2yr-prca, echo=FALSE, cache = TRUE}
@@ -7179,6 +9570,62 @@ table43 <- formatted2 %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table43)
+
+```
+
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table43-triage-2yr-prca, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk2 %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa_2yrs"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table43-triage-2yr-prca, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk2 %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa_2yrs"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
 
 ```
 
@@ -7201,6 +9648,62 @@ pretty_print_table(table44)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table44-triage-5yr-prca, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk2 %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa_5yrs"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table44-triage-5yr-prca, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk2 %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa_5yrs"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
 ## Risk stratification of any prostate cancer diagnosis, 10 years after symptom presentation
 
 ```{r table45-triage-10yr-prca, echo=FALSE, cache = TRUE}
@@ -7220,6 +9723,63 @@ pretty_print_table(table45)
 
 ```
 
+### ROC AUC Forest plot
+
+```{r forestplot-ROC-table45-triage-10yr-prca, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk2 %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa_10yrs"
+  ) %>%
+  dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+### OR per SD Forest plot
+
+```{r forestplot-OR-table45-triage-10yr-prca, echo=FALSE, cache = TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+forestplot_df <- bulk2 %>%
+  dplyr::filter(
+Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    Outcome == "PrCa_10yrs"
+  ) %>%
+  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
+  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+pred_levels <- unique(forestplot_df$Predictor)
+pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  coord_flip() +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
+  scale_color_manual(values = pred_colors) +
+  theme_minimal()
+
+```
+
+
 # Conclusions from this part:
 
 -   Adding age at symptom presentation significantly improves predictive performance for White participants for a 2-, 5-, and 10-year prediction horizon
@@ -7229,6 +9789,10 @@ pretty_print_table(table45)
 -   Large confidence intervals suggest the UKB is statistically underpowered to accurately compare GRS performance for this purpose
 
 -   Partially explained by the fact that, of the 14,076 UKB participants who report LUTS, 13,370 (95%) are White
+
+
+
+
 
 
 
