@@ -1,10 +1,12 @@
 ﻿---
 title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
-date: "2026-04-09"
+date: "2026-04-10"
 ---
 
-```{r setup-opts, include=FALSE, cache = TRUE}
+```{r setup-opts, include=FALSE, cache = FALSE}
+
+# Run this chunk and the next one manually on a new instance before knitting.
 
 knitr::opts_chunk$set(
   echo = FALSE,
@@ -12,6 +14,24 @@ knitr::opts_chunk$set(
   warning = FALSE
 )
 
+```
+
+
+```{r cache-download-helper, eval=FALSE, echo=FALSE, include=FALSE, cache=FALSE}
+
+# Run this chunk manually on a new instance before knitting.
+
+cache_tar <- "htmlsummary_cache.tar.gz"
+dx_cache_object <- "Callum/cache/htmlsummary_cache.tar.gz"
+
+# Download cache into the current DNAnexus instance and extract
+
+system2("dx", c("download", dx_cache_object, "-o", cache_tar), stdout = TRUE, stderr = TRUE)
+system2("tar", c("-xzf", cache_tar), stdout = TRUE, stderr = TRUE)
+
+# confirm the cache folder is restored
+
+list.files("htmlsummary_cache", recursive = FALSE)
 ```
 
 Setup script 1: Paste "functions.r" here:
@@ -5412,7 +5432,7 @@ Conclusion: Age always helps, and using the African-specific weightings makes ve
 table3 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "AFR",
-    Predictor == "ContimultiethnicGRS267",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
@@ -5431,7 +5451,7 @@ library(ggplot2)
 forestplot3 <- bulk %>%
   dplyr::filter(
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "AFR",
-    Predictor == "ContimultiethnicGRS267",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
@@ -5475,7 +5495,7 @@ library(ggplot2)
 forestplot3 <- bulk %>%
   dplyr::filter(
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "AFR",
-    Predictor == "ContimultiethnicGRS267",
+    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
     Outcome == "PrCa_10yrs",
     Covariates == "Age"
   ) %>%
@@ -5819,7 +5839,7 @@ forestplot_df <- bulk %>%
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
     Predictor == "ContimultiethnicGRS267" | Predictor == "ContiORadjustedGRS",
     Outcome == "PrCa",
-    Covariates == "None"
+    Covariates == "Age"
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
@@ -5848,7 +5868,7 @@ forestplot_df <- bulk %>%
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
     Predictor == "ContimultiethnicGRS267" | Predictor == "ContiORadjustedGRS",
     Outcome == "PrCa",
-    Covariates == "None"
+    Covariates == "Age"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
@@ -6401,6 +6421,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
   geom_point(size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
@@ -6477,6 +6498,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
   geom_point(size = 2.5) +
+  scale_y_continuous(limits = c(0, 10)) +
   coord_flip() +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
   scale_color_manual(values = pop_colors) +
@@ -6737,6 +6759,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
   geom_point(size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
@@ -6814,6 +6837,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
   geom_point(size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
@@ -6893,6 +6917,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
   coord_flip() +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
   scale_color_manual(values = pop_colors) +
+  scale_y_continuous(limits = c(0, 10)) +
   theme_minimal()
 
 ```
@@ -6968,6 +6993,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
   geom_point(size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
@@ -7043,6 +7069,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
   scale_color_manual(values = pred_colors) +
   theme_minimal()
@@ -7118,6 +7145,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
   scale_color_manual(values = pred_colors) +
   theme_minimal()
@@ -8135,7 +8163,8 @@ table28 <- formatted %>%
 
 pretty_print_table(table28)
 
-`
+```
+
 ### ROC AUC Forest plot
 
 ```{r forestplot-ROC-table28-pagadala-severe-any, echo=FALSE, cache = TRUE}
@@ -9792,7 +9821,29 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
 
 
 
+```{r cache-upload-helper, eval=FALSE, echo=TRUE, cache=FALSE}
 
+# Run this chunk manually after a successful knit to upload the cache (saves the ~3 hour run).
+
+cache_dir <- "htmlsummary_cache"
+cache_tar <- "htmlsummary_cache.tar.gz"
+dx_target_path <- "Callum/cache/"
+
+if (!dir.exists(cache_dir)) {
+  stop(paste0("Cache directory not found: ", cache_dir))
+}
+
+# Archive cache directory
+system2("tar", c("-czf", cache_tar, cache_dir), stdout = TRUE, stderr = TRUE)
+
+# Upload cache archive
+system2("dx", c("upload", cache_tar, "--path", dx_target_path, "--brief"), stdout = TRUE, stderr = TRUE)
+
+# Save and upload session info so package versions are tracked with the cache
+session_info_file <- "htmlsummary_sessionInfo.txt"
+writeLines(capture.output(sessionInfo()), session_info_file)
+system2("dx", c("upload", session_info_file, "--path", dx_target_path, "--brief"), stdout = TRUE, stderr = TRUE)
+```
 
 
 
