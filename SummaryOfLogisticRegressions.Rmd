@@ -9001,17 +9001,26 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
     Outcome == "PrCa"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
-  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+  dplyr::mutate(
+    Population = factor(Population, levels = unique(Population)),
+    Model = dplyr::case_when(
+      Predictor == "ContimultiethnicGRS267" & Covariates == "None" ~ "GRS alone",
+      Predictor == "Age" & Covariates == "None" ~ "Age alone",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "Age" ~ "GRS + Age",
+      TRUE ~ NA_character_
+    ),
+    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
+  )
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population, shape = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
   scale_y_continuous(limits = c(0, 10)) +
-  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population", shape = "Model") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
 
@@ -9087,17 +9096,26 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
     Outcome == "PrCa_2yrs"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
-  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+  dplyr::mutate(
+    Population = factor(Population, levels = unique(Population)),
+    Model = dplyr::case_when(
+      Predictor == "ContimultiethnicGRS267" & Covariates == "None" ~ "GRS alone",
+      Predictor == "Age" & Covariates == "None" ~ "Age alone",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "Age" ~ "GRS + Age",
+      TRUE ~ NA_character_
+    ),
+    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
+  )
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population, shape = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
   scale_y_continuous(limits = c(0, 10)) +
-  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population", shape = "Model") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
 
@@ -9173,17 +9191,26 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
     Outcome == "PrCa_5yrs"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
-  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+  dplyr::mutate(
+    Population = factor(Population, levels = unique(Population)),
+    Model = dplyr::case_when(
+      Predictor == "ContimultiethnicGRS267" & Covariates == "None" ~ "GRS alone",
+      Predictor == "Age" & Covariates == "None" ~ "Age alone",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "Age" ~ "GRS + Age",
+      TRUE ~ NA_character_
+    ),
+    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
+  )
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population, shape = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
   scale_y_continuous(limits = c(0, 10)) +
-  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population", shape = "Model") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
 
@@ -9259,17 +9286,26 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
-  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+  dplyr::mutate(
+    Population = factor(Population, levels = unique(Population)),
+    Model = dplyr::case_when(
+      Predictor == "ContimultiethnicGRS267" & Covariates == "None" ~ "GRS alone",
+      Predictor == "Age" & Covariates == "None" ~ "Age alone",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "Age" ~ "GRS + Age",
+      TRUE ~ NA_character_
+    ),
+    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
+  )
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population, shape = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
   scale_y_continuous(limits = c(0, 10)) +
-  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population", shape = "Model") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
 
