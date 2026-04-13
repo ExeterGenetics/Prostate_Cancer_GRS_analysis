@@ -102,7 +102,7 @@ if (!is.null(.rlang_loaded_ver) && !is.null(.rlang_disk_ver) &&
   stop(
     "rlang was upgraded from ", .rlang_loaded_ver, " to ", .rlang_disk_ver,
     " during package installation.\n",
-    "All packages are now installed — please restart R and knit again.\n",
+    "All packages are now installed � please restart R and knit again.\n",
     "This will not happen on the next knit."
   )
 }
@@ -5879,7 +5879,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -5908,7 +5908,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7325,7 +7325,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7354,7 +7354,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7400,7 +7400,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7429,12 +7429,13 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
   scale_color_manual(values = pred_colors) +
   theme_minimal()
@@ -7475,7 +7476,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7504,12 +7505,13 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
   scale_color_manual(values = pred_colors) +
   theme_minimal()
@@ -7550,7 +7552,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7579,12 +7581,13 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
   scale_color_manual(values = pred_colors) +
   theme_minimal()
@@ -7625,7 +7628,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7654,12 +7657,13 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
   scale_color_manual(values = pred_colors) +
   theme_minimal()
@@ -7700,7 +7704,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7729,7 +7733,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7737,6 +7741,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   coord_flip() +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
   scale_color_manual(values = pred_colors) +
+  scale_y_continuous(limits = c(0, 10)) +
   theme_minimal()
 
 ```
@@ -7810,6 +7815,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
   scale_color_manual(values = pred_colors) +
   theme_minimal()
@@ -7933,7 +7939,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7962,7 +7968,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -8010,7 +8016,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -8039,7 +8045,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -8087,7 +8093,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -8116,7 +8122,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -8164,7 +8170,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -8193,7 +8199,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -8243,7 +8249,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
 pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
+pred_colors <- setNames(c("#00c896", "#003c3c", "#fc4c02")[seq_along(pred_levels)], pred_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Predictor)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -8270,15 +8276,15 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)))
-pred_levels <- unique(forestplot_df$Predictor)
-pred_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pred_levels)], pred_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Predictor)) +
+pop_levels <- levels(forestplot_df$Population)
+pop_colors <- setNames(c("#00c896", "#003c3c", "#022020", "#007d69")[seq_along(pop_levels)], pop_levels)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
-  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
+  geom_point(size = 2.5) +
   coord_flip() +
-  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Predictor") +
-  scale_color_manual(values = pred_colors) +
+  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  scale_color_manual(values = pop_colors) +
   theme_minimal()
 
 ```
@@ -8315,43 +8321,18 @@ Population == "White" | Population == "Black",
   #  Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
-  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
+  dplyr::mutate(
+    Outcome = factor(Outcome, levels = unique(Outcome)),
+    Population = factor(Population, levels = c("White", "Black"))
+  )
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Population)) +
+ggplot(forestplot_df, aes(x = Outcome, y = ROC_AUC, color = Population, group = Population)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
-  labs(x = "Population", y = "ROC AUC [95% CI]", color = "Population") +
-  scale_color_manual(values = pop_colors) +
-  theme_minimal()
-
-```
-
-### OR per SD Forest plot
-
-```{r forestplot-OR-table37-age-alone-all, echo=FALSE, cache = TRUE}
-
-library(ggplot2)
-library(dplyr)
-
-forestplot_df <- bulk %>%
-  dplyr::filter(
-Population == "White" | Population == "Black",
-    Predictor == "Age" & (Covariates == "None")
-  #  Outcome == "PrCa_10yrs"
-  ) %>%
-  dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
-  dplyr::mutate(Population = factor(Population, levels = unique(Population)))
-pop_levels <- levels(forestplot_df$Population)
-pop_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Population)) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
-  coord_flip() +
-  labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Population") +
+  labs(x = "Outcome", y = "ROC AUC [95% CI]", color = "Population") +
   scale_color_manual(values = pop_colors) +
   theme_minimal()
 
@@ -8994,7 +8975,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
     Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
   )
 model_levels <- levels(forestplot_df$Model)
-model_colors <- setNames(c("#00c896", "#003c3c", "#022020")[seq_along(model_levels)], model_levels)
+model_colors <- setNames(c("#00c896", "#fc4c02", "#003c3c")[seq_along(model_levels)], model_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -9080,7 +9061,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
     Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
   )
 model_levels <- levels(forestplot_df$Model)
-model_colors <- setNames(c("#00c896", "#003c3c", "#022020")[seq_along(model_levels)], model_levels)
+model_colors <- setNames(c("#00c896", "#fc4c02", "#003c3c")[seq_along(model_levels)], model_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -9166,7 +9147,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
     Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
   )
 model_levels <- levels(forestplot_df$Model)
-model_colors <- setNames(c("#00c896", "#003c3c", "#022020")[seq_along(model_levels)], model_levels)
+model_colors <- setNames(c("#00c896", "#fc4c02", "#003c3c")[seq_along(model_levels)], model_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -9252,7 +9233,7 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
     Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
   )
 model_levels <- levels(forestplot_df$Model)
-model_colors <- setNames(c("#00c896", "#003c3c", "#022020")[seq_along(model_levels)], model_levels)
+model_colors <- setNames(c("#00c896", "#fc4c02", "#003c3c")[seq_along(model_levels)], model_levels)
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -9330,6 +9311,7 @@ session_info_file <- "htmlsummary_sessionInfo.txt"
 writeLines(capture.output(sessionInfo()), session_info_file)
 system2("dx", c("upload", session_info_file, "--path", dx_target_path, "--brief"), stdout = TRUE, stderr = TRUE)
 ```
+
 
 
 
