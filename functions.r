@@ -1,3 +1,22 @@
+# Run this chunk manually on a new instance before knitting.
+
+cache_tar <- "htmlsummary_cache.tar.gz"
+dx_cache_object <- "Callum/cache/htmlsummary_cache.tar.gz"
+
+# Download cache into the current DNAnexus instance and extract
+
+system2("dx", c("download", dx_cache_object, "-o", cache_tar), stdout = TRUE, stderr = TRUE)
+system2("tar", c("-xzf", cache_tar), stdout = TRUE, stderr = TRUE)
+
+# confirm the cache folder is restored
+
+list.files("htmlsummary_cache", recursive = FALSE)
+```
+
+Setup script 1: Paste "functions.r" here:
+
+```{r setup-functions, include=FALSE, cache = FALSE}
+
 ## This script sets up the packages and functions used in this repository's scripts
 
 # Validate rlang before loading broader package stack.
@@ -33,8 +52,39 @@ installed_pkgs <- rownames(installed.packages())
 
 new_pkgs <- packages_needed[!packages_needed %in% installed_pkgs]
 if (length(new_pkgs) > 0) {
-  install.packages(new_pkgs, dependencies = TRUE)
+  # Install PRROC without dependencies to prevent it triggering a rlang
+  # reinstall attempt that fails because rlang is already loaded.
+  if ("PRROC" %in% new_pkgs) {
+    install.packages("PRROC", dependencies = FALSE)
+    new_pkgs <- setdiff(new_pkgs, "PRROC")
+  }
+  if (length(new_pkgs) > 0) {
+    install.packages(new_pkgs, dependencies = TRUE)
+  }
 }
+
+# After installation, check whether rlang (or any other critical package) was
+# upgraded on disk to a version newer than what is currently loaded in this
+# R session.  When that happens, calling library() on any package that requires
+# the newer version triggers an unloadNamespace() attempt on rlang, which fails
+# because almost everything imports it.  Detect this early and stop with a
+# clear, actionable message instead of a confusing backtrace.
+.rlang_loaded_ver <- tryCatch(
+  numeric_version(getNamespaceVersion("rlang")),
+  error = function(e) NULL
+)
+.rlang_disk_ver <- tryCatch(packageVersion("rlang"), error = function(e) NULL)
+if (!is.null(.rlang_loaded_ver) && !is.null(.rlang_disk_ver) &&
+    .rlang_disk_ver > .rlang_loaded_ver) {
+  stop(
+    "rlang was upgraded from ", .rlang_loaded_ver, " to ", .rlang_disk_ver,
+    " during package installation.\n",
+    "All packages are now installed — please restart R and knit again.\n",
+    "This will not happen on the next knit."
+  )
+}
+rm(.rlang_loaded_ver, .rlang_disk_ver)
+
 invisible(lapply(packages_needed, library, character.only = TRUE))
 
 # Helper: randomly subset controls to match the number of cases for a given outcome column
