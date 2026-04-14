@@ -32,7 +32,7 @@ library(stringr)
 library(tidyr)
 library(tibble)
 
-## Choose which OR column to use
+## Choose which OR column to use, then you can run the rest of the script to generate your chosen GRS
 
 # Options: "OR_MULTI", "OR_EUR", "OR_AFR", "OR_EAS", "OR_HIS"
 OR_column <- "OR_MULTI"
