@@ -441,12 +441,13 @@ if (ncol(tmp_G) == 0) {
 # Step 6: Save outputs #
 ########################
 
-raw_ids   <- raw_sub$IID
+raw_ids <- raw_sub$IID
+
 if (source %in% c("Conti", "Wang")) {
-  tag       <- gsub("^OR_", "", OR_column)  # e.g., MULTI, EUR, AFR...
-  col_sum   <- paste0("Conti_GRS_", tag, "_sum")
-  col_avg   <- paste0("Conti_GRS_", tag, "_avg")
-  out_file  <- paste0("GRS_", tag, ".tsv")
+  tag       <- gsub("^OR_", "", OR_column)   # MULTI / EUR / AFR / EAS / HIS
+  col_sum   <- paste0(source, "_GRS_", tag, "_sum")
+  col_avg   <- paste0(source, "_GRS_", tag, "_avg")
+  out_file  <- paste0("GRS_", source, "_", tag, ".tsv")
 } else {
   tag       <- source
   col_sum   <- paste0(source, "_GRS_sum")
