@@ -211,6 +211,12 @@ confusion_matrix <- function(data,
                              negative_level = 0,
                              print_epi = TRUE) {
   
+
+  if (cutoff_value <= 0 || cutoff_value >= 1) {
+    stop("cutoff_value must be between 0 and 1 (exclusive).")
+  }
+
+
   data$predbin <- factor(
     data$pred > cutoff_value,
     levels = c(TRUE, FALSE)
@@ -238,10 +244,26 @@ confusion_matrix <- function(data,
     epi <- epi.tests(cm)
   }
   
-  # Return useful objects
+# -- Net benefit (standard DCA definition) --# (defined in https://www.bmj.com/content/352/bmj.i6)
+  get_cell <- function(mat, r, c) {
+    r <- as.character(r); c <- as.character(c)
+    if (r %in% rownames(mat) && c %in% colnames(mat)) mat[r, c] else 0
+  }
+
+  TP <- get_cell(cm, TRUE,  positive_level)
+  FP <- get_cell(cm, TRUE,  negative_level)
+  N  <- sum(cm)
+
+  w <- cutoff_value / (1 - cutoff_value)  # threshold odds / exchange rate
+  net_benefit <- (TP / N) - (FP / N) * w
+
+  cat("\nNet benefit (pt =", cutoff_value, "):", net_benefit, "\n")
+
   return(list(
     confusion_matrix = cm,
     epi_tests = epi,
+    net_benefit = net_benefit,
+    components = list(TP = TP, FP = FP, N = N, pt = cutoff_value, w = w),
     data = data
   ))
 }
