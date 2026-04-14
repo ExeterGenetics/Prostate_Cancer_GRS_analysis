@@ -927,32 +927,32 @@ WangHispanicGRS <- WangHispanicGRS %>%
 
 WangmultiethnicGRS450 <- read_delim("Wang_multiethnicGRS_450.tsv")
 WangmultiethnicGRS450 <- WangmultiethnicGRS450 %>%
-  dplyr::select(c("eid", "Conti_GRS_MULTI_avg")) %>%
-  dplyr::rename('WangmultiethnicGRS450' = 'Conti_GRS_MULTI_avg') %>%
+  dplyr::select(c("eid", "Wang_GRS_MULTI_avg")) %>%
+  dplyr::rename('WangmultiethnicGRS450' = 'Wang_GRS_MULTI_avg') %>%
   dplyr::mutate(top10_all_WangmultiethnicGRS450 = WangmultiethnicGRS450 >= quantile(WangmultiethnicGRS450, probs = 0.9))
 
 WangEuropeanGRS445 <- read_delim("Wang_EuropeanGRS_445.tsv")
 WangEuropeanGRS445 <- WangEuropeanGRS445 %>%
-  dplyr::select(c("eid", "Conti_GRS_EUR_avg")) %>%
-  dplyr::rename('WangEuropeanGRS445' = 'Conti_GRS_EUR_avg') %>%
+  dplyr::select(c("eid", "Wang_GRS_EUR_avg")) %>%
+  dplyr::rename('WangEuropeanGRS445' = 'Wang_GRS_EUR_avg') %>%
   dplyr::mutate(top10_all_WangEuropeanGRS445 = WangEuropeanGRS445 >= quantile(WangEuropeanGRS445, probs = 0.9))
 
 WangAfricanGRS444 <- read_delim("Wang_AfricanGRS_444.tsv")
 WangAfricanGRS444 <- WangAfricanGRS444 %>%
-  dplyr::select(c("eid", "Conti_GRS_AFR_avg")) %>%
-  dplyr::rename('WangAfricanGRS444' = 'Conti_GRS_AFR_avg') %>%
+  dplyr::select(c("eid", "Wang_GRS_AFR_avg")) %>%
+  dplyr::rename('WangAfricanGRS444' = 'Wang_GRS_AFR_avg') %>%
   dplyr::mutate(top10_all_WangAfricanGRS444 = WangAfricanGRS444 >= quantile(WangAfricanGRS444, probs = 0.9))
 
 WangEast_AsianGRS379 <- read_delim("Wang_East_AsianGRS_379.tsv")
 WangEast_AsianGRS379 <- WangEast_AsianGRS379 %>%
-  dplyr::select(c("eid", "Conti_GRS_EAS_avg")) %>%
-  dplyr::rename('WangEast_AsianGRS379' = 'Conti_GRS_EAS_avg') %>%
+  dplyr::select(c("eid", "Wang_GRS_EAS_avg")) %>%
+  dplyr::rename('WangEast_AsianGRS379' = 'Wang_GRS_EAS_avg') %>%
   dplyr::mutate(top10_all_WangEast_AsianGRS379 = WangEast_AsianGRS379 >= quantile(WangEast_AsianGRS379, probs = 0.9))
 
 WangHispanicGRS446 <- read_delim("Wang_HispanicGRS_446.tsv")
 WangHispanicGRS446 <- WangHispanicGRS446 %>%
-  dplyr::select(c("eid", "Conti_GRS_HIS_avg")) %>%
-  dplyr::rename('WangHispanicGRS446' = 'Conti_GRS_HIS_avg') %>%
+  dplyr::select(c("eid", "Wang_GRS_HIS_avg")) %>%
+  dplyr::rename('WangHispanicGRS446' = 'Wang_GRS_HIS_avg') %>%
   dplyr::mutate(top10_all_WangHispanicGRS446 = WangHispanicGRS446 >= quantile(WangHispanicGRS446, probs = 0.9))
 
 
