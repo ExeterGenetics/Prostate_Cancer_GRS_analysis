@@ -210,41 +210,38 @@ confusion_matrix <- function(data,
                              positive_level = 1,
                              negative_level = 0,
                              print_epi = TRUE) {
-  
 
   if (cutoff_value <= 0 || cutoff_value >= 1) {
     stop("cutoff_value must be between 0 and 1 (exclusive).")
   }
+  if (!("pred" %in% names(data))) {
+    stop("data must contain a column named 'pred' with predicted probabilities.")
+  }
 
-
+  # Predicted class at threshold (treat/positive if pred >= pt)
   data$predbin <- factor(
-    data$pred > cutoff_value,
+    data$pred >= cutoff_value,
     levels = c(TRUE, FALSE)
   )
-  
+
+  # Actual outcome (ensure positive then negative ordering)
   data$outcome_actual <- factor(
     data[[outcome]],
     levels = c(positive_level, negative_level)
   )
-  
-  # Build confusion matrix
+
+  # Confusion matrix: rows = predicted (TRUE/FALSE), cols = actual (pos/neg)
   cm <- table(
     pred_outcome = data$predbin,
     outcome_actual = data$outcome_actual
   )
-  
-  # Print confusion matrix
+
   print(cm)
-  
-  # Run epi.tests
-  if (print_epi) {
-    epi <- epi.tests(cm)
-    print(epi)
-  } else {
-    epi <- epi.tests(cm)
-  }
-  
-# -- Net benefit (standard DCA definition) --# (defined in https://www.bmj.com/content/352/bmj.i6)
+
+  epi <- epi.tests(cm)
+  if (print_epi) print(epi)
+
+  # ---- Net benefit calculations ----
   get_cell <- function(mat, r, c) {
     r <- as.character(r); c <- as.character(c)
     if (r %in% rownames(mat) && c %in% colnames(mat)) mat[r, c] else 0
@@ -254,16 +251,34 @@ confusion_matrix <- function(data,
   FP <- get_cell(cm, TRUE,  negative_level)
   N  <- sum(cm)
 
-  w <- cutoff_value / (1 - cutoff_value)  # threshold odds / exchange rate
+  pt <- cutoff_value
+  w  <- pt / (1 - pt)  # threshold odds / exchange rate  [1](https://www.bmj.com/content/352/bmj.i6)[2](https://pmc.ncbi.nlm.nih.gov/articles/PMC6777022/)
+
+  # Standard net benefit: TP/N - FP/N * w  [2](https://pmc.ncbi.nlm.nih.gov/articles/PMC6777022/)[1](https://www.bmj.com/content/352/bmj.i6)
   net_benefit <- (TP / N) - (FP / N) * w
 
-  cat("\nNet benefit (pt =", cutoff_value, "):", net_benefit, "\n")
+  # Reference strategies for decision curves
+  prevalence <- sum(data$outcome_actual == as.character(positive_level), na.rm = TRUE) / N
+
+  # Treat none: NB = 0 by definition (no positives, no false positives) [2](https://pmc.ncbi.nlm.nih.gov/articles/PMC6777022/)[1](https://www.bmj.com/content/352/bmj.i6)
+  nb_treat_none <- 0
+
+  # Treat all: TP/N = prevalence; FP/N = (1 - prevalence) [2](https://pmc.ncbi.nlm.nih.gov/articles/PMC6777022/)[1](https://www.bmj.com/content/352/bmj.i6)
+  nb_treat_all <- prevalence - (1 - prevalence) * w
+
+  cat("\nThreshold (pt) =", pt,
+      "\nNet benefit (model)     =", net_benefit,
+      "\nNet benefit (treat all) =", nb_treat_all,
+      "\nNet benefit (treat none)=", nb_treat_none,
+      "\n")
 
   return(list(
     confusion_matrix = cm,
     epi_tests = epi,
     net_benefit = net_benefit,
-    components = list(TP = TP, FP = FP, N = N, pt = cutoff_value, w = w),
+    net_benefit_treat_all = nb_treat_all,
+    net_benefit_treat_none = nb_treat_none,
+    components = list(TP = TP, FP = FP, N = N, pt = pt, w = w, prevalence = prevalence),
     data = data
   ))
 }
