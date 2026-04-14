@@ -21,8 +21,12 @@
 remotes::install_github("lcpilling/ukbrapR@v0.3.10",
                         force = TRUE, clean = TRUE, dependencies = TRUE)
 
-library(dplyr)
+if (!requireNamespace("readxl", quietly = TRUE)) {
+  install.packages("readxl")
+}
+
 library(readxl)
+library(dplyr)
 library(readr)
 library(stringr)
 library(tidyr)
@@ -34,7 +38,7 @@ library(tibble)
 OR_column <- "OR_MULTI"
 
 ## Choose the source GWAS: "Conti", "Wang", "Schumacher", "BARCODE1", "Seibert", or "Pagadala"
-source <- "Pagadala" 
+source <- "Conti" 
 
 
 ##########
