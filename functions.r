@@ -1,22 +1,3 @@
-# Run this chunk manually on a new instance before knitting.
-
-cache_tar <- "htmlsummary_cache.tar.gz"
-dx_cache_object <- "Callum/cache/htmlsummary_cache.tar.gz"
-
-# Download cache into the current DNAnexus instance and extract
-
-system2("dx", c("download", dx_cache_object, "-o", cache_tar), stdout = TRUE, stderr = TRUE)
-system2("tar", c("-xzf", cache_tar), stdout = TRUE, stderr = TRUE)
-
-# confirm the cache folder is restored
-
-list.files("htmlsummary_cache", recursive = FALSE)
-```
-
-Setup script 1: Paste "functions.r" here:
-
-```{r setup-functions, include=FALSE, cache = FALSE}
-
 ## This script sets up the packages and functions used in this repository's scripts
 
 # Validate rlang before loading broader package stack.
