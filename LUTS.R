@@ -1523,7 +1523,8 @@ bulk2 <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                 "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
-  version = "Symptomatic Triage"
+  version = "Symptomatic Triage",
+  adjust_for_PCs = TRUE
 )
 
 ## The below block adds, for each row that represents a GRS + Age model, the
@@ -1586,7 +1587,8 @@ nri_bulk2 <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                 "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
-  version = "Symptomatic Triage"
+  version = "Symptomatic Triage",
+  adjust_for_PCs = TRUE
 )
 
 nri_bulk2 <- nri_bulk2 %>%
@@ -1622,7 +1624,8 @@ FI_bulk2 <- feature_importance_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   subset_controls = FALSE,
-  version = "Symptomatic Triage"
+  version = "Symptomatic Triage",
+  adjust_for_PCs = TRUE
 )
 
 FI_formatted2 <- FI_bulk2 %>%
@@ -1681,7 +1684,8 @@ RF_bulk2 <- rf_feature_importance_table(
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   ntree = 100,
   subset_controls = FALSE,
-  version = "Symptomatic Triage"
+  version = "Symptomatic Triage",
+  adjust_for_PCs = TRUE
 )
 
 RF_formatted2 <- RF_bulk2 %>%

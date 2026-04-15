@@ -961,9 +961,11 @@ nri_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    covariates_list = list("Age", "FH_PrCa_BrCa", "Age + FH_PrCa_BrCa"),
     subset_controls = FALSE,
     verbose = TRUE,
-    version = "Asymptomatic Screening"
+  version = "Asymptomatic Screening",
+  adjust_for_PCs = FALSE
 ) {
   valid_versions <- c("Asymptomatic Screening", "Symptomatic Triage")
   if (!(version %in% valid_versions)) {
@@ -1048,12 +1050,51 @@ nri_table <- function(
   }
   
   grs_list <- setdiff(grs_list, "Age")
-  
+  pc_covariates <- paste0("PC", 1:10)
+
+  parse_covariate_terms <- function(covariate_spec) {
+    if (is.null(covariate_spec)) {
+      return(character(0))
+    }
+
+    terms <- trimws(unlist(strsplit(as.character(covariate_spec), "\\+")))
+    terms <- terms[nzchar(terms)]
+    unique(terms)
+  }
+
+  resolve_covariates <- function(base_covariates, predictor = NULL) {
+    covs <- parse_covariate_terms(base_covariates)
+
+    if (isTRUE(adjust_for_PCs)) {
+      covs <- c(covs, pc_covariates)
+    }
+
+    covs <- unique(covs)
+    if (!is.null(predictor)) {
+      covs <- covs[covs != predictor]
+    }
+
+    if (length(covs) == 0) {
+      return(NULL)
+    }
+
+    covs
+  }
+
+  covariate_label <- function(covs) {
+    if (is.null(covs) || length(covs) == 0) {
+      return("None")
+    }
+
+    paste(covs, collapse = " + ")
+  }
+
   # Initialize results dataframe
   results <- data.frame(
     Outcome = character(),
     Population = character(),
     Predictor = character(),
+    Covariates = character(),
     N_Cases = integer(),
     N_Controls = integer(),
     NRI = numeric(),
@@ -1068,123 +1109,134 @@ nri_table <- function(
     Controls_Percent_Reclassified_Down = numeric(),
     stringsAsFactors = FALSE
   )
-  
+
   # Total combinations to process
-  total_combos <- length(outcomes) * length(populations) * length(grs_list)
+  total_combos <- length(outcomes) * length(populations) * length(covariates_list) * length(grs_list)
   combo_count <- 0
-  
+
   # Loop over all combinations
   for (current_outcome in outcomes) {
     for (pop_name in names(populations)) {
       pop_data <- populations[[pop_name]]
-      
-      # -- Fit Age-only reference model ---------------------------------------
-      if (verbose) {
-        cat(sprintf("\n=== %s | %s ===\n", current_outcome, pop_name))
-        cat("Fitting Age-only reference model...\n")
-      }
-      
-      if (!"Age" %in% colnames(pop_data)) {
-        if (verbose) cat(sprintf("Skipping (Age not in %s)\n", pop_name))
-        next
-      }
-      
-      tryCatch({
-        # Fit Age-only model
-        age_model <- run_logreg(
-          data = pop_data,
-          outcome = current_outcome,
-          predictor = "Age",
-          covariates = NULL,
-          subset_controls = subset_controls,
-          plot_roc = FALSE,
-          show_output = FALSE
-        )
-        
-        reference_data <- age_model$data  # Has pred column (Age-only predictions)
-        
-        # -- For each GRS, fit Age+GRS model and calculate NRI -----------------
-        for (grs_pred in grs_list) {
-          combo_count <- combo_count + 1
-          
-          # Check if GRS exists in data
-          if (!grs_pred %in% colnames(pop_data)) {
-            if (verbose) cat(sprintf("[%d/%d] Skipping %s (not in %s)\n", 
-                                     combo_count, total_combos, grs_pred, pop_name))
-            next
-          }
-          
-          if (verbose) {
-            cat(sprintf("[%d/%d] %s + %s\n", 
-                        combo_count, total_combos, current_outcome, grs_pred))
-          }
-          
-          tryCatch({
-            # Fit Age + GRS model on the reference_data (which already has predictions)
-            grs_model <- run_logreg(
-              data = reference_data,
-              outcome = current_outcome,
-              predictor = grs_pred,
-              covariates = "Age",
-              subset_controls = subset_controls,
-              plot_roc = FALSE,
-              show_output = FALSE
-            )
-            
-            # grs_model$data now has pred column (Age+GRS predictions)
-            # reference_data$pred has Age-only predictions
-            # Rename pred columns for NRI calculation
-            nri_data <- grs_model$data
-            names(nri_data)[names(nri_data) == "pred"] <- "pred2"  # Age+GRS predictions
-            
-            # Add the Age-only predictions as pred_old
-            nri_data$pred <- reference_data$pred
-            
-            # Calculate NRI
-            nri_result <- nri(
-              data = nri_data,
-              outcome = current_outcome,
-              pred_new = "pred2",
-              pred_old = "pred",
-              digits = 3,
-              show_output = FALSE
-            )
-            
-            # Count cases and controls
-            n_cases <- nri_result$n_cases
-            n_controls <- nri_result$n_controls
-            
-            # Append to results
-            results <- rbind(results, data.frame(
-              Outcome = current_outcome,
-              Population = pop_name,
-              Predictor = grs_pred,
-              N_Cases = n_cases,
-              N_Controls = n_controls,
-              NRI = nri_result$NRI,
-              NRI_CI_Lower = nri_result$CI_low_NRI,
-              NRI_CI_Upper = nri_result$CI_high_NRI,
-              p_NRI = nri_result$p_NRI,
-              NRI_Cases = nri_result$NRI_cases,
-              NRI_Controls = nri_result$NRI_controls,
-              Cases_Percent_Reclassified_Up = nri_result$p_up_cases * 100,
-              Cases_Percent_Reclassified_Down = nri_result$p_down_cases * 100,
-              Controls_Percent_Reclassified_Up = nri_result$p_up_controls * 100,
-              Controls_Percent_Reclassified_Down = nri_result$p_down_controls * 100,
-              stringsAsFactors = FALSE
-            ))
-            
-          }, error = function(e) {
-            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
-          })
+
+      for (cov in covariates_list) {
+        reference_covariates <- resolve_covariates(cov)
+        cov_label <- covariate_label(reference_covariates)
+
+        if (verbose) {
+          cat(sprintf("\n=== %s | %s | %s ===\n", current_outcome, pop_name, cov_label))
         }
-        
-      }, error = function(e) {
-        if (verbose) cat(sprintf("  ERROR fitting Age model: %s\n", e$message))
-      })
+
+        if (is.null(reference_covariates) || length(reference_covariates) == 0) {
+          if (verbose) cat("Skipping (reference covariate set is empty)\n")
+          combo_count <- combo_count + length(grs_list)
+          next
+        }
+
+        missing_reference_covariates <- setdiff(reference_covariates, colnames(pop_data))
+        if (length(missing_reference_covariates) > 0) {
+          if (verbose) {
+            cat(sprintf("Skipping (missing covariates in %s: %s)\n",
+                        pop_name, paste(missing_reference_covariates, collapse = ", ")))
+          }
+          combo_count <- combo_count + length(grs_list)
+          next
+        }
+
+        reference_predictor <- reference_covariates[1]
+        reference_other_covariates <- if (length(reference_covariates) > 1) reference_covariates[-1] else NULL
+
+        tryCatch({
+          reference_model <- run_logreg(
+            data = pop_data,
+            outcome = current_outcome,
+            predictor = reference_predictor,
+            covariates = reference_other_covariates,
+            subset_controls = subset_controls,
+            plot_roc = FALSE,
+            show_output = FALSE
+          )
+
+          reference_data <- reference_model$data
+
+          for (grs_pred in grs_list) {
+            combo_count <- combo_count + 1
+
+            if (!grs_pred %in% colnames(pop_data)) {
+              if (verbose) cat(sprintf("[%d/%d] Skipping %s (not in %s)\n",
+                                       combo_count, total_combos, grs_pred, pop_name))
+              next
+            }
+
+            if (verbose) {
+              cat(sprintf("[%d/%d] %s + %s | %s\n",
+                          combo_count, total_combos, current_outcome, grs_pred, cov_label))
+            }
+
+            grs_covariates <- resolve_covariates(cov, predictor = grs_pred)
+            missing_grs_covariates <- setdiff(grs_covariates, colnames(reference_data))
+            if (length(missing_grs_covariates) > 0) {
+              if (verbose) {
+                cat(sprintf("  Skipping (missing covariates in %s: %s)\n",
+                            pop_name, paste(missing_grs_covariates, collapse = ", ")))
+              }
+              next
+            }
+
+            tryCatch({
+              grs_model <- run_logreg(
+                data = reference_data,
+                outcome = current_outcome,
+                predictor = grs_pred,
+                covariates = grs_covariates,
+                subset_controls = subset_controls,
+                plot_roc = FALSE,
+                show_output = FALSE
+              )
+
+              nri_data <- grs_model$data
+              names(nri_data)[names(nri_data) == "pred"] <- "pred2"
+              nri_data$pred <- reference_data$pred
+
+              nri_result <- nri(
+                data = nri_data,
+                outcome = current_outcome,
+                pred_new = "pred2",
+                pred_old = "pred",
+                digits = 3,
+                show_output = FALSE
+              )
+
+              results <- rbind(results, data.frame(
+                Outcome = current_outcome,
+                Population = pop_name,
+                Predictor = grs_pred,
+                Covariates = cov_label,
+                N_Cases = nri_result$n_cases,
+                N_Controls = nri_result$n_controls,
+                NRI = nri_result$NRI,
+                NRI_CI_Lower = nri_result$CI_low_NRI,
+                NRI_CI_Upper = nri_result$CI_high_NRI,
+                p_NRI = nri_result$p_NRI,
+                NRI_Cases = nri_result$NRI_cases,
+                NRI_Controls = nri_result$NRI_controls,
+                Cases_Percent_Reclassified_Up = nri_result$p_up_cases * 100,
+                Cases_Percent_Reclassified_Down = nri_result$p_down_cases * 100,
+                Controls_Percent_Reclassified_Up = nri_result$p_up_controls * 100,
+                Controls_Percent_Reclassified_Down = nri_result$p_down_controls * 100,
+                stringsAsFactors = FALSE
+              ))
+            }, error = function(e) {
+              if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+            })
+          }
+        }, error = function(e) {
+          if (verbose) cat(sprintf("  ERROR fitting reference model: %s\n", e$message))
+        })
+      }
     }
   }
-  
+
   return(results)
 }
 
@@ -1213,12 +1265,13 @@ logreg_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
-    covariates_list = list(NULL, "Age", "rs72725854_T"),  # uses list() so NULL is preserved as a distinct option
+    covariates_list = list(NULL, "Age", "FH_PrCa_BrCa", "Age + FH_PrCa_BrCa"),  # uses list() so NULL is preserved as a distinct option
     include_age_only = TRUE,
     subset_controls = FALSE,
     plot_roc = FALSE,
     verbose = TRUE,
-    version = "Asymptomatic Screening"
+    version = "Asymptomatic Screening",
+    adjust_for_PCs = FALSE
 ) {
   valid_versions <- c("Asymptomatic Screening", "Symptomatic Triage")
   if (!(version %in% valid_versions)) {
@@ -1304,6 +1357,42 @@ logreg_table <- function(
   }
   
   grs_list <- setdiff(grs_list, "Age")
+  pc_covariates <- paste0("PC", 1:10)
+
+  parse_covariate_terms <- function(covariate_spec) {
+    if (is.null(covariate_spec)) {
+      return(character(0))
+    }
+
+    terms <- trimws(unlist(strsplit(as.character(covariate_spec), "\\+")))
+    terms <- terms[nzchar(terms)]
+    unique(terms)
+  }
+
+  resolve_covariates <- function(base_covariates, predictor) {
+    covs <- parse_covariate_terms(base_covariates)
+
+    if (isTRUE(adjust_for_PCs)) {
+      covs <- c(covs, pc_covariates)
+    }
+
+    covs <- unique(covs)
+    covs <- covs[covs != predictor]
+
+    if (length(covs) == 0) {
+      return(NULL)
+    }
+
+    covs
+  }
+
+  covariate_label <- function(covs) {
+    if (is.null(covs) || length(covs) == 0) {
+      return("None")
+    }
+
+    paste(covs, collapse = " + ")
+  }
   
   # Initialize results dataframe
   results <- data.frame(
@@ -1347,12 +1436,22 @@ logreg_table <- function(
         
         for (cov in covariates_list) {
           combo_count <- combo_count + 1
+          effective_covariates <- resolve_covariates(cov, predictor = grs_pred)
+          cov_label <- covariate_label(effective_covariates)
           
           # Progress indicator
           if (verbose) {
-            cov_label <- ifelse(is.null(cov), "NULL", cov)
             cat(sprintf("[%d/%d] %s | %s | %s | %s\n", 
                         combo_count, total_combos, current_outcome, pop_name, grs_pred, cov_label))
+          }
+
+          missing_covariates <- setdiff(effective_covariates, colnames(pop_data))
+          if (length(missing_covariates) > 0) {
+            if (verbose) {
+              cat(sprintf("  Skipping (missing covariates in %s: %s)\n",
+                          pop_name, paste(missing_covariates, collapse = ", ")))
+            }
+            next
           }
           
           # Run logistic regression
@@ -1361,7 +1460,7 @@ logreg_table <- function(
               data = pop_data,
               outcome = current_outcome,
               predictor = grs_pred,
-              covariates = cov,
+              covariates = effective_covariates,
               subset_controls = subset_controls,
               plot_roc = plot_roc,
               plot_pr = TRUE,
@@ -1404,9 +1503,6 @@ logreg_table <- function(
               p_val <- NA_real_
             }
             
-            # Covariate label
-            cov_label <- ifelse(is.null(cov), "None", cov)
-            
             # Append to results
             results <- rbind(results, data.frame(
               Outcome = current_outcome,
@@ -1435,21 +1531,32 @@ logreg_table <- function(
       
       if (include_age_only) {
         combo_count <- combo_count + 1
+        age_covariates <- resolve_covariates(NULL, predictor = "Age")
+        age_cov_label <- covariate_label(age_covariates)
         
         if (verbose) {
           cat(sprintf("[%d/%d] %s | %s | %s | %s\n",
-                      combo_count, total_combos, current_outcome, pop_name, "Age", "None"))
+                      combo_count, total_combos, current_outcome, pop_name, "Age", age_cov_label))
         }
         
         if (!"Age" %in% colnames(pop_data)) {
           if (verbose) cat(sprintf("Skipping Age (not in %s)\n", pop_name))
         } else {
+          missing_age_covariates <- setdiff(age_covariates, colnames(pop_data))
+          if (length(missing_age_covariates) > 0) {
+            if (verbose) {
+              cat(sprintf("  Skipping Age model (missing covariates in %s: %s)\n",
+                          pop_name, paste(missing_age_covariates, collapse = ", ")))
+            }
+            next
+          }
+
           tryCatch({
             model <- run_logreg(
               data = pop_data,
               outcome = current_outcome,
               predictor = "Age",
-              covariates = NULL,
+              covariates = age_covariates,
               subset_controls = subset_controls,
               plot_roc = plot_roc,
               plot_pr = TRUE,
@@ -1477,7 +1584,7 @@ logreg_table <- function(
               Outcome = current_outcome,
               Population = pop_name,
               Predictor = "Age",
-              Covariates = "None",
+              Covariates = age_cov_label,
               N_Cases = n_cases,
               N_Controls = n_controls,
               Prevalence = prevalence,
@@ -1521,9 +1628,11 @@ feature_importance_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    covariates_list = list("Age", "FH_PrCa_BrCa", "Age + FH_PrCa_BrCa"),
     subset_controls = FALSE,
     verbose = TRUE,
-    version = "Asymptomatic Screening"
+  version = "Asymptomatic Screening",
+  adjust_for_PCs = FALSE
 ) {
   valid_versions <- c("Asymptomatic Screening", "Symptomatic Triage")
   if (!(version %in% valid_versions)) {
@@ -1577,11 +1686,50 @@ feature_importance_table <- function(
   }
 
   grs_list <- setdiff(grs_list, "Age")
+  pc_covariates <- paste0("PC", 1:10)
+
+  parse_covariate_terms <- function(covariate_spec) {
+    if (is.null(covariate_spec)) {
+      return(character(0))
+    }
+
+    terms <- trimws(unlist(strsplit(as.character(covariate_spec), "\\+")))
+    terms <- terms[nzchar(terms)]
+    unique(terms)
+  }
+
+  resolve_covariates <- function(base_covariates, predictor = NULL) {
+    covs <- parse_covariate_terms(base_covariates)
+
+    if (isTRUE(adjust_for_PCs)) {
+      covs <- c(covs, pc_covariates)
+    }
+
+    covs <- unique(covs)
+    if (!is.null(predictor)) {
+      covs <- covs[covs != predictor]
+    }
+
+    if (length(covs) == 0) {
+      return(NULL)
+    }
+
+    covs
+  }
+
+  covariate_label <- function(covs) {
+    if (is.null(covs) || length(covs) == 0) {
+      return("None")
+    }
+
+    paste(covs, collapse = " + ")
+  }
 
   results <- data.frame(
     Outcome = character(),
     Population = character(),
     Predictor = character(),
+    Covariates = character(),
     N = integer(),
     N_Cases = integer(),
     N_Controls = integer(),
@@ -1605,155 +1753,178 @@ feature_importance_table <- function(
     stringsAsFactors = FALSE
   )
 
-  total_combos <- length(outcomes) * length(populations) * length(grs_list)
+  total_combos <- length(outcomes) * length(populations) * length(covariates_list) * length(grs_list)
   combo_count <- 0
 
   for (current_outcome in outcomes) {
     for (pop_name in names(populations)) {
       pop_data <- populations[[pop_name]]
 
-      if (!"Age" %in% colnames(pop_data)) {
-        if (verbose) cat(sprintf("Skipping %s (Age not in data)\n", pop_name))
-        next
-      }
+      for (cov in covariates_list) {
+        base_covariates <- resolve_covariates(cov)
+        cov_label <- covariate_label(base_covariates)
 
-      for (grs_pred in grs_list) {
-        combo_count <- combo_count + 1
-
-        if (verbose) {
-          cat(sprintf("[%d/%d] %s | %s | %s\n", combo_count, total_combos, current_outcome, pop_name, grs_pred))
-        }
-
-        if (!grs_pred %in% colnames(pop_data)) {
-          if (verbose) cat(sprintf("  Skipping %s (not in %s)\n", grs_pred, pop_name))
+        if (is.null(base_covariates) || length(base_covariates) == 0) {
+          if (verbose) cat(sprintf("Skipping empty covariate set for %s\n", pop_name))
+          combo_count <- combo_count + length(grs_list)
           next
         }
 
-        needed <- c(current_outcome, "Age", grs_pred)
-        analysis_data <- pop_data[stats::complete.cases(pop_data[, needed]), , drop = FALSE]
+        for (grs_pred in grs_list) {
+          combo_count <- combo_count + 1
 
-        if (nrow(analysis_data) == 0) {
-          if (verbose) cat("  Skipping (no complete rows for outcome + Age + GRS)\n")
-          next
-        }
-
-        if (isTRUE(subset_controls)) {
-          analysis_data <- subset_controls_to_case_count(analysis_data, case_col = current_outcome)
-        }
-
-        if (length(unique(analysis_data[[current_outcome]])) < 2) {
-          if (verbose) cat("  Skipping (outcome has <2 classes after filtering)\n")
-          next
-        }
-
-        tryCatch({
-          full_model <- run_logreg(
-            data = analysis_data,
-            outcome = current_outcome,
-            predictor = grs_pred,
-            covariates = "Age",
-            subset_controls = FALSE,
-            plot_roc = FALSE,
-            plot_pr = FALSE,
-            show_output = FALSE
-          )
-
-          age_only_model <- run_logreg(
-            data = analysis_data,
-            outcome = current_outcome,
-            predictor = "Age",
-            covariates = NULL,
-            subset_controls = FALSE,
-            plot_roc = FALSE,
-            plot_pr = FALSE,
-            show_output = FALSE
-          )
-
-          grs_only_model <- run_logreg(
-            data = analysis_data,
-            outcome = current_outcome,
-            predictor = grs_pred,
-            covariates = NULL,
-            subset_controls = FALSE,
-            plot_roc = FALSE,
-            plot_pr = FALSE,
-            show_output = FALSE
-          )
-
-          full_auc <- as.numeric(full_model$roc$auc)
-          age_auc <- as.numeric(age_only_model$roc$auc)
-          grs_auc <- as.numeric(grs_only_model$roc$auc)
-
-          lrt_drop_grs <- anova(age_only_model$model, full_model$model, test = "LRT")
-          lrt_drop_age <- anova(grs_only_model$model, full_model$model, test = "LRT")
-
-          lrt_drop_grs_chisq <- as.numeric(lrt_drop_grs$Deviance[2])
-          lrt_drop_grs_p <- as.numeric(lrt_drop_grs$`Pr(>Chi)`[2])
-          lrt_drop_age_chisq <- as.numeric(lrt_drop_age$Deviance[2])
-          lrt_drop_age_p <- as.numeric(lrt_drop_age$`Pr(>Chi)`[2])
-
-          coef_tbl <- summary(full_model$model)$coefficients
-
-          if (grs_pred %in% rownames(coef_tbl)) {
-            grs_beta <- coef_tbl[grs_pred, "Estimate"]
-            grs_se <- coef_tbl[grs_pred, "Std. Error"]
-            grs_or <- exp(grs_beta)
-            grs_or_ci_lower <- exp(grs_beta - 1.96 * grs_se)
-            grs_or_ci_upper <- exp(grs_beta + 1.96 * grs_se)
-            grs_p <- coef_tbl[grs_pred, "Pr(>|z|)"]
-          } else {
-            grs_or <- NA_real_
-            grs_or_ci_lower <- NA_real_
-            grs_or_ci_upper <- NA_real_
-            grs_p <- NA_real_
+          if (verbose) {
+            cat(sprintf("[%d/%d] %s | %s | %s | %s\n",
+                        combo_count, total_combos, current_outcome, pop_name, grs_pred, cov_label))
           }
 
-          if ("Age" %in% rownames(coef_tbl)) {
-            age_beta <- coef_tbl["Age", "Estimate"]
-            age_se <- coef_tbl["Age", "Std. Error"]
-            age_or <- exp(age_beta)
-            age_or_ci_lower <- exp(age_beta - 1.96 * age_se)
-            age_or_ci_upper <- exp(age_beta + 1.96 * age_se)
-            age_p <- coef_tbl["Age", "Pr(>|z|)"]
-          } else {
-            age_or <- NA_real_
-            age_or_ci_lower <- NA_real_
-            age_or_ci_upper <- NA_real_
-            age_p <- NA_real_
+          if (!grs_pred %in% colnames(pop_data)) {
+            if (verbose) cat(sprintf("  Skipping %s (not in %s)\n", grs_pred, pop_name))
+            next
           }
 
-          n_cases <- sum(analysis_data[[current_outcome]] == 1, na.rm = TRUE)
-          n_controls <- sum(analysis_data[[current_outcome]] == 0, na.rm = TRUE)
+          full_covariates <- resolve_covariates(cov, predictor = grs_pred)
+          cov_only_terms <- base_covariates
 
-          results <- rbind(results, data.frame(
-            Outcome = current_outcome,
-            Population = pop_name,
-            Predictor = grs_pred,
-            N = nrow(analysis_data),
-            N_Cases = n_cases,
-            N_Controls = n_controls,
-            Full_ROC_AUC = full_auc,
-            Age_only_ROC_AUC = age_auc,
-            GRS_only_ROC_AUC = grs_auc,
-            Delta_AUC_drop_GRS = full_auc - age_auc,
-            Delta_AUC_drop_Age = full_auc - grs_auc,
-            LRT_drop_GRS_ChiSq = lrt_drop_grs_chisq,
-            LRT_drop_GRS_p = lrt_drop_grs_p,
-            LRT_drop_Age_ChiSq = lrt_drop_age_chisq,
-            LRT_drop_Age_p = lrt_drop_age_p,
-            GRS_OR_adj = grs_or,
-            GRS_OR_adj_CI_Lower = grs_or_ci_lower,
-            GRS_OR_adj_CI_Upper = grs_or_ci_upper,
-            GRS_OR_adj_p = grs_p,
-            Age_OR_adj = age_or,
-            Age_OR_adj_CI_Lower = age_or_ci_lower,
-            Age_OR_adj_CI_Upper = age_or_ci_upper,
-            Age_OR_adj_p = age_p,
-            stringsAsFactors = FALSE
-          ))
-        }, error = function(e) {
-          if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
-        })
+          needed <- unique(c(current_outcome, grs_pred, full_covariates, cov_only_terms))
+          missing_needed <- setdiff(needed, colnames(pop_data))
+          if (length(missing_needed) > 0) {
+            if (verbose) {
+              cat(sprintf("  Skipping (missing columns in %s: %s)\n",
+                          pop_name, paste(missing_needed, collapse = ", ")))
+            }
+            next
+          }
+
+          analysis_data <- pop_data[stats::complete.cases(pop_data[, needed]), , drop = FALSE]
+
+          if (nrow(analysis_data) == 0) {
+            if (verbose) cat("  Skipping (no complete rows for this model)\n")
+            next
+          }
+
+          if (isTRUE(subset_controls)) {
+            analysis_data <- subset_controls_to_case_count(analysis_data, case_col = current_outcome)
+          }
+
+          if (length(unique(analysis_data[[current_outcome]])) < 2) {
+            if (verbose) cat("  Skipping (outcome has <2 classes after filtering)\n")
+            next
+          }
+
+          cov_only_predictor <- cov_only_terms[1]
+          cov_only_covariates <- if (length(cov_only_terms) > 1) cov_only_terms[-1] else NULL
+
+          tryCatch({
+            full_model <- run_logreg(
+              data = analysis_data,
+              outcome = current_outcome,
+              predictor = grs_pred,
+              covariates = full_covariates,
+              subset_controls = FALSE,
+              plot_roc = FALSE,
+              plot_pr = FALSE,
+              show_output = FALSE
+            )
+
+            cov_only_model <- run_logreg(
+              data = analysis_data,
+              outcome = current_outcome,
+              predictor = cov_only_predictor,
+              covariates = cov_only_covariates,
+              subset_controls = FALSE,
+              plot_roc = FALSE,
+              plot_pr = FALSE,
+              show_output = FALSE
+            )
+
+            grs_only_model <- run_logreg(
+              data = analysis_data,
+              outcome = current_outcome,
+              predictor = grs_pred,
+              covariates = NULL,
+              subset_controls = FALSE,
+              plot_roc = FALSE,
+              plot_pr = FALSE,
+              show_output = FALSE
+            )
+
+            full_auc <- as.numeric(full_model$roc$auc)
+            cov_only_auc <- as.numeric(cov_only_model$roc$auc)
+            grs_auc <- as.numeric(grs_only_model$roc$auc)
+
+            lrt_drop_grs <- anova(cov_only_model$model, full_model$model, test = "LRT")
+            lrt_drop_age <- anova(grs_only_model$model, full_model$model, test = "LRT")
+
+            lrt_drop_grs_chisq <- as.numeric(lrt_drop_grs$Deviance[2])
+            lrt_drop_grs_p <- as.numeric(lrt_drop_grs$`Pr(>Chi)`[2])
+            lrt_drop_age_chisq <- as.numeric(lrt_drop_age$Deviance[2])
+            lrt_drop_age_p <- as.numeric(lrt_drop_age$`Pr(>Chi)`[2])
+
+            coef_tbl <- summary(full_model$model)$coefficients
+
+            if (grs_pred %in% rownames(coef_tbl)) {
+              grs_beta <- coef_tbl[grs_pred, "Estimate"]
+              grs_se <- coef_tbl[grs_pred, "Std. Error"]
+              grs_or <- exp(grs_beta)
+              grs_or_ci_lower <- exp(grs_beta - 1.96 * grs_se)
+              grs_or_ci_upper <- exp(grs_beta + 1.96 * grs_se)
+              grs_p <- coef_tbl[grs_pred, "Pr(>|z|)"]
+            } else {
+              grs_or <- NA_real_
+              grs_or_ci_lower <- NA_real_
+              grs_or_ci_upper <- NA_real_
+              grs_p <- NA_real_
+            }
+
+            if ("Age" %in% rownames(coef_tbl)) {
+              age_beta <- coef_tbl["Age", "Estimate"]
+              age_se <- coef_tbl["Age", "Std. Error"]
+              age_or <- exp(age_beta)
+              age_or_ci_lower <- exp(age_beta - 1.96 * age_se)
+              age_or_ci_upper <- exp(age_beta + 1.96 * age_se)
+              age_p <- coef_tbl["Age", "Pr(>|z|)"]
+            } else {
+              age_or <- NA_real_
+              age_or_ci_lower <- NA_real_
+              age_or_ci_upper <- NA_real_
+              age_p <- NA_real_
+            }
+
+            n_cases <- sum(analysis_data[[current_outcome]] == 1, na.rm = TRUE)
+            n_controls <- sum(analysis_data[[current_outcome]] == 0, na.rm = TRUE)
+
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              Predictor = grs_pred,
+              Covariates = cov_label,
+              N = nrow(analysis_data),
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              Full_ROC_AUC = full_auc,
+              Age_only_ROC_AUC = cov_only_auc,
+              GRS_only_ROC_AUC = grs_auc,
+              Delta_AUC_drop_GRS = full_auc - cov_only_auc,
+              Delta_AUC_drop_Age = full_auc - grs_auc,
+              LRT_drop_GRS_ChiSq = lrt_drop_grs_chisq,
+              LRT_drop_GRS_p = lrt_drop_grs_p,
+              LRT_drop_Age_ChiSq = lrt_drop_age_chisq,
+              LRT_drop_Age_p = lrt_drop_age_p,
+              GRS_OR_adj = grs_or,
+              GRS_OR_adj_CI_Lower = grs_or_ci_lower,
+              GRS_OR_adj_CI_Upper = grs_or_ci_upper,
+              GRS_OR_adj_p = grs_p,
+              Age_OR_adj = age_or,
+              Age_OR_adj_CI_Lower = age_or_ci_lower,
+              Age_OR_adj_CI_Upper = age_or_ci_upper,
+              Age_OR_adj_p = age_p,
+              stringsAsFactors = FALSE
+            ))
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
       }
     }
   }
@@ -1786,10 +1957,12 @@ rf_feature_importance_table <- function(
     outcomes = c("PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
                  "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
                  "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"),
+    covariates_list = list("Age", "FH_PrCa_BrCa", "Age + FH_PrCa_BrCa"),
     ntree = 500,
     subset_controls = FALSE,
     verbose = TRUE,
-    version = "Asymptomatic Screening"
+  version = "Asymptomatic Screening",
+  adjust_for_PCs = FALSE
 ) {
   valid_versions <- c("Asymptomatic Screening", "Symptomatic Triage")
   if (!(version %in% valid_versions)) {
@@ -1847,11 +2020,50 @@ rf_feature_importance_table <- function(
   }
 
   grs_list <- setdiff(grs_list, "Age")
+  pc_covariates <- paste0("PC", 1:10)
+
+  parse_covariate_terms <- function(covariate_spec) {
+    if (is.null(covariate_spec)) {
+      return(character(0))
+    }
+
+    terms <- trimws(unlist(strsplit(as.character(covariate_spec), "\\+")))
+    terms <- terms[nzchar(terms)]
+    unique(terms)
+  }
+
+  resolve_covariates <- function(base_covariates, predictor = NULL) {
+    covs <- parse_covariate_terms(base_covariates)
+
+    if (isTRUE(adjust_for_PCs)) {
+      covs <- c(covs, pc_covariates)
+    }
+
+    covs <- unique(covs)
+    if (!is.null(predictor)) {
+      covs <- covs[covs != predictor]
+    }
+
+    if (length(covs) == 0) {
+      return(NULL)
+    }
+
+    covs
+  }
+
+  covariate_label <- function(covs) {
+    if (is.null(covs) || length(covs) == 0) {
+      return("None")
+    }
+
+    paste(covs, collapse = " + ")
+  }
 
   results <- data.frame(
     Outcome = character(),
     Population = character(),
     Predictor = character(),
+    Covariates = character(),
     N = integer(),
     N_Cases = integer(),
     N_Controls = integer(),
@@ -1865,109 +2077,126 @@ rf_feature_importance_table <- function(
     stringsAsFactors = FALSE
   )
 
-  total_combos <- length(outcomes) * length(populations) * length(grs_list)
+  total_combos <- length(outcomes) * length(populations) * length(covariates_list) * length(grs_list)
   combo_count <- 0
 
   for (current_outcome in outcomes) {
     for (pop_name in names(populations)) {
       pop_data <- populations[[pop_name]]
 
-      if (!"Age" %in% colnames(pop_data)) {
-        if (verbose) cat(sprintf("Skipping %s (Age not in data)\n", pop_name))
-        next
-      }
+      for (cov in covariates_list) {
+        base_covariates <- resolve_covariates(cov)
+        cov_label <- covariate_label(base_covariates)
 
-      for (grs_pred in grs_list) {
-        combo_count <- combo_count + 1
-
-        if (verbose) {
-          cat(sprintf("[%d/%d] %s | %s | %s\n", combo_count, total_combos, current_outcome, pop_name, grs_pred))
-        }
-
-        if (!grs_pred %in% colnames(pop_data)) {
-          if (verbose) cat(sprintf("  Skipping %s (not in %s)\n", grs_pred, pop_name))
+        if (is.null(base_covariates) || length(base_covariates) == 0) {
+          if (verbose) cat(sprintf("Skipping empty covariate set for %s\n", pop_name))
+          combo_count <- combo_count + length(grs_list)
           next
         }
 
-        needed <- c(current_outcome, "Age", grs_pred)
-        analysis_data <- pop_data[stats::complete.cases(pop_data[, needed]), needed, drop = FALSE]
+        for (grs_pred in grs_list) {
+          combo_count <- combo_count + 1
 
-        if (nrow(analysis_data) == 0) {
-          if (verbose) cat("  Skipping (no complete rows)\n")
-          next
-        }
-
-        if (isTRUE(subset_controls)) {
-          analysis_data <- subset_controls_to_case_count(analysis_data, case_col = current_outcome)
-        }
-
-        # outcome must be a factor with exactly 2 levels for RF classification
-        analysis_data[[current_outcome]] <- factor(analysis_data[[current_outcome]])
-
-        if (length(levels(analysis_data[[current_outcome]])) < 2) {
-          if (verbose) cat("  Skipping (outcome has <2 classes after filtering)\n")
-          next
-        }
-
-        tryCatch({
-          rf_formula <- stats::as.formula(paste(current_outcome, "~", grs_pred, "+ Age"))
-
-          rf_model <- randomForest::randomForest(
-            formula = rf_formula,
-            data = analysis_data,
-            ntree = ntree,
-            importance = TRUE,  # enables permutation importance
-            keep.inbag = FALSE
-          )
-
-          # Permutation importance (Mean Decrease Accuracy) - type = 1
-          imp <- randomForest::importance(rf_model, type = 1, scale = TRUE)
-          grs_mda <- imp[grs_pred, "MeanDecreaseAccuracy"]
-          age_mda <- imp["Age", "MeanDecreaseAccuracy"]
-
-          # Gini importance (Mean Decrease Gini) - type = 2
-          imp_gini <- randomForest::importance(rf_model, type = 2)
-          grs_mdg <- imp_gini[grs_pred, "MeanDecreaseGini"]
-          age_mdg <- imp_gini["Age", "MeanDecreaseGini"]
-
-          # Relative importance (% of total MDA, treating negative MDA as 0 for the ratio)
-          total_mda <- max(grs_mda, 0) + max(age_mda, 0)
-          grs_pct <- if (total_mda > 0) max(grs_mda, 0) / total_mda * 100 else NA_real_
-          age_pct <- if (total_mda > 0) max(age_mda, 0) / total_mda * 100 else NA_real_
-
-          # OOB ROC AUC using OOB vote probabilities for the positive class ("1")
-          oob_votes <- rf_model$votes
-          pos_level <- "1"
-          if (!pos_level %in% colnames(oob_votes)) {
-            pos_level <- levels(analysis_data[[current_outcome]])[2]
+          if (verbose) {
+            cat(sprintf("[%d/%d] %s | %s | %s | %s\n",
+                        combo_count, total_combos, current_outcome, pop_name, grs_pred, cov_label))
           }
-          oob_probs <- oob_votes[, pos_level]
-          true_labels <- as.integer(as.character(analysis_data[[current_outcome]]))
-          oob_roc <- pROC::roc(true_labels ~ oob_probs, quiet = TRUE)
-          oob_auc <- as.numeric(oob_roc$auc)
 
-          n_cases <- sum(as.character(analysis_data[[current_outcome]]) == "1", na.rm = TRUE)
-          n_controls <- sum(as.character(analysis_data[[current_outcome]]) == "0", na.rm = TRUE)
+          if (!grs_pred %in% colnames(pop_data)) {
+            if (verbose) cat(sprintf("  Skipping %s (not in %s)\n", grs_pred, pop_name))
+            next
+          }
 
-          results <- rbind(results, data.frame(
-            Outcome = current_outcome,
-            Population = pop_name,
-            Predictor = grs_pred,
-            N = nrow(analysis_data),
-            N_Cases = n_cases,
-            N_Controls = n_controls,
-            OOB_ROC_AUC = oob_auc,
-            GRS_MDA = grs_mda,
-            Age_MDA = age_mda,
-            GRS_MDG = grs_mdg,
-            Age_MDG = age_mdg,
-            GRS_Pct_Importance = grs_pct,
-            Age_Pct_Importance = age_pct,
-            stringsAsFactors = FALSE
-          ))
-        }, error = function(e) {
-          if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
-        })
+          rf_terms <- unique(c(grs_pred, base_covariates))
+          needed <- unique(c(current_outcome, rf_terms))
+          missing_needed <- setdiff(needed, colnames(pop_data))
+          if (length(missing_needed) > 0) {
+            if (verbose) {
+              cat(sprintf("  Skipping (missing columns in %s: %s)\n",
+                          pop_name, paste(missing_needed, collapse = ", ")))
+            }
+            next
+          }
+          analysis_data <- pop_data[stats::complete.cases(pop_data[, needed]), needed, drop = FALSE]
+
+          if (nrow(analysis_data) == 0) {
+            if (verbose) cat("  Skipping (no complete rows)\n")
+            next
+          }
+
+          if (isTRUE(subset_controls)) {
+            analysis_data <- subset_controls_to_case_count(analysis_data, case_col = current_outcome)
+          }
+
+          # outcome must be a factor with exactly 2 levels for RF classification
+          analysis_data[[current_outcome]] <- factor(analysis_data[[current_outcome]])
+
+          if (length(levels(analysis_data[[current_outcome]])) < 2) {
+            if (verbose) cat("  Skipping (outcome has <2 classes after filtering)\n")
+            next
+          }
+
+          tryCatch({
+            rf_formula <- stats::as.formula(paste(current_outcome, "~", paste(rf_terms, collapse = " + ")))
+
+            rf_model <- randomForest::randomForest(
+              formula = rf_formula,
+              data = analysis_data,
+              ntree = ntree,
+              importance = TRUE,  # enables permutation importance
+              keep.inbag = FALSE
+            )
+
+            # Permutation importance (Mean Decrease Accuracy) - type = 1
+            imp <- randomForest::importance(rf_model, type = 1, scale = TRUE)
+            grs_mda <- imp[grs_pred, "MeanDecreaseAccuracy"]
+            age_mda <- if ("Age" %in% rownames(imp)) imp["Age", "MeanDecreaseAccuracy"] else NA_real_
+
+            # Gini importance (Mean Decrease Gini) - type = 2
+            imp_gini <- randomForest::importance(rf_model, type = 2)
+            grs_mdg <- imp_gini[grs_pred, "MeanDecreaseGini"]
+            age_mdg <- if ("Age" %in% rownames(imp_gini)) imp_gini["Age", "MeanDecreaseGini"] else NA_real_
+
+            # Relative importance (% of total MDA, treating negative MDA as 0 for the ratio)
+            total_mda <- max(grs_mda, 0) + ifelse(is.na(age_mda), 0, max(age_mda, 0))
+            grs_pct <- if (total_mda > 0) max(grs_mda, 0) / total_mda * 100 else NA_real_
+            age_pct <- if (total_mda > 0 && !is.na(age_mda)) max(age_mda, 0) / total_mda * 100 else NA_real_
+
+            # OOB ROC AUC using OOB vote probabilities for the positive class ("1")
+            oob_votes <- rf_model$votes
+            pos_level <- "1"
+            if (!pos_level %in% colnames(oob_votes)) {
+              pos_level <- levels(analysis_data[[current_outcome]])[2]
+            }
+            oob_probs <- oob_votes[, pos_level]
+            true_labels <- as.integer(as.character(analysis_data[[current_outcome]]))
+            oob_roc <- pROC::roc(true_labels ~ oob_probs, quiet = TRUE)
+            oob_auc <- as.numeric(oob_roc$auc)
+
+            n_cases <- sum(as.character(analysis_data[[current_outcome]]) == "1", na.rm = TRUE)
+            n_controls <- sum(as.character(analysis_data[[current_outcome]]) == "0", na.rm = TRUE)
+
+            results <- rbind(results, data.frame(
+              Outcome = current_outcome,
+              Population = pop_name,
+              Predictor = grs_pred,
+              Covariates = cov_label,
+              N = nrow(analysis_data),
+              N_Cases = n_cases,
+              N_Controls = n_controls,
+              OOB_ROC_AUC = oob_auc,
+              GRS_MDA = grs_mda,
+              Age_MDA = age_mda,
+              GRS_MDG = grs_mdg,
+              Age_MDG = age_mdg,
+              GRS_Pct_Importance = grs_pct,
+              Age_Pct_Importance = age_pct,
+              stringsAsFactors = FALSE
+            ))
+          }, error = function(e) {
+            if (verbose) cat(sprintf("  ERROR: %s\n", e$message))
+          })
+        }
       }
     }
   }

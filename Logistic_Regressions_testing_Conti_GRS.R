@@ -1224,7 +1224,8 @@ bulk <- logreg_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
-  version = "Asymptomatic Screening"
+  version = "Asymptomatic Screening",
+  adjust_for_PCs = TRUE
 )
 
 ## The below block adds, for each row that represents a GRS + Age model, the
@@ -1287,7 +1288,8 @@ nri_bulk <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
-  version = "Asymptomatic Screening"
+  version = "Asymptomatic Screening",
+  adjust_for_PCs = TRUE
 )
 
 nri_bulk <- nri_bulk %>%
@@ -1323,7 +1325,8 @@ FI_bulk <- feature_importance_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   subset_controls = FALSE,
-  version = "Asymptomatic Screening"
+  version = "Asymptomatic Screening",
+  adjust_for_PCs = TRUE
 )
 
 FI_formatted <- FI_bulk %>%
@@ -1382,7 +1385,8 @@ RF_bulk <- rf_feature_importance_table(
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
   ntree = 100,
   subset_controls = FALSE,
-  version = "Asymptomatic Screening"
+  version = "Asymptomatic Screening",
+  adjust_for_PCs = TRUE
 )
 
 RF_formatted <- RF_bulk %>%
