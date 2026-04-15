@@ -1785,8 +1785,9 @@ feature_importance_table <- function(
 
           full_covariates <- resolve_covariates(cov, predictor = grs_pred)
           cov_only_terms <- base_covariates
+          grs_only_covariates <- resolve_covariates(NULL, predictor = grs_pred)
 
-          needed <- unique(c(current_outcome, grs_pred, full_covariates, cov_only_terms))
+          needed <- unique(c(current_outcome, grs_pred, full_covariates, cov_only_terms, grs_only_covariates))
           missing_needed <- setdiff(needed, colnames(pop_data))
           if (length(missing_needed) > 0) {
             if (verbose) {
@@ -1842,7 +1843,7 @@ feature_importance_table <- function(
               data = analysis_data,
               outcome = current_outcome,
               predictor = grs_pred,
-              covariates = NULL,
+              covariates = grs_only_covariates,
               subset_controls = FALSE,
               plot_roc = FALSE,
               plot_pr = FALSE,
