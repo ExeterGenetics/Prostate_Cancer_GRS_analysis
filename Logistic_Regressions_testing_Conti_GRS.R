@@ -1282,7 +1282,7 @@ subset <- formatted %>%
 # Step 10 - Generate comprehensive NRI table for all GRSs, populations, and outcomes # 
 ######################################################################################
 
-## By default, nri_table() will compute all combinations of population, outcome, and GRS for the NRI comparison between a GRS+Age model vs. an Age-only model
+## By default, nri_table() will compute all combinations of population, outcome, and GRS for the NRI comparison between a GRS+Age model vs. an Age-only model, and a GRS+Age+FH model vs. an Age+FH model
 
 nri_bulk <- nri_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
@@ -1312,12 +1312,11 @@ nri_subset <- nri_bulk %>%
   )
 
 
-#############################################################
-# Step 11 - Feature importance in integrated GRS+Age models #
-#############################################################
+################################
+# Step 11 - Feature importance #
+################################
 
-## For each (Outcome, Population, GRS), this compares the full model (GRS+Age)
-## against Age-only and GRS-only reduced models using:
+## For each (Outcome, Population, GRS), this compares GRS+Age model vs. an Age-only model, and a GRS+Age+FH model vs. an Age+FH model using:
 ##  - LRT drop-in-fit p-values
 ##  - Delta AUC (full minus reduced)
 
@@ -1356,7 +1355,7 @@ FI_formatted <- FI_bulk %>%
     )
   ) %>%
   dplyr::select(
-    Outcome, Population, Predictor, N_Cases, N_Controls,
+    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
     Full_ROC_AUC_4dp,
     Delta_AUC_drop_GRS_4dp, LRT_drop_GRS_p, GRS_added_value,
     Delta_AUC_drop_Age_4dp, LRT_drop_Age_p, Age_added_value,
@@ -1370,15 +1369,11 @@ FI_subset <- FI_formatted %>%
     #Predictor == "ContiAfricanGRS246"
   )
 
-#################################################################
-# Step 12 - Random Forest feature importance for GRS+Age models #
-#################################################################
+##############################################
+# Step 12 - Random Forest feature importance #
+##############################################
 
-## Uses a Random Forest (classification) on outcome ~ GRS + Age.
-## Permutation importance (Mean Decrease Accuracy, MDA) measures how much
-## OOB accuracy drops when each feature's values are randomly shuffled.
-## A higher MDA = the model relies more on that feature.
-## OOB ROC AUC is computed from out-of-bag predicted probabilities.
+## Random Forest version of feature importance
 
 RF_bulk <- rf_feature_importance_table(
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
@@ -1406,7 +1401,7 @@ RF_formatted <- RF_bulk %>%
     )
   ) %>%
   dplyr::select(
-    Outcome, Population, Predictor, N_Cases, N_Controls,
+    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
     OOB_ROC_AUC_4dp,
     GRS_MDA_4dp, Age_MDA_4dp,
     GRS_Pct_Importance_1dp, Age_Pct_Importance_1dp
