@@ -11,8 +11,10 @@
 # Wang_FineMap_rs72725854_BlackOnly_MAF0.001
 # Wang_FineMap_rs72725854_AFR
 # Wang_FineMap_rs72725854_AFR_MAF0.001
+# Wang_FineMap_rs72725854_BlackAFR
+# Wang_FineMap_rs72725854_EAS
 
-chosen_FineMappingResults <- "Wang_FineMap_rs72725854_BlackOnly_MAF0.001" 
+chosen_FineMappingResults <- "Wang_FineMap_rs72725854_BlackOnly" 
 
 
 
@@ -57,13 +59,24 @@ system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMa
 system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_AFR_MAF0.001.snp"))
 system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_AFR_MAF0.001.summary"))
 
+## Load in fine mapping results for Black+AFR men, Wang GWAS
+
+system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_BlackAFR.cs"))
+system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_BlackAFR.snp"))
+system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_BlackAFR.summary"))
+
+## Load in fine mapping results for EAS men, Wang GWAS
+
+system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_EAS.cs"))
+system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_EAS.snp"))
+system(paste("dx download", "Callum/FineMappingResults/UsingWangGWAS/Wang_FineMap_rs72725854_EAS.summary"))
 
 cs <- read.delim(paste0(chosen_FineMappingResults, ".cs"), sep = "\t")
 snp <- read.delim(paste0(chosen_FineMappingResults, ".snp"), sep = "\t")
 summary <- read.delim(paste0(chosen_FineMappingResults, ".summary"), sep = "\t", comment.char="#")
 
 
-## Add MAX PIP to snp_Wang_BlackOnlyGWAS
+## Add MAX PIP to chosen fine mapping results
 
 library(dplyr)
 
@@ -94,7 +107,7 @@ wang_x_axis_breaks <- unique(wang_bp_levels[
   round(seq(1, length(wang_bp_levels), length.out = 5))
 ])
 
-snp_Wang_BlackOnlyGWAS_peaks <- snp_edited %>%
+snp_peaks <- snp_edited %>%
   mutate(
     is_peak = MAX_PIP > dplyr::lag(MAX_PIP, default = -Inf) &
       MAX_PIP > dplyr::lead(MAX_PIP, default = -Inf)
@@ -104,7 +117,7 @@ snp_Wang_BlackOnlyGWAS_peaks <- snp_edited %>%
 ggplot(snp_edited, aes(x = BP, y = MAX_PIP)) +
   geom_col(width = 2, fill = "#04dca4") +
   geom_text(
-    data = snp_Wang_BlackOnlyGWAS_peaks,
+    data = snp_peaks,
     aes(y = MAX_PIP * 0.5, label = BP),
     angle = 90,
     size = 2.2,
@@ -150,7 +163,7 @@ betafinder <- WangGWASsummaryStatsAFR %>%
                   ## Extras from AFR finemap
                   GENPOS == 127002070 |
                   GENPOS == 127096169
-                )
+  )
 
 
 
