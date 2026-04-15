@@ -8,8 +8,9 @@ library(readxl)
 library(dplyr)
 
 system(paste("dx download", "Callum/WangGWAS/Wang2023African_harmonised.tsv")) ## This is Wang's AFR-specific GWAS summary stats, haramonised to GRCh38, as downloadable here: http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST90274001-GCST90275000/GCST90274715/. Go to /harmonised and download GCST90274715.h.tsv.gz
+system(paste("dx download", "Callum/WangGWAS/Wang2023Asian_harmonised.tsv")) ## This is Wang's Asian-specific GWAS summary stats, haramonised to GRCh38, as downloadable here: http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST90274001-GCST90275000/GCST90274716/. Go to /harmonised and download GCST90274716.h.tsv.gz
 
-WangGWASsummaryStatsAFR <- read.delim("Wang2023African_harmonised.tsv", sep = "\t") %>%
+WangGWASsummaryStatsAFR <- read.delim("Wang2023African_harmonised.tsv", sep = "\t") %>% # Change "African" to "Asian" in the filename to load the Asian-specific summary stats instead
   dplyr::rename(
     "CHROM" = "chromosome",
     "GENPOS" = "base_pair_location",
