@@ -1827,8 +1827,9 @@ feature_importance_table <- function(
 
           full_covariates <- resolve_covariates(cov, predictor = grs_pred)
           cov_only_terms <- base_covariates
+          grs_only_covariates <- resolve_covariates(NULL, predictor = grs_pred)
 
-          needed <- unique(c(current_outcome, grs_pred, full_covariates, cov_only_terms))
+          needed <- unique(c(current_outcome, grs_pred, full_covariates, cov_only_terms, grs_only_covariates))
           missing_needed <- setdiff(needed, colnames(pop_data))
           if (length(missing_needed) > 0) {
             if (verbose) {
@@ -1884,7 +1885,7 @@ feature_importance_table <- function(
               data = analysis_data,
               outcome = current_outcome,
               predictor = grs_pred,
-              covariates = NULL,
+              covariates = grs_only_covariates,
               subset_controls = FALSE,
               plot_roc = FALSE,
               plot_pr = FALSE,
@@ -8838,35 +8839,35 @@ Ratio = `r round(irm_plot6_rr, 2)`
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "ContimultiethnicGRS267",
-                    covariates = NULL,
+                    covariates = "PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = NULL,
+                    covariates = "PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model3 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "ContimultiethnicGRS267",
+                    covariates = "ContimultiethnicGRS267 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model4 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "FH_PrCa_BrCa",
+                    covariates = "FH_PrCa_BrCa + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model5 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "ContimultiethnicGRS267 + FH_PrCa_BrCa",
+                    covariates = "ContimultiethnicGRS267 + FH_PrCa_BrCa + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
@@ -8943,35 +8944,35 @@ pretty_print_table(ORtable_combined1)
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "ContimultiethnicGRS267",
-                    covariates = NULL,
+                    covariates = "PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = NULL,
+                    covariates = "PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model3 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "ContimultiethnicGRS267",
+                    covariates = "ContimultiethnicGRS267 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model4 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "FH_PrCa_BrCa",
+                    covariates = "FH_PrCa_BrCa + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model5 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "ContimultiethnicGRS267 + FH_PrCa_BrCa",
+                    covariates = "ContimultiethnicGRS267 + FH_PrCa_BrCa + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
@@ -9048,35 +9049,35 @@ pretty_print_table(ORtable_combined2)
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                     outcome = "PrCa_10yrs",
                     predictor = "ContimultiethnicGRS267",
-                    covariates = NULL,
+                    covariates = "PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model2 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = NULL,
+                    covariates = "PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model3 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "ContimultiethnicGRS267",
+                    covariates = "ContimultiethnicGRS267 + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model4 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "FH_PrCa_BrCa",
+                    covariates = "FH_PrCa_BrCa + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
 model5 <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon,
                     outcome = "PrCa_10yrs",
                     predictor = "Age",
-                    covariates = "ContimultiethnicGRS267 + FH_PrCa_BrCa",
+                    covariates = "ContimultiethnicGRS267 + FH_PrCa_BrCa + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10",
                     plot_roc = FALSE,
                     show_output = FALSE)
 
