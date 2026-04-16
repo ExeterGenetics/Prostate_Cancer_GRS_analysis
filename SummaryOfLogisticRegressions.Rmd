@@ -1,7 +1,7 @@
 ﻿---
 title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
-date: "2026-04-15"
+date: "2026-04-16"
 ---
 
 ```{r setup-opts, include=FALSE, cache = FALSE}
@@ -2261,7 +2261,7 @@ pretty_print_table <- function(df, caption = NULL) {
 
 ```
 
-Setup script 2: Paste "Logistic_Regressions_testing_Conti_GRS.R" here:
+Setup script 2: Paste "Logistic_Regressions_testing_Conti_GRS.R" Steps 1-8 here:
 
 ```{r setup-logreg, include=FALSE, cache = TRUE}
 
@@ -3481,6 +3481,12 @@ print(RR_table$wide_formatted)
 
 #print(nri_result)
 
+```
+
+Setup script 3: Bulk logistic regression table for asymptomatic screening pipeline (Step 9)
+
+```{r setup-bulk-logreg, include=FALSE, cache = TRUE}
+
 ######################################################################################
 # Step 9 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
 ######################################################################################
@@ -3545,6 +3551,12 @@ subset <- formatted %>%
   )    
 
 
+```
+
+Setup script 4: Bulk NRI table for asymptomatic screening pipeline (Step 10)
+
+```{r setup-bulk-nri, include=FALSE, cache = TRUE}
+
 ######################################################################################
 # Step 10 - Generate comprehensive NRI table for all GRSs, populations, and outcomes # 
 ######################################################################################
@@ -3578,6 +3590,11 @@ nri_subset <- nri_bulk %>%
     #Outcome == "PrCa_severe_10yrs"
   )
 
+```
+
+Setup script 5: Bulk Feature Importance table for asymptomatic screening pipeline (Step 11)
+
+```{r setup-bulk-feature-importance, include=FALSE, cache = TRUE}
 
 ################################
 # Step 11 - Feature importance #
@@ -3588,8 +3605,15 @@ nri_subset <- nri_bulk %>%
 ##  - Delta AUC (full minus reduced)
 
 FI_bulk <- feature_importance_table(
+  populations = list(
+    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+  ),
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  covariates_list = list("Age + FH_PrCa_BrCa"),
   subset_controls = FALSE,
   version = "Asymptomatic Screening",
   adjust_for_PCs = TRUE
@@ -3636,6 +3660,12 @@ FI_subset <- FI_formatted %>%
     #Predictor == "ContiAfricanGRS246"
   )
 
+```
+
+Setup script 6: Bulk Random Forest Feature Importance table for asymptomatic screening pipeline (Step 12)
+
+```{r setup-bulk-rf-feature-importance, include=FALSE, cache = TRUE}
+
 ##############################################
 # Step 12 - Random Forest feature importance #
 ##############################################
@@ -3643,8 +3673,15 @@ FI_subset <- FI_formatted %>%
 ## Random Forest version of feature importance
 
 RF_bulk <- rf_feature_importance_table(
+  populations = list(
+    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+  ),
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  covariates_list = list("Age + FH_PrCa_BrCa"),
   ntree = 100,
   subset_controls = FALSE,
   version = "Asymptomatic Screening",
@@ -3683,7 +3720,7 @@ RF_subset <- RF_formatted %>%
 
 ```
 
-Setup script 3: Paste "LUTS.R" here:
+Setup script 7: Paste "LUTS.R" Steps 1-9 here:
 
 ```{r setup-luts, include=FALSE, cache = TRUE}
 
@@ -5202,6 +5239,12 @@ print(RR_table$wide_formatted)
 
 #print(nri_result)
 
+```
+
+Setup script 8: Bulk logistic regression table for symptomatic triage pipeline (Step 10)
+
+```{r setup-bulk-logreg-luts, include=FALSE, cache = TRUE}
+
 ######################################################################################
 # Step 10 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
 ######################################################################################
@@ -5265,6 +5308,11 @@ subset2 <- formatted2 %>%
     #Covariates == "Age" #| Covariates == "None"
   )    
 
+```
+
+Setup script 9: Bulk NRI table for symptomatic triage pipeline (Step 11)
+
+```{r setup-bulk-nri-luts, include=FALSE, cache = TRUE}
 
 ######################################################################################
 # Step 11 - Generate comprehensive NRI table for all GRSs, populations, and outcomes # 
@@ -5299,6 +5347,11 @@ nri_subset2 <- nri_bulk2 %>%
     #Outcome == "PrCa_severe_10yrs"
   )
 
+```
+
+Setup script 10: Bulk Feature Importance table for symptomatic triage pipeline (Step 12)
+
+```{r setup-bulk-feature-importance-luts, include=FALSE, cache = TRUE}
 
 ################################
 # Step 12 - Feature importance #
@@ -5309,8 +5362,15 @@ nri_subset2 <- nri_bulk2 %>%
 ##  - Delta AUC (full minus reduced)
 
 FI_bulk2 <- feature_importance_table(
+  populations = list(
+    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
+    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
+    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
+    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2
+  ),
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  covariates_list = list("Age + FH_PrCa_BrCa"),
   subset_controls = FALSE,
   version = "Symptomatic Triage",
   adjust_for_PCs = TRUE
@@ -5357,6 +5417,12 @@ FI_subset2 <- FI_formatted2 %>%
     #Predictor == "ContiAfricanGRS246"
   )
 
+```
+
+Setup script 11: Bulk Random Forest Feature Importance table for symptomatic triage pipeline (Step 13)
+
+```{r setup-bulk-rf-feature-importance-luts, include=FALSE, cache = TRUE}
+
 ##############################################
 # Step 13 - Random Forest feature importance #
 ##############################################
@@ -5364,8 +5430,15 @@ FI_subset2 <- FI_formatted2 %>%
 ## Random Forest version of feature importance
 
 RF_bulk2 <- rf_feature_importance_table(
+  populations = list(
+    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
+    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
+    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
+    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2
+  ),
   grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+  covariates_list = list("Age + FH_PrCa_BrCa"),
   ntree = 100,
   subset_controls = FALSE,
   version = "Symptomatic Triage",
