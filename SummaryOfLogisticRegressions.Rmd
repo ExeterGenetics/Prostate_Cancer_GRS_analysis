@@ -1124,11 +1124,13 @@ nri_table <- function(
   }
 
   covariate_label <- function(covs) {
-    if (is.null(covs) || length(covs) == 0) {
+    covs_for_label <- setdiff(covs, pc_covariates)
+
+    if (is.null(covs_for_label) || length(covs_for_label) == 0) {
       return("None")
     }
 
-    paste(covs, collapse = " + ")
+    paste(covs_for_label, collapse = " + ")
   }
 
   # Initialize results dataframe
@@ -1429,11 +1431,13 @@ logreg_table <- function(
   }
 
   covariate_label <- function(covs) {
-    if (is.null(covs) || length(covs) == 0) {
+    covs_for_label <- setdiff(covs, pc_covariates)
+
+    if (is.null(covs_for_label) || length(covs_for_label) == 0) {
       return("None")
     }
 
-    paste(covs, collapse = " + ")
+    paste(covs_for_label, collapse = " + ")
   }
   
   # Initialize results dataframe
@@ -1760,11 +1764,13 @@ feature_importance_table <- function(
   }
 
   covariate_label <- function(covs) {
-    if (is.null(covs) || length(covs) == 0) {
+    covs_for_label <- setdiff(covs, pc_covariates)
+
+    if (is.null(covs_for_label) || length(covs_for_label) == 0) {
       return("None")
     }
 
-    paste(covs, collapse = " + ")
+    paste(covs_for_label, collapse = " + ")
   }
 
   results <- data.frame(
@@ -2095,11 +2101,13 @@ rf_feature_importance_table <- function(
   }
 
   covariate_label <- function(covs) {
-    if (is.null(covs) || length(covs) == 0) {
+    covs_for_label <- setdiff(covs, pc_covariates)
+
+    if (is.null(covs_for_label) || length(covs_for_label) == 0) {
       return("None")
     }
 
-    paste(covs, collapse = " + ")
+    paste(covs_for_label, collapse = " + ")
   }
 
   results <- data.frame(
@@ -5477,6 +5485,205 @@ RF_subset2 <- RF_formatted2 %>%
 
 ```
 
+Setup script 12: Statistical test functions (setup_statistical_functions)
+
+```{r setup_statistical_functions, include=FALSE, cache = TRUE}
+
+## Paired DeLong's test function to compare AUCs of two logistic regression models on the same population
+
+paired_DeLong_test <- function(populations,
+                               outcome,
+                               predictor_a,
+                               predictor_b,
+                               covariates_a = NULL,
+                               covariates_b = NULL,
+                               subset_controls = FALSE,
+                               id_col = "eid",
+                               min_n = 20,
+                               adjust_method = "BH") {
+
+  model_a_label <- if (is.null(covariates_a) || length(covariates_a) == 0) {
+    predictor_a
+  } else {
+    paste(predictor_a, "+", paste(covariates_a, collapse = " + "))
+  }
+
+  model_b_label <- if (is.null(covariates_b) || length(covariates_b) == 0) {
+    predictor_b
+  } else {
+    paste(predictor_b, "+", paste(covariates_b, collapse = " + "))
+  }
+
+  out <- lapply(names(populations), function(pop_name) {
+    dat <- populations[[pop_name]]
+
+    model_a <- run_logreg(
+      data = dat,
+      outcome = outcome,
+      predictor = predictor_a,
+      covariates = covariates_a,
+      subset_controls = subset_controls,
+      plot_roc = FALSE,
+      show_output = FALSE
+    )
+
+    model_b <- run_logreg(
+      data = dat,
+      outcome = outcome,
+      predictor = predictor_b,
+      covariates = covariates_b,
+      subset_controls = subset_controls,
+      plot_roc = FALSE,
+      show_output = FALSE
+    )
+
+    df_a <- model_a$data
+    df_b <- model_b$data
+
+    use_id_col <- !is.null(id_col) && id_col %in% names(df_a) && id_col %in% names(df_b)
+
+    if (use_id_col) {
+      common <- dplyr::inner_join(
+        df_a %>% dplyr::select(join_id = dplyr::all_of(id_col), outcome_value = dplyr::all_of(outcome), pred_a = pred),
+        df_b %>% dplyr::select(join_id = dplyr::all_of(id_col), pred_b = pred),
+        by = "join_id"
+      )
+    } else {
+      df_a <- df_a %>% dplyr::mutate(join_id = dplyr::row_number())
+      df_b <- df_b %>% dplyr::mutate(join_id = dplyr::row_number())
+      common <- dplyr::inner_join(
+        df_a %>% dplyr::select(join_id, outcome_value = dplyr::all_of(outcome), pred_a = pred),
+        df_b %>% dplyr::select(join_id, pred_b = pred),
+        by = "join_id"
+      )
+    }
+
+    common <- common %>%
+      dplyr::filter(!is.na(outcome_value), !is.na(pred_a), !is.na(pred_b))
+
+    if (nrow(common) < min_n || length(unique(common$outcome_value)) < 2) {
+      return(data.frame(
+        Population = pop_name,
+        Model_A = model_a_label,
+        Model_B = model_b_label,
+        AUC_A = NA_real_,
+        AUC_B = NA_real_,
+        Delta_AUC = NA_real_,
+        p_value = NA_real_,
+        N_usable = nrow(common),
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    roc_a <- pROC::roc(response = common$outcome_value, predictor = common$pred_a, quiet = TRUE)
+    roc_b <- pROC::roc(response = common$outcome_value, predictor = common$pred_b, quiet = TRUE)
+    test_obj <- pROC::roc.test(roc_a, roc_b, paired = TRUE, method = "delong")
+
+    data.frame(
+      Population = pop_name,
+      Model_A = model_a_label,
+      Model_B = model_b_label,
+      AUC_A = as.numeric(pROC::auc(roc_a)),
+      AUC_B = as.numeric(pROC::auc(roc_b)),
+      Delta_AUC = as.numeric(pROC::auc(roc_a)) - as.numeric(pROC::auc(roc_b)),
+      p_value = as.numeric(test_obj$p.value),
+      N_usable = nrow(common),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  dplyr::bind_rows(out) %>%
+    dplyr::mutate(p_value_adj = p.adjust(p_value, method = adjust_method))
+}
+
+## Unpaired DeLong's test function to compare AUCs of two logistic regression models on different populations
+
+unpaired_DeLong_test <- function(populations,
+                                 outcome,
+                                 predictor,
+                                 covariates = NULL,
+                                 subset_controls = FALSE,
+                                 pairings = NULL,
+                                 min_n = 20,
+                                 adjust_method = "BH") {
+
+  model_label <- if (is.null(covariates) || length(covariates) == 0) {
+    predictor
+  } else {
+    paste(predictor, "+", paste(covariates, collapse = " + "))
+  }
+
+  pred_by_pop <- lapply(names(populations), function(pop_name) {
+    dat <- populations[[pop_name]]
+
+    model_obj <- run_logreg(
+      data = dat,
+      outcome = outcome,
+      predictor = predictor,
+      covariates = covariates,
+      subset_controls = subset_controls,
+      plot_roc = FALSE,
+      show_output = FALSE
+    )
+
+    model_obj$data %>%
+      dplyr::select(outcome_value = dplyr::all_of(outcome), pred = pred) %>%
+      dplyr::filter(!is.na(outcome_value), !is.na(pred)) %>%
+      dplyr::mutate(Population = pop_name)
+  }) %>%
+    dplyr::bind_rows()
+
+  if (is.null(pairings)) {
+    pairings <- combn(names(populations), 2, simplify = FALSE)
+  }
+
+  out <- lapply(pairings, function(pair_vec) {
+    pop_a <- pair_vec[1]
+    pop_b <- pair_vec[2]
+
+    dat_a <- pred_by_pop %>% dplyr::filter(Population == pop_a)
+    dat_b <- pred_by_pop %>% dplyr::filter(Population == pop_b)
+
+    if (nrow(dat_a) < min_n || nrow(dat_b) < min_n ||
+        length(unique(dat_a$outcome_value)) < 2 || length(unique(dat_b$outcome_value)) < 2) {
+      return(data.frame(
+        Population_A = pop_a,
+        Population_B = pop_b,
+        Model = model_label,
+        AUC_A = NA_real_,
+        AUC_B = NA_real_,
+        Delta_AUC = NA_real_,
+        p_value = NA_real_,
+        N_A = nrow(dat_a),
+        N_B = nrow(dat_b),
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    roc_a <- pROC::roc(response = dat_a$outcome_value, predictor = dat_a$pred, quiet = TRUE)
+    roc_b <- pROC::roc(response = dat_b$outcome_value, predictor = dat_b$pred, quiet = TRUE)
+    test_obj <- pROC::roc.test(roc_a, roc_b, paired = FALSE, method = "delong")
+
+    data.frame(
+      Population_A = pop_a,
+      Population_B = pop_b,
+      Model = model_label,
+      AUC_A = as.numeric(pROC::auc(roc_a)),
+      AUC_B = as.numeric(pROC::auc(roc_b)),
+      Delta_AUC = as.numeric(pROC::auc(roc_a)) - as.numeric(pROC::auc(roc_b)),
+      p_value = as.numeric(test_obj$p.value),
+      N_A = nrow(dat_a),
+      N_B = nrow(dat_b),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  dplyr::bind_rows(out) %>%
+    dplyr::mutate(p_value_adj = p.adjust(p_value, method = adjust_method))
+}
+
+```
+
 # Part 1: Asymptomatic Screening
 
 Can the GRS predict which men in the UKB will be diagnosed with prostate cancer in a given timeframe after the assessment centre?
@@ -5583,6 +5790,47 @@ table1 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table1)
+
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+)
+
+### Paired DeLong tests - is there any significant difference in ROC AUC between between Conti's Multi-ancestry GRS vs. African-specific GRS within each population?
+
+delong_test_results <- paired_DeLong_test(
+  populations = populations_for_tests,
+  outcome = "PrCa",
+  predictor_a = "ContimultiethnicGRS267",
+  predictor_b = "ContiAfricanGRS246",
+  covariates_a = NULL,
+  covariates_b = NULL,
+  subset_controls = FALSE,
+  id_col = "eid",
+  min_n = 20,
+  adjust_method = "BH"
+)
+
+pretty_print_table(delong_test_results)
+
+### Unpaired DeLong tests - is there any significant difference in ROC AUC for Conti's multi-ancestry GRS between populations?
+
+unpaired_delong_test_results <- unpaired_DeLong_test(
+  populations = populations_for_tests,
+  outcome = "PrCa",
+  predictor = "ContimultiethnicGRS267",
+  covariates = NULL,
+  subset_controls = FALSE,
+  pairings = NULL,
+  min_n = 20,
+  adjust_method = "BH"
+)
+
+pretty_print_table(unpaired_delong_test_results)
 
 ```
 
@@ -5693,11 +5941,218 @@ table2 <- formatted %>%
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
     Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246",
     Outcome == "PrCa",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table2)
+
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+)
+
+### Paired DeLong tests - is there any significant difference in ROC AUC when adding Age and/or Family History to either GRS within each population?
+
+table2_paired_delong_results <- dplyr::bind_rows(
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + Age", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + FH", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "Age",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age vs GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH vs GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + Age", Predictor = "ContiAfricanGRS246"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = NULL,
+    covariates_b = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + FH", Predictor = "ContiAfricanGRS246"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = NULL,
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + Age + FH", Predictor = "ContiAfricanGRS246"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = "Age",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age vs GRS + Age + FH", Predictor = "ContiAfricanGRS246"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH vs GRS + Age + FH", Predictor = "ContiAfricanGRS246")
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table2_paired_delong_results)
+
+### Unpaired DeLong tests - is there any significant difference in ROC AUC for each covariate-adjusted GRS model between populations?
+
+table2_unpaired_delong_results <- dplyr::bind_rows(
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContimultiethnicGRS267",
+    covariates = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContiAfricanGRS246",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age", Predictor = "ContiAfricanGRS246"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContiAfricanGRS246",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH", Predictor = "ContiAfricanGRS246"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContiAfricanGRS246",
+    covariates = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH", Predictor = "ContiAfricanGRS246")
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table2_unpaired_delong_results)
 
 ```
 
@@ -5815,6 +6270,214 @@ table3 <- formatted %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table3)
+
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+  "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly
+)
+
+### Paired DeLong tests - is there any significant difference in ROC AUC when adding Age and/or Family History to either GRS within each population?
+
+table3_paired_delong_results <- dplyr::bind_rows(
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + Age", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + FH", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "Age",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age vs GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH vs GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + Age", Predictor = "ContiAfricanGRS246"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = NULL,
+    covariates_b = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + FH", Predictor = "ContiAfricanGRS246"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = NULL,
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS-only vs GRS + Age + FH", Predictor = "ContiAfricanGRS246"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = "Age",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age vs GRS + Age + FH", Predictor = "ContiAfricanGRS246"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContiAfricanGRS246",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH vs GRS + Age + FH", Predictor = "ContiAfricanGRS246")
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table3_paired_delong_results)
+
+### Unpaired DeLong tests - is there any significant difference in ROC AUC for each covariate-adjusted GRS model between populations?
+
+table3_unpaired_delong_results <- dplyr::bind_rows(
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContiAfricanGRS246",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age", Predictor = "ContiAfricanGRS246"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContiAfricanGRS246",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH", Predictor = "ContiAfricanGRS246"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContiAfricanGRS246",
+    covariates = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH", Predictor = "ContiAfricanGRS246")
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table3_unpaired_delong_results)
 
 ```
 
@@ -9091,19 +9754,19 @@ ORtable_Age_GRS_FH <- ORtable(
 )
 
 GRSAlone <- ORtable_GRSalone$wide_formatted %>%
-  dplyr::rename("GRS alone" = "White")
+  dplyr::rename("GRS alone" = "Black")
 
 AgeAlone <- ORtable_Agealone$wide_formatted %>%
-  dplyr::rename("Age" = "White")
+  dplyr::rename("Age" = "Black")
 
 Age_GRS <- ORtable_Age_GRS$wide_formatted %>%
-  dplyr::rename("Age + GRS" = "White")
+  dplyr::rename("Age + GRS" = "Black")
 
 Age_FH <- ORtable_Age_FH$wide_formatted %>%
-  dplyr::rename("Age + FH" = "White")
+  dplyr::rename("Age + FH" = "Black")
 
 Age_GRS_FH <- ORtable_Age_GRS_FH$wide_formatted %>%
-  dplyr::rename("Age + GRS + FH" = "White")
+  dplyr::rename("Age + GRS + FH" = "Black")
 
 ORtable_combined2 <- GRSAlone %>%
   left_join(AgeAlone, by = "Bin") %>%
