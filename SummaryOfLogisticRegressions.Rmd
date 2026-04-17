@@ -1,7 +1,7 @@
 ﻿---
 title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
-date: "2026-04-16"
+date: "2026-04-17"
 ---
 
 ```{r setup-opts, include=FALSE, cache = FALSE}
@@ -3612,61 +3612,61 @@ Setup script 5: Bulk Feature Importance table for asymptomatic screening pipelin
 ##  - LRT drop-in-fit p-values
 ##  - Delta AUC (full minus reduced)
 
-FI_bulk <- feature_importance_table(
-  populations = list(
-    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
-    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
-    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
-    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
-  ),
-  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
-  covariates_list = list("Age + FH_PrCa_BrCa"),
-  subset_controls = FALSE,
-  version = "Asymptomatic Screening",
-  adjust_for_PCs = TRUE
-)
+#FI_bulk <- feature_importance_table(
+#  populations = list(
+#    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+#    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+#    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+#    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+#  ),
+#  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
+#               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+#  covariates_list = list("Age + FH_PrCa_BrCa"),
+#  subset_controls = FALSE,
+#  version = "Asymptomatic Screening",
+#  adjust_for_PCs = TRUE
+#)
+#
+#FI_formatted <- FI_bulk %>%
+#  dplyr::mutate(
+#    Full_ROC_AUC_4dp = sprintf("%.4f", Full_ROC_AUC),
+#    Delta_AUC_drop_GRS_4dp = sprintf("%.4f", Delta_AUC_drop_GRS),
+#    Delta_AUC_drop_Age_4dp = sprintf("%.4f", Delta_AUC_drop_Age),
+#    GRS_OR_adj_CI_95 = dplyr::if_else(
+#      is.na(GRS_OR_adj) | is.na(GRS_OR_adj_CI_Lower) | is.na(GRS_OR_adj_CI_Upper),
+#      NA_character_,
+#      sprintf("%.4f [%.4f-%.4f]", GRS_OR_adj, GRS_OR_adj_CI_Lower, GRS_OR_adj_CI_Upper)
+#    ),
+#    Age_OR_adj_CI_95 = dplyr::if_else(
+#      is.na(Age_OR_adj) | is.na(Age_OR_adj_CI_Lower) | is.na(Age_OR_adj_CI_Upper),
+#      NA_character_,
+#      sprintf("%.4f [%.4f-%.4f]", Age_OR_adj, Age_OR_adj_CI_Lower, Age_OR_adj_CI_Upper)
+#    ),
+#    GRS_added_value = dplyr::case_when(
+#      is.na(LRT_drop_GRS_p) ~ NA_character_,
+#      LRT_drop_GRS_p < 0.05 ~ "YES",
+#      TRUE ~ "NO"
+#    ),
+#    Age_added_value = dplyr::case_when(
+#      is.na(LRT_drop_Age_p) ~ NA_character_,
+#      LRT_drop_Age_p < 0.05 ~ "YES",
+#      TRUE ~ "NO"
+#    )
+#  ) %>%
+#  dplyr::select(
+#    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
+#    Full_ROC_AUC_4dp,
+#    Delta_AUC_drop_GRS_4dp, LRT_drop_GRS_p, GRS_added_value,
+#    Delta_AUC_drop_Age_4dp, LRT_drop_Age_p, Age_added_value,
+#    GRS_OR_adj_CI_95, Age_OR_adj_CI_95
+#  )
 
-FI_formatted <- FI_bulk %>%
-  dplyr::mutate(
-    Full_ROC_AUC_4dp = sprintf("%.4f", Full_ROC_AUC),
-    Delta_AUC_drop_GRS_4dp = sprintf("%.4f", Delta_AUC_drop_GRS),
-    Delta_AUC_drop_Age_4dp = sprintf("%.4f", Delta_AUC_drop_Age),
-    GRS_OR_adj_CI_95 = dplyr::if_else(
-      is.na(GRS_OR_adj) | is.na(GRS_OR_adj_CI_Lower) | is.na(GRS_OR_adj_CI_Upper),
-      NA_character_,
-      sprintf("%.4f [%.4f-%.4f]", GRS_OR_adj, GRS_OR_adj_CI_Lower, GRS_OR_adj_CI_Upper)
-    ),
-    Age_OR_adj_CI_95 = dplyr::if_else(
-      is.na(Age_OR_adj) | is.na(Age_OR_adj_CI_Lower) | is.na(Age_OR_adj_CI_Upper),
-      NA_character_,
-      sprintf("%.4f [%.4f-%.4f]", Age_OR_adj, Age_OR_adj_CI_Lower, Age_OR_adj_CI_Upper)
-    ),
-    GRS_added_value = dplyr::case_when(
-      is.na(LRT_drop_GRS_p) ~ NA_character_,
-      LRT_drop_GRS_p < 0.05 ~ "YES",
-      TRUE ~ "NO"
-    ),
-    Age_added_value = dplyr::case_when(
-      is.na(LRT_drop_Age_p) ~ NA_character_,
-      LRT_drop_Age_p < 0.05 ~ "YES",
-      TRUE ~ "NO"
-    )
-  ) %>%
-  dplyr::select(
-    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
-    Full_ROC_AUC_4dp,
-    Delta_AUC_drop_GRS_4dp, LRT_drop_GRS_p, GRS_added_value,
-    Delta_AUC_drop_Age_4dp, LRT_drop_Age_p, Age_added_value,
-    GRS_OR_adj_CI_95, Age_OR_adj_CI_95
-  )
-
-FI_subset <- FI_formatted %>%
-  dplyr::filter(
-    Population == "Black"
-    #Outcome == "PrCa"
-    #Predictor == "ContiAfricanGRS246"
-  )
+#FI_subset <- FI_formatted %>%
+#  dplyr::filter(
+#    Population == "Black"
+#    #Outcome == "PrCa"
+#    #Predictor == "ContiAfricanGRS246"
+#  )
 
 ```
 
@@ -3680,51 +3680,51 @@ Setup script 6: Bulk Random Forest Feature Importance table for asymptomatic scr
 
 ## Random Forest version of feature importance
 
-RF_bulk <- rf_feature_importance_table(
-  populations = list(
-    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
-    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
-    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
-    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
-  ),
-  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
-               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
-  covariates_list = list("Age + FH_PrCa_BrCa"),
-  ntree = 100,
-  subset_controls = FALSE,
-  version = "Asymptomatic Screening",
-  adjust_for_PCs = TRUE
-)
+#RF_bulk <- rf_feature_importance_table(
+#  populations = list(
+#    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+#    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+#    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+#    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+#  ),
+#  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
+#               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+#  covariates_list = list("Age + FH_PrCa_BrCa"),
+#  ntree = 100,
+#  subset_controls = FALSE,
+#  version = "Asymptomatic Screening",
+#  adjust_for_PCs = TRUE
+#)
 
-RF_formatted <- RF_bulk %>%
-  dplyr::mutate(
-    OOB_ROC_AUC_4dp = sprintf("%.4f", OOB_ROC_AUC),
-    GRS_MDA_4dp = sprintf("%.4f", GRS_MDA),
-    Age_MDA_4dp = sprintf("%.4f", Age_MDA),
-    GRS_Pct_Importance_1dp = dplyr::if_else(
-      is.na(GRS_Pct_Importance),
-      NA_character_,
-      sprintf("%.1f%%", GRS_Pct_Importance)
-    ),
-    Age_Pct_Importance_1dp = dplyr::if_else(
-      is.na(Age_Pct_Importance),
-      NA_character_,
-      sprintf("%.1f%%", Age_Pct_Importance)
-    )
-  ) %>%
-  dplyr::select(
-    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
-    OOB_ROC_AUC_4dp,
-    GRS_MDA_4dp, Age_MDA_4dp,
-    GRS_Pct_Importance_1dp, Age_Pct_Importance_1dp
-  )
+#RF_formatted <- RF_bulk %>%
+#  dplyr::mutate(
+#    OOB_ROC_AUC_4dp = sprintf("%.4f", OOB_ROC_AUC),
+#    GRS_MDA_4dp = sprintf("%.4f", GRS_MDA),
+#    Age_MDA_4dp = sprintf("%.4f", Age_MDA),
+#    GRS_Pct_Importance_1dp = dplyr::if_else(
+#      is.na(GRS_Pct_Importance),
+#      NA_character_,
+#      sprintf("%.1f%%", GRS_Pct_Importance)
+#    ),
+#    Age_Pct_Importance_1dp = dplyr::if_else(
+#      is.na(Age_Pct_Importance),
+#      NA_character_,
+#      sprintf("%.1f%%", Age_Pct_Importance)
+#    )
+#  ) %>%
+#  dplyr::select(
+#    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
+#    OOB_ROC_AUC_4dp,
+#    GRS_MDA_4dp, Age_MDA_4dp,
+#    GRS_Pct_Importance_1dp, Age_Pct_Importance_1dp
+#  )
 
-RF_subset <- RF_formatted %>%
-  dplyr::filter(
-    Population == "Black"
-    #Outcome == "PrCa"
-    #Predictor == "ContiAfricanGRS246"
-  )
+#RF_subset <- RF_formatted %>%
+#  dplyr::filter(
+#    Population == "Black"
+#    #Outcome == "PrCa"
+#    #Predictor == "ContiAfricanGRS246"
+#  )
 
 ```
 
@@ -5369,61 +5369,61 @@ Setup script 10: Bulk Feature Importance table for symptomatic triage pipeline (
 ##  - LRT drop-in-fit p-values
 ##  - Delta AUC (full minus reduced)
 
-FI_bulk2 <- feature_importance_table(
-  populations = list(
-    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
-    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
-    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
-    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2
-  ),
-  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
-  covariates_list = list("Age + FH_PrCa_BrCa"),
-  subset_controls = FALSE,
-  version = "Symptomatic Triage",
-  adjust_for_PCs = TRUE
-)
+#FI_bulk2 <- feature_importance_table(
+#  populations = list(
+#    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
+#    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
+#    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
+#    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2
+#  ),
+#  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
+#               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+#  covariates_list = list("Age + FH_PrCa_BrCa"),
+#  subset_controls = FALSE,
+#  version = "Symptomatic Triage",
+#  adjust_for_PCs = TRUE
+#)
 
-FI_formatted2 <- FI_bulk2 %>%
-  dplyr::mutate(
-    Full_ROC_AUC_4dp = sprintf("%.4f", Full_ROC_AUC),
-    Delta_AUC_drop_GRS_4dp = sprintf("%.4f", Delta_AUC_drop_GRS),
-    Delta_AUC_drop_Age_4dp = sprintf("%.4f", Delta_AUC_drop_Age),
-    GRS_OR_adj_CI_95 = dplyr::if_else(
-      is.na(GRS_OR_adj) | is.na(GRS_OR_adj_CI_Lower) | is.na(GRS_OR_adj_CI_Upper),
-      NA_character_,
-      sprintf("%.4f [%.4f-%.4f]", GRS_OR_adj, GRS_OR_adj_CI_Lower, GRS_OR_adj_CI_Upper)
-    ),
-    Age_OR_adj_CI_95 = dplyr::if_else(
-      is.na(Age_OR_adj) | is.na(Age_OR_adj_CI_Lower) | is.na(Age_OR_adj_CI_Upper),
-      NA_character_,
-      sprintf("%.4f [%.4f-%.4f]", Age_OR_adj, Age_OR_adj_CI_Lower, Age_OR_adj_CI_Upper)
-    ),
-    GRS_added_value = dplyr::case_when(
-      is.na(LRT_drop_GRS_p) ~ NA_character_,
-      LRT_drop_GRS_p < 0.05 ~ "YES",
-      TRUE ~ "NO"
-    ),
-    Age_added_value = dplyr::case_when(
-      is.na(LRT_drop_Age_p) ~ NA_character_,
-      LRT_drop_Age_p < 0.05 ~ "YES",
-      TRUE ~ "NO"
-    )
-  ) %>%
-  dplyr::select(
-    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
-    Full_ROC_AUC_4dp,
-    Delta_AUC_drop_GRS_4dp, LRT_drop_GRS_p, GRS_added_value,
-    Delta_AUC_drop_Age_4dp, LRT_drop_Age_p, Age_added_value,
-    GRS_OR_adj_CI_95, Age_OR_adj_CI_95
-  )
+#FI_formatted2 <- FI_bulk2 %>%
+#  dplyr::mutate(
+#    Full_ROC_AUC_4dp = sprintf("%.4f", Full_ROC_AUC),
+#    Delta_AUC_drop_GRS_4dp = sprintf("%.4f", Delta_AUC_drop_GRS),
+#    Delta_AUC_drop_Age_4dp = sprintf("%.4f", Delta_AUC_drop_Age),
+#    GRS_OR_adj_CI_95 = dplyr::if_else(
+#      is.na(GRS_OR_adj) | is.na(GRS_OR_adj_CI_Lower) | is.na(GRS_OR_adj_CI_Upper),
+#      NA_character_,
+#      sprintf("%.4f [%.4f-%.4f]", GRS_OR_adj, GRS_OR_adj_CI_Lower, GRS_OR_adj_CI_Upper)
+#    ),
+#    Age_OR_adj_CI_95 = dplyr::if_else(
+#      is.na(Age_OR_adj) | is.na(Age_OR_adj_CI_Lower) | is.na(Age_OR_adj_CI_Upper),
+#      NA_character_,
+#      sprintf("%.4f [%.4f-%.4f]", Age_OR_adj, Age_OR_adj_CI_Lower, Age_OR_adj_CI_Upper)
+#    ),
+#    GRS_added_value = dplyr::case_when(
+#      is.na(LRT_drop_GRS_p) ~ NA_character_,
+#      LRT_drop_GRS_p < 0.05 ~ "YES",
+#      TRUE ~ "NO"
+#    ),
+#    Age_added_value = dplyr::case_when(
+#      is.na(LRT_drop_Age_p) ~ NA_character_,
+#      LRT_drop_Age_p < 0.05 ~ "YES",
+#      TRUE ~ "NO"
+#    )
+#  ) %>%
+#  dplyr::select(
+#    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
+#    Full_ROC_AUC_4dp,
+#    Delta_AUC_drop_GRS_4dp, LRT_drop_GRS_p, GRS_added_value,
+#    Delta_AUC_drop_Age_4dp, LRT_drop_Age_p, Age_added_value,
+#    GRS_OR_adj_CI_95, Age_OR_adj_CI_95
+#  )
 
-FI_subset2 <- FI_formatted2 %>%
-  dplyr::filter(
-    Population == "Black"
-    #Outcome == "PrCa"
-    #Predictor == "ContiAfricanGRS246"
-  )
+#FI_subset2 <- FI_formatted2 %>%
+#  dplyr::filter(
+#    Population == "Black"
+#    #Outcome == "PrCa"
+#    #Predictor == "ContiAfricanGRS246"
+#  )
 
 ```
 
@@ -5437,51 +5437,51 @@ Setup script 11: Bulk Random Forest Feature Importance table for symptomatic tri
 
 ## Random Forest version of feature importance
 
-RF_bulk2 <- rf_feature_importance_table(
-  populations = list(
-    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
-    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
-    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
-    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2
-  ),
-  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
-               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
-  covariates_list = list("Age + FH_PrCa_BrCa"),
-  ntree = 100,
-  subset_controls = FALSE,
-  version = "Symptomatic Triage",
-  adjust_for_PCs = TRUE
-)
+#RF_bulk2 <- rf_feature_importance_table(
+#  populations = list(
+#    "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly2,
+#    "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly2,
+#    "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed2,
+#    "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed2
+#  ),
+#  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
+#               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
+#  covariates_list = list("Age + FH_PrCa_BrCa"),
+#  ntree = 100,
+#  subset_controls = FALSE,
+#  version = "Symptomatic Triage",
+#  adjust_for_PCs = TRUE
+#)
 
-RF_formatted2 <- RF_bulk2 %>%
-  dplyr::mutate(
-    OOB_ROC_AUC_4dp = sprintf("%.4f", OOB_ROC_AUC),
-    GRS_MDA_4dp = sprintf("%.4f", GRS_MDA),
-    Age_MDA_4dp = sprintf("%.4f", Age_MDA),
-    GRS_Pct_Importance_1dp = dplyr::if_else(
-      is.na(GRS_Pct_Importance),
-      NA_character_,
-      sprintf("%.1f%%", GRS_Pct_Importance)
-    ),
-    Age_Pct_Importance_1dp = dplyr::if_else(
-      is.na(Age_Pct_Importance),
-      NA_character_,
-      sprintf("%.1f%%", Age_Pct_Importance)
-    )
-  ) %>%
-  dplyr::select(
-    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
-    OOB_ROC_AUC_4dp,
-    GRS_MDA_4dp, Age_MDA_4dp,
-    GRS_Pct_Importance_1dp, Age_Pct_Importance_1dp
-  )
+#RF_formatted2 <- RF_bulk2 %>%
+#  dplyr::mutate(
+#    OOB_ROC_AUC_4dp = sprintf("%.4f", OOB_ROC_AUC),
+#    GRS_MDA_4dp = sprintf("%.4f", GRS_MDA),
+#    Age_MDA_4dp = sprintf("%.4f", Age_MDA),
+#    GRS_Pct_Importance_1dp = dplyr::if_else(
+#      is.na(GRS_Pct_Importance),
+#      NA_character_,
+#      sprintf("%.1f%%", GRS_Pct_Importance)
+#    ),
+#    Age_Pct_Importance_1dp = dplyr::if_else(
+#      is.na(Age_Pct_Importance),
+#      NA_character_,
+#      sprintf("%.1f%%", Age_Pct_Importance)
+#    )
+#  ) %>%
+#  dplyr::select(
+#    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
+#    OOB_ROC_AUC_4dp,
+#    GRS_MDA_4dp, Age_MDA_4dp,
+#    GRS_Pct_Importance_1dp, Age_Pct_Importance_1dp
+#  )
 
-RF_subset2 <- RF_formatted2 %>%
-  dplyr::filter(
-    Population == "Black"
-    #Outcome == "PrCa"
-    #Predictor == "ContiAfricanGRS246"
-  )
+#RF_subset2 <- RF_formatted2 %>%
+#  dplyr::filter(
+#    Population == "Black"
+#    #Outcome == "PrCa"
+#    #Predictor == "ContiAfricanGRS246"
+#  )
 
 ```
 
@@ -6868,6 +6868,129 @@ table1 <- formatted %>%
 
 pretty_print_table(table1)
 
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+)
+
+### Paired DeLong tests - is there any significant difference in ROC AUC when comparing Conti's multiethnic GRS vs Adjusted GRS within each population?
+
+table1_paired_delong_results <- dplyr::bind_rows(
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContiORadjustedGRS",
+    covariates_a = NULL,
+    covariates_b = NULL,
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Multiethnic GRS vs Adjusted GRS"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Multiethnic GRS vs Adjusted GRS")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContiORadjustedGRS",
+    covariates_a = "Age",
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Multiethnic GRS + Age vs Adjusted GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Multiethnic GRS + Age vs Adjusted GRS + Age")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContiORadjustedGRS",
+    covariates_a = c("Age", "FH_PrCa_BrCa"),
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Multiethnic GRS + Age + FH vs Adjusted GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Multiethnic GRS + Age + FH vs Adjusted GRS + Age + FH"))
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table1_paired_delong_results)
+
+### Unpaired DeLong tests - is there any significant difference in ROC AUC for each covariate-adjusted GRS model between populations?
+
+table1_unpaired_delong_results <- dplyr::bind_rows(
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH", Predictor = "ContimultiethnicGRS267"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContiORadjustedGRS",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age", Predictor = "ContiORadjustedGRS"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContiORadjustedGRS",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH", Predictor = "ContiORadjustedGRS"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContiORadjustedGRS",
+    covariates = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH", Predictor = "ContiORadjustedGRS")
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table1_unpaired_delong_results)
+
 ```
 
 ### ROC AUC Forest plot
@@ -7325,13 +7448,167 @@ Ratio = `r round(irm_plot4_rr, 2)`
 table4 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table4)
+
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+  "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+  "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+  "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+  "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+  "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+  "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+)
+
+### Paired DeLong tests - is there any significant difference in ROC AUC when adding GRS and/or Family History to Age alone within each population?
+
+table4_paired_delong_results <- dplyr::bind_rows(
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age-only vs GRS + Age"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "Age",
+    predictor_b = "Age",
+    covariates_a = NULL,
+    covariates_b = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age-only vs Age + FH"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age + FH vs GRS + Age + FH"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS alone vs GRS + Age"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH vs GRS + Age + FH"),
+  paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "Age",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age vs GRS + Age + FH")
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table4_paired_delong_results)
+
+### Unpaired DeLong tests - is there any significant difference in ROC AUC for each model between populations?
+
+table4_unpaired_delong_results <- dplyr::bind_rows(
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "Age",
+    covariates = NULL,
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContimultiethnicGRS267",
+    covariates = NULL,
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS alone"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age + FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH"),
+  unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH")
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table4_unpaired_delong_results)
 
 ```
 
@@ -7345,19 +7622,19 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa"
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)), Model = paste(Predictor, Covariates, sep = " | "))
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
+dodge <- position_dodge(width = 0.6)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
+  geom_point(position = dodge, size = 2.5) +
   coord_flip() +
   labs(x = "Population", y = "ROC AUC [95% CI]", color = "Model") +
   scale_color_manual(values = setNames(grDevices::hcl.colors(length(unique(forestplot_df$Model)), "Dark 3"), unique(forestplot_df$Model))) +
@@ -7375,19 +7652,19 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)), Model = paste(Predictor, Covariates, sep = " | "))
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
+dodge <- position_dodge(width = 0.6)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
+  geom_point(position = dodge, size = 2.5) +
   coord_flip() +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Model") +
   scale_color_manual(values = setNames(grDevices::hcl.colors(length(unique(forestplot_df$Model)), "Dark 3"), unique(forestplot_df$Model))) +
@@ -7402,13 +7679,167 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
 table5 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_2yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_2yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table5)
+
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+  "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+  "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+  "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+  "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+  "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+  "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+)
+
+### Paired DeLong tests - is there any significant difference in ROC AUC when adding GRS and/or Family History to Age alone within each population?
+
+table5_paired_delong_results <- dplyr::bind_rows(
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age-only vs GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age-only vs GRS + Age")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor_a = "Age",
+    predictor_b = "Age",
+    covariates_a = NULL,
+    covariates_b = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age-only vs Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age-only vs Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age + FH vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age + FH vs GRS + Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS alone vs GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS alone vs GRS + Age")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + FH vs GRS + Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "Age",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age vs GRS + Age + FH"))
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table5_paired_delong_results)
+
+### Unpaired DeLong tests - is there any significant difference in ROC AUC for each model between populations?
+
+table5_unpaired_delong_results <- dplyr::bind_rows(
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor = "Age",
+    covariates = NULL,
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age alone")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = NULL,
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS alone"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS alone")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age + FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age + FH")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_2yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + FH"))
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table5_unpaired_delong_results)
 
 ```
 
@@ -7422,19 +7853,19 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_2yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_2yrs"
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)), Model = paste(Predictor, Covariates, sep = " | "))
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
+dodge <- position_dodge(width = 0.6)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
+  geom_point(position = dodge, size = 2.5) +
   coord_flip() +
   labs(x = "Population", y = "ROC AUC [95% CI]", color = "Model") +
   scale_color_manual(values = setNames(grDevices::hcl.colors(length(unique(forestplot_df$Model)), "Dark 3"), unique(forestplot_df$Model))) +
@@ -7452,19 +7883,19 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_2yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_2yrs"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)), Model = paste(Predictor, Covariates, sep = " | "))
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
+dodge <- position_dodge(width = 0.6)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
+  geom_point(position = dodge, size = 2.5) +
   coord_flip() +
   scale_y_continuous(limits = c(0, 10)) +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Model") +
@@ -7480,13 +7911,167 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
 table6 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_5yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_5yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table6)
+
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+  "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+  "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+  "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+  "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+  "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+  "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+)
+
+### Paired DeLong tests - is there any significant difference in ROC AUC when adding GRS and/or Family History to Age alone within each population?
+
+table6_paired_delong_results <- dplyr::bind_rows(
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age-only vs GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age-only vs GRS + Age")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor_a = "Age",
+    predictor_b = "Age",
+    covariates_a = NULL,
+    covariates_b = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age-only vs Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age-only vs Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age + FH vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age + FH vs GRS + Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS alone vs GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS alone vs GRS + Age")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + FH vs GRS + Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "Age",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age vs GRS + Age + FH"))
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table6_paired_delong_results)
+
+### Unpaired DeLong tests - is there any significant difference in ROC AUC for each model between populations?
+
+table6_unpaired_delong_results <- dplyr::bind_rows(
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor = "Age",
+    covariates = NULL,
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age alone")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = NULL,
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS alone"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS alone")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age + FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age + FH")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_5yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + FH"))
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table6_unpaired_delong_results)
 
 ```
 
@@ -7500,19 +8085,19 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_5yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_5yrs"
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)), Model = paste(Predictor, Covariates, sep = " | "))
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
+dodge <- position_dodge(width = 0.6)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
+  geom_point(position = dodge, size = 2.5) +
   coord_flip() +
   labs(x = "Population", y = "ROC AUC [95% CI]", color = "Model") +
   scale_color_manual(values = setNames(grDevices::hcl.colors(length(unique(forestplot_df$Model)), "Dark 3"), unique(forestplot_df$Model))) +
@@ -7530,19 +8115,19 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_5yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_5yrs"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)), Model = paste(Predictor, Covariates, sep = " | "))
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
+dodge <- position_dodge(width = 0.6)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
+  geom_point(position = dodge, size = 2.5) +
   scale_y_continuous(limits = c(0, 10)) +
   coord_flip() +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Model") +
@@ -7558,13 +8143,166 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
 table7 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_10yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
 pretty_print_table(table7)
+
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed,
+  "EUR" = PCa_iv_covariates_GRS_predhorizon_EUROnly,
+  "AFR" = PCa_iv_covariates_GRS_predhorizon_AFROnly,
+  "EAS" = PCa_iv_covariates_GRS_predhorizon_EASOnly,
+  "CSA" = PCa_iv_covariates_GRS_predhorizon_CSAOnly,
+  "MID" = PCa_iv_covariates_GRS_predhorizon_MIDOnly,
+  "AMR" = PCa_iv_covariates_GRS_predhorizon_AMROnly
+)
+
+### Paired DeLong tests - is there any significant difference in ROC AUC when adding GRS and/or Family History to Age alone within each population?
+
+table7_paired_delong_results <- dplyr::bind_rows(
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age-only vs GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age-only vs GRS + Age")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "Age",
+    covariates_a = NULL,
+    covariates_b = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age-only vs Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age-only vs Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age + FH vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age + FH vs GRS + Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS alone vs GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS alone vs GRS + Age")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "FH_PrCa_BrCa",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + FH vs GRS + Age + FH")),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "ContimultiethnicGRS267",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = "Age",
+    covariates_b = c("Age", "FH_PrCa_BrCa"),
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age vs GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age vs GRS + Age + FH"))
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+pretty_print_table(table7_paired_delong_results)
+
+### Unpaired DeLong tests - is there any significant difference in ROC AUC for each model between populations?
+
+table7_unpaired_delong_results <- dplyr::bind_rows(
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "Age",
+    covariates = NULL,
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "Age alone")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = NULL,
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS alone"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS alone")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "Age + FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + Age + FH")),
+  tryCatch(unpaired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor = "ContimultiethnicGRS267",
+    covariates = "FH_PrCa_BrCa",
+    subset_controls = FALSE,
+    pairings = NULL,
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "GRS + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA, Test = "GRS + FH"))
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table7_unpaired_delong_results)
 
 ```
 
@@ -7578,19 +8316,19 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_10yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)), Model = paste(Predictor, Covariates, sep = " | "))
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
+dodge <- position_dodge(width = 0.6)
+ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
+  geom_point(position = dodge, size = 2.5) +
   coord_flip() +
   labs(x = "Population", y = "ROC AUC [95% CI]", color = "Model") +
   scale_color_manual(values = setNames(grDevices::hcl.colors(length(unique(forestplot_df$Model)), "Dark 3"), unique(forestplot_df$Model))) +
@@ -7608,19 +8346,19 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    Predictor == "ContimultiethnicGRS267",
-    Outcome == "PrCa_10yrs",
-    Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
+    (Predictor == "Age" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & (Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa")),
+    Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = unique(Population)), Model = paste(Predictor, Covariates, sep = " | "))
 pop_palette <- c("#00c896", "#003c3c", "#022020", "#007d69", "#00a87e", "#00dca5", "#93272c", "#b46a55", "#e60000", "#f9423a", "#702081", "#9569be", "#fc4c02", "#ff7f41", "#ffc62c", "#f3d54e", "#250e62", "#6ab3e7", "#e78699", "#f4c3cd", "#898b8d")
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
-ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
+dodge <- position_dodge(width = 0.6)
+ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey40") +
-  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), width = 0.2, linewidth = 0.6) +
-  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
+  geom_point(position = dodge, size = 2.5) +
   coord_flip() +
   labs(x = "Population", y = "Odds Ratio per SD [95% CI]", color = "Model") +
   scale_color_manual(values = setNames(grDevices::hcl.colors(length(unique(forestplot_df$Model)), "Dark 3"), unique(forestplot_df$Model))) +
@@ -9341,7 +10079,7 @@ ggplot(forestplot_df, aes(x = Outcome, y = ROC_AUC, color = Population, group = 
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   coord_flip() +
   labs(x = "Outcome", y = "ROC AUC [95% CI]", color = "Population") +
-  scale_color_manual(values = setNames(grDevices::hcl.colors(length(unique(forestplot_df$Model)), "Dark 3"), unique(forestplot_df$Model))) +
+  scale_color_manual(values = pop_colors) +
   theme_minimal()
 
 ```
@@ -9948,14 +10686,14 @@ pretty_print_table(table39)
 
 ```{r table40-fi-statistical, echo=FALSE, cache = FALSE}
 
-table40 <- FI_formatted %>%                        
-  dplyr::filter(                          
-    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS"
-  ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "Full_ROC_AUC_4dp", "Delta_AUC_drop_GRS_4dp", "Delta_AUC_drop_Age_4dp", "GRS_OR_adj_CI_95", "Age_OR_adj_CI_95", "GRS_added_value", "Age_added_value", "N_Cases", "N_Controls"))
+#table40 <- FI_formatted %>%                        
+#  dplyr::filter(                          
+#    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+#    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS"
+#  ) %>%
+#  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "Full_ROC_AUC_4dp", "Delta_AUC_drop_GRS_4dp", "Delta_AUC_drop_Age_4dp", "GRS_OR_adj_CI_95", "Age_OR_adj_CI_95", "GRS_added_value", "Age_added_value", "N_Cases", "N_Controls"))
 
-pretty_print_table(table40)
+#pretty_print_table(table40)
 
 ```
 
@@ -9963,14 +10701,14 @@ pretty_print_table(table40)
 
 ```{r table41-fi-randomforest, echo=FALSE, cache = FALSE}
 
-table41 <- RF_formatted %>%                        
-  dplyr::filter(                          
-    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS"
-  ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "OOB_ROC_AUC_4dp", "GRS_MDA_4dp", "Age_MDA_4dp", "GRS_Pct_Importance_1dp", "Age_Pct_Importance_1dp", "N_Cases", "N_Controls"))
+#table41 <- RF_formatted %>%                        
+#  dplyr::filter(                          
+#    Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
+#    Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS"
+#  ) %>%
+#  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "OOB_ROC_AUC_4dp", "GRS_MDA_4dp", "Age_MDA_4dp", "GRS_Pct_Importance_1dp", "Age_Pct_Importance_1dp", "N_Cases", "N_Controls"))
 
-pretty_print_table(table41)
+#pretty_print_table(table41)
 
 ```
 
