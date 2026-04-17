@@ -10802,7 +10802,7 @@ table39 <- nri_bulk %>%
   ) %>%
   dplyr::mutate(
     p_NRI_BH = p.adjust(p_NRI, method = "BH"),
-    NRI_significant = dplyr::case_when(
+    NRI_significant_BH = dplyr::case_when(
       is.na(p_NRI_BH) ~ NA_character_,
       p_NRI_BH < 0.05 ~ "YES",
       TRUE ~ "NO"
