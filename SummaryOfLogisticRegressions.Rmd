@@ -10197,11 +10197,11 @@ Population == "White" | Population == "Black",
   dplyr::mutate(
     Outcome = factor(
       Outcome,
-      levels = c(
+      levels = rev(c(
         "PrCa", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs",
         "PrCa_actionable", "PrCa_actionable_2yrs", "PrCa_actionable_5yrs", "PrCa_actionable_10yrs",
         "PrCa_severe", "PrCa_severe_2yrs", "PrCa_severe_5yrs", "PrCa_severe_10yrs"
-      )
+      ))
     ),
     Population = factor(Population, levels = c("White", "Black"))
   )
@@ -10991,9 +10991,12 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
       Predictor == "ContimultiethnicGRS267" & Covariates == "None" ~ "GRS alone",
       Predictor == "Age" & Covariates == "None" ~ "Age alone",
       Predictor == "ContimultiethnicGRS267" & Covariates == "Age" ~ "GRS + Age",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "FH_PrCa_BrCa" ~ "GRS + FH",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "Age + FH_PrCa_BrCa" ~ "GRS + Age + FH",
+      Predictor == "Age" & Covariates == "FH_PrCa_BrCa" ~ "Age + FH",
       TRUE ~ NA_character_
     ),
-    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
+    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age", "GRS + FH", "GRS + Age + FH", "Age + FH"))
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
@@ -11093,9 +11096,12 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
       Predictor == "ContimultiethnicGRS267" & Covariates == "None" ~ "GRS alone",
       Predictor == "Age" & Covariates == "None" ~ "Age alone",
       Predictor == "ContimultiethnicGRS267" & Covariates == "Age" ~ "GRS + Age",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "FH_PrCa_BrCa" ~ "GRS + FH",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "Age + FH_PrCa_BrCa" ~ "GRS + Age + FH",
+      Predictor == "Age" & Covariates == "FH_PrCa_BrCa" ~ "Age + FH",
       TRUE ~ NA_character_
     ),
-    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
+    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age", "GRS + FH", "GRS + Age + FH", "Age + FH"))
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
@@ -11269,7 +11275,8 @@ library(pROC)
 table45 <- formatted2 %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None") |
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "FH_PrCa_BrCa") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age + FH_PrCa_BrCa") | (Predictor == "Age" & Covariates == "FH_PrCa_BrCa"),
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
@@ -11288,7 +11295,8 @@ library(dplyr)
 forestplot_df <- bulk2 %>%
   dplyr::filter(
 Population == "White" | Population == "Black" | Population == "Mixed" | Population == "Black+Mixed" | Population == "EUR" | Population == "AFR" | Population == "EAS" | Population == "CSA" | Population == "MID" | Population == "AMR",
-    (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None"),
+  (Predictor == "ContimultiethnicGRS267" & Covariates == "None") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "Age" & Covariates == "None") |
+  (Predictor == "ContimultiethnicGRS267" & Covariates == "FH_PrCa_BrCa") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age + FH_PrCa_BrCa") | (Predictor == "Age" & Covariates == "FH_PrCa_BrCa"),
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
@@ -11298,9 +11306,12 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
       Predictor == "ContimultiethnicGRS267" & Covariates == "None" ~ "GRS alone",
       Predictor == "Age" & Covariates == "None" ~ "Age alone",
       Predictor == "ContimultiethnicGRS267" & Covariates == "Age" ~ "GRS + Age",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "FH_PrCa_BrCa" ~ "GRS + FH",
+      Predictor == "ContimultiethnicGRS267" & Covariates == "Age + FH_PrCa_BrCa" ~ "GRS + Age + FH",
+      Predictor == "Age" & Covariates == "FH_PrCa_BrCa" ~ "Age + FH",
       TRUE ~ NA_character_
     ),
-    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age"))
+    Model = factor(Model, levels = c("GRS alone", "Age alone", "GRS + Age", "GRS + FH", "GRS + Age + FH", "Age + FH"))
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
