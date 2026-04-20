@@ -12979,7 +12979,7 @@ table32_unpaired_delong_results <- dplyr::bind_rows(
     pairings = NULL,
     min_n = 20,
     adjust_method = "none"
-  ) %>% dplyr::mutate(Test = "Schumacher GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+  ) %>% dplyr::mutate(Test = "Schumacher GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA))
 ) %>%
   dplyr::select(-p_value_adj) %>%
   dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
@@ -13188,7 +13188,7 @@ table33_unpaired_delong_results <- dplyr::bind_rows(
     pairings = NULL,
     min_n = 20,
     adjust_method = "none"
-  ) %>% dplyr::mutate(Test = "BARCODE1 GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+  ) %>% dplyr::mutate(Test = "BARCODE1 GRS + Age + FH"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA))
 ) %>%
   dplyr::select(-p_value_adj) %>%
   dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
