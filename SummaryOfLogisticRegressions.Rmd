@@ -14079,7 +14079,7 @@ This only shows that Age is significantly better an 'Any prostate cancer' risk p
 table37 <- formatted %>%                        
   dplyr::filter(                          
     Population == "White" | Population == "Black",
-    (Predictor == "Age" & Covariates == "None") | (Predictor == "Age" & Covariates == "FH_PrCa_BrCa") 
+    (Predictor == "Age" & Covariates == "None")
   #  Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
@@ -14090,9 +14090,7 @@ pretty_print_table(table37)
 
 populations_for_tests <- list(
   "White" = PCa_iv_covariates_GRS_predhorizon_WhiteOnly,
-  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
-  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
-  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly
 )
 
 ### Paired DeLong tests - none for this chunk
@@ -14250,7 +14248,7 @@ library(dplyr)
 forestplot_df <- bulk %>%
   dplyr::filter(
 Population == "White" | Population == "Black",
-    (Predictor == "Age" & Covariates == "None") | (Predictor == "Age" & Covariates == "FH_PrCa_BrCa")
+    (Predictor == "Age" & Covariates == "None")
   #  Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
@@ -14417,7 +14415,7 @@ Ratio = `r round(irm_plot4_rr, 2)`
 model <- run_logreg(data = PCa_iv_covariates_GRS_predhorizon, 
                      outcome = "PrCa_10yrs",
                      predictor = "Age",
-                     covariates = "FH_PrCa_BrCa",
+                     covariates = NULL,
                      plot_roc = TRUE,
                      show_output = FALSE)
 
@@ -14833,21 +14831,146 @@ If you run logistic regressions with Age and/or family history as a fixed predic
 table38 <- formatted %>%                        
   dplyr::filter(                          
     Population == "Black" | Population == "Mixed" | Population == "Black+Mixed",
-    (Predictor == "Age" & Covariates == "None") | (Predictor == "Age" & Covariates == "FH_PrCa_BrCa") | 
-    (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | (Predictor == "ContimultiethnicGRS267" & Covariates == "Age + FH_PrCa_BrCa") | 
-    (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | (Predictor == "ContiAfricanGRS246" & Covariates == "Age + FH_PrCa_BrCa") |
-    (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | ( Predictor == "ContiORadjustedGRS" & Covariates == "Age + FH_PrCa_BrCa") |
-    (Predictor == "WangAfricanGRS444" & Covariates == "Age") | (Predictor == "WangAfricanGRS444" & Covariates == "Age + FH_PrCa_BrCa") |
-    (Predictor == "SchumacherGRS145" & Covariates == "Age") | (Predictor == "SchumacherGRS145" & Covariates == "Age + FH_PrCa_BrCa") |
-    (Predictor == "BARCODE1GRS129" & Covariates == "Age") | (Predictor == "BARCODE1GRS129" & Covariates == "Age + FH_PrCa_BrCa") |
-    (Predictor == "SeibertGRS52" & Covariates == "Age")  | (Predictor == "SeibertGRS52" & Covariates == "Age + FH_PrCa_BrCa") |
-    (Predictor == "PagadalaGRS285" & Covariates == "Age") | (Predictor == "PagadalaGRS285" & Covariates == "Age + FH_PrCa_BrCa") |
-    (Predictor == "GenomicsPLC_PRS" & Covariates == "Age") | (Predictor == "GenomicsPLC_PRS" & Covariates == "Age + FH_PrCa_BrCa")
+    (Predictor == "Age" & Covariates == "None") |
+    (Predictor == "ContimultiethnicGRS267" & Covariates == "Age") | 
+    (Predictor == "ContiAfricanGRS246" & Covariates == "Age") | 
+    (Predictor == "ContiORadjustedGRS" & Covariates == "Age") | 
+    (Predictor == "WangAfricanGRS444" & Covariates == "Age") | 
+    (Predictor == "SchumacherGRS145" & Covariates == "Age") | 
+    (Predictor == "BARCODE1GRS129" & Covariates == "Age") | 
+    (Predictor == "SeibertGRS52" & Covariates == "Age")  | 
+    (Predictor == "PagadalaGRS285" & Covariates == "Age") | 
+    (Predictor == "GenomicsPLC_PRS" & Covariates == "Age")
     #Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
 
 pretty_print_table(table38)
+
+## Statistical tests ##
+
+populations_for_tests <- list(
+  "Black" = PCa_iv_covariates_GRS_predhorizon_BlackOnly,
+  "Mixed" = PCa_iv_covariates_GRS_predhorizon_Mixed,
+  "Black+Mixed" = PCa_iv_covariates_GRS_predhorizon_BlackMixed
+)
+
+### Paired DeLong tests - does any GRS significantly improve prediction compared to Age alone? For any endpoints?
+
+table35_paired_delong_results <- dplyr::bind_rows(
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "ContimultiethnicGRS267",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs Conti multiethnic GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "ContiAfricanGRS246",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs Conti African GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+  tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "ContiORadjustedGRS",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs Conti Adjusted GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+    tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "WangAfricanGRS444",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs Wang African GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+    tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "SchumacherGRS145",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs Schumacher GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+    tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "BARCODE1GRS129",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs BARCODE1 GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+    tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "SeibertGRS52",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs Seibert GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+    tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "PagadalaGRS285",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs Pagadala GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA)),
+    tryCatch(paired_DeLong_test(
+    populations = populations_for_tests,
+    outcome = "PrCa_10yrs",
+    predictor_a = "Age",
+    predictor_b = "GenomicsPLC_PRS",
+    covariates_a = NULL,
+    covariates_b = "Age",
+    subset_controls = FALSE,
+    id_col = "eid",
+    min_n = 20,
+    adjust_method = "none"
+  ) %>% dplyr::mutate(Test = "Age alone vs Genomics GRS + Age"), error = function(e) data.frame(Population = NA, p_value = NA, p_value_adj = NA))
+) %>%
+  dplyr::select(-p_value_adj) %>%
+  dplyr::mutate(p_value_BH = p.adjust(p_value, method = "BH"))
+
+pretty_print_table(table35_paired_delong_results)
 
 ```
 
