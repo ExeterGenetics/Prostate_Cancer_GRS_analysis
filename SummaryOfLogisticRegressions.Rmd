@@ -5633,6 +5633,7 @@ unpaired_DeLong_test <- function(populations,
                                  predictor,
                                  covariates = NULL,
                                  subset_controls = FALSE,
+                                 control_group = NULL,
                                  pairings = NULL,
                                  min_n = 20,
                                  adjust_method = "BH") {
@@ -5663,8 +5664,16 @@ unpaired_DeLong_test <- function(populations,
   }) %>%
     dplyr::bind_rows()
 
-  if (is.null(pairings)) {
-    pairings <- combn(names(populations), 2, simplify = FALSE)
+  pop_names <- names(populations)
+
+  if (!is.null(control_group)) {
+    if (!(control_group %in% pop_names)) {
+      stop("control_group must match one of names(populations)")
+    }
+    other_pops <- setdiff(pop_names, control_group)
+    pairings <- lapply(other_pops, function(pop_name) c(control_group, pop_name))
+  } else if (is.null(pairings)) {
+    pairings <- combn(pop_names, 2, simplify = FALSE)
   }
 
   out <- lapply(pairings, function(pair_vec) {
@@ -7112,7 +7121,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
 
 ```
 
-Conclusion: No significant difference compared to using multiethnic GRS weightings
+Conclusion: No significant difference, or significantly worse, compared to using multiethnic GRS weightings
 
 Since ROC AUCs were most similar across groups at the 10-year prediction horizon, let's see how well these integrated risk models can stratify participants:
 
@@ -10335,7 +10344,7 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group =
 
 # Conclusions so far
 
-On a 10-year prediction horizon, Conti's multiethnicity-weighted GRS, in combination with Age, can stratify diagnosis of prostate cancer effectively
+On a 10-year prediction horizon, Conti's multiethnicity-weighted GRS, in combination with Age, can stratify diagnosis of prostate cancer effectively across all groups
 
 On the same 10-year prediction horizon, the same GRS appears to discriminate risk of actionable prostate cancer more accurately in white men compared to black men. This difference is not significant. The same GRS appears to discriminate risk of severe prostate cancer significantly more accurately in black men compared to white men, but this result is poorly reliable as there is a small sample size (9 cases).
 
