@@ -1,7 +1,7 @@
 ﻿---
 title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
-date: "2026-04-20"
+date: "2026-04-22"
 ---
 
 ```{r setup-opts, include=FALSE, cache = FALSE}
@@ -2386,9 +2386,10 @@ PCaCases_HES<-read_ICD10(c('C61', 'Z8546', 'R9721')) # Creates a dataframe of *a
 PCaCases_ICD9<-read_ICD9(c(185, 'V1046')) 
 # V10.46 is "Personal history of malignant neoplasm of prostate". Adding this to read_ICD9 does not add any cases
 PCaCases_ICD9 <- PCaCases_ICD9 %>%
-  mutate(
+  dplyr::mutate(
     diag_icd10 = case_when(
-      diag_icd9 %in% c("1859") ~ "C61",
+      diag_icd9 %in% c("185", "1851", "1852", "1853", "1854", "1855", "1856", "1857", "1858", "1859") ~ "C61",
+      diag_icd9 %in% c("V1046") ~ "Z8546",
       TRUE ~ NA_character_
     )
   )
@@ -2398,7 +2399,17 @@ PCaCases_ICD9 <- PCaCases_ICD9 %>%
 
 PCaCases_HES <- bind_rows(PCaCases_HES, PCaCases_ICD9) # Now we have all, after adding old ICD9 diagnoses
 
-PCaCases_cancerregistry<-read_cancer('C61') # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+PCaCases_cancerregistry<-read_cancer(icd9 = '185', icd10 = 'C61') %>% # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+  dplyr::mutate(
+    ICD10 = case_when(
+      ICD9 %in% c("185", "1851", "1852", "1853", "1854", "1855", "1856", "1857", "1858", "1859") ~ "C61",
+      ICD9 %in% c("V1046") ~ "Z8546",
+      ICD10 %in% c("C61") ~ "C61",
+      TRUE ~ NA_character_
+    )
+  )
+
+  
 PCaCases_death<-read_death('C61') # Creates a dataframe of all recorded prostate cancer deaths in death records
 
 PCaCases_HES_earliest <- PCaCases_HES %>%
@@ -2511,9 +2522,9 @@ PCaCases_earliest <- PCaCases_earliest %>%
 # Sanity check - are the assessment centre dates the same in both HES and cancer registry, unless NA on either side?
 
 mismatched_assessdates <- with(PCaCases_earliest,
-                               !is.na(assess_date_initial_ICD10) &
-                                 !is.na(assess_date_initial_cr) &
-                                 assess_date_initial_ICD10 != assess_date_initial_cr
+                               (!is.na(assess_date_initial_ICD10) & !is.na(assess_date_initial_cr) & assess_date_initial_ICD10 != assess_date_initial_cr) |
+                                 (!is.na(assess_date_initial_ICD10) & !is.na(assess_date_initial_death) & assess_date_initial_ICD10 != assess_date_initial_death) |
+                                 (!is.na(assess_date_initial_cr) & !is.na(assess_date_initial_death) & assess_date_initial_cr != assess_date_initial_death)
 )
 
 any(mismatched_assessdates)
@@ -2541,7 +2552,8 @@ Earliest_PrCa_diagnosis <- PCaCases_prediagnosis %>%
 # Tag participants who had a prostate cancer record in HES but not in cancer registry or death records as "HES-only" (these will be excluded later) 
 
 PCaCases_prediagnosis <- PCaCases_prediagnosis %>%
-  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
+  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death),
+                death_only = !is.na(icd10_death) & is.na(icd10_cr) & is.na(icd10_HES))
 
 
 
@@ -2571,7 +2583,7 @@ Cancer_death_earliest <- Cancer_death %>%
 
 # Dataframe for chemotherapy (IV, IM, unspecified),
 
-chemotherapy  <- read_OPCS(c('X70', 'X71', 'X72'))
+chemotherapy  <- read_OPCS(c('X70', 'X71', 'X72', 'X73', 'X74'))
 chemotherapy <- merge(chemotherapy, Earliest_PrCa_diagnosis, by = 'eid') 
 chemotherapy <- chemotherapy %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -2605,7 +2617,7 @@ death_chemo <- death_chemo %>%
 
 # Dataframe for prostatectomy
 
-surgery <- read_OPCS(c('M61', "M611", "M612", "M613"))
+surgery <- read_OPCS(c('M61', "M611", "M612", "M613", "M614"))
 surgery <- merge(surgery, Earliest_PrCa_diagnosis, by = 'eid')
 surgery <- surgery %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -2619,7 +2631,7 @@ surgery_earliest <- surgery %>%
 
 # Dataframe for radiotherapy (external, brachytherapy, planning, unspecified)
 
-radiotherapy <- read_OPCS(c('X65', 'X66', 'X67', 'X69'))
+radiotherapy <- read_OPCS(c('X65', 'X67', 'X68', 'X69', 'Y91'))
 radiotherapy <- merge(radiotherapy, Earliest_PrCa_diagnosis, by = 'eid')
 radiotherapy <- radiotherapy %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -2633,7 +2645,7 @@ radiotherapy_earliest <- radiotherapy %>%
 
 # Dataframe for androgen (therapy?)
 
-androgen <- read_OPCS(c('X741', 'X383', 'S525', 'S526'))
+androgen <- read_OPCS(c('X741', 'X383', 'S525', 'S526', 'X376'))
 androgen <- merge(androgen, Earliest_PrCa_diagnosis, by = 'eid')
 androgen <- androgen %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -3068,21 +3080,24 @@ PCa_iv_covariates_GRS_severity <- merge(PCa_iv_covariates_GRS, actionable_criter
 ## with alterations to remove ICD9: V84.03 and ICD10: Z15.03 since these describe genetic susceptibility to prostate cancer)
 ## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
 
-exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostate
-                               'V104',      # V10.4: Personal history of malignant neoplasm of genital organs
-                               2334,        # 233.4: Carcinoma in situ of the prostate (note: no results returned)
-                               2365,        # 236.5: Neoplasm of uncertain behavior of the prostate (note: no results returned)
-                               6023,        # 602.3: Dysplasia of the prostate (note: no results returned)
-                               6021,        # 60.21: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
-                               6029,        # 60.29: Other transurethral prostatectomy (note: no results returned)
-                               603,         # 60.3: Suprapubic prostatectomy
-                               604,         # 60.4: Retropubic prostatectomy
-                               605,         # 60.5: Radical prostatectomy
-                               6061,        # 60.61: Local excision of lesion of prostate (note: no results returned)
-                               6062,        # 60.62: Perineal prostatectomy (note: no results returned)
-                               6069)        # 60.69: Other prostatectomy
-) %>%
-  dplyr::select("eid", "diag_icd9")
+icd9_exclusion_prefixes <- c('185',         # 185: Malignant neoplasm of prostate
+                             'V104',        # V10.4: Personal history of malignant neoplasm of genital organs
+                             '2334',        # 233.4: Carcinoma in situ of the prostate (note: no results returned)
+                             '2365',        # 236.5: Neoplasm of uncertain behavior of the prostate (note: no results returned)
+                             '6023')        # 602.3: Dysplasia of the prostate (note: no results returned)
+
+icd9_exclusion_regex <- paste0(
+  "^(",
+  paste(gsub("[^A-Za-z0-9]", "", toupper(icd9_exclusion_prefixes)), collapse = "|"),
+  ")"
+)
+
+exclusions_ICD9 <- read_ICD9(icd9_exclusion_prefixes) %>%
+  dplyr::select("eid", "diag_icd9") %>%
+  dplyr::filter(
+    !is.na(diag_icd9),
+    grepl(icd9_exclusion_regex, gsub("[^A-Za-z0-9]", "", toupper(diag_icd9)))
+  )
 
 exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
                                  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
@@ -3093,14 +3108,34 @@ exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostat
 )%>%
   dplyr::select("eid", "diag_icd10")
 
-exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
-                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
-                                           #'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
-                                           'D075',    # D07.5: Carcinoma in situ of prostate
-                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
-                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
-)%>%
+exclusions_cancerregistry_ICD10 <- read_cancer(icd10 = c(
+  'C61',     # C61: Malignant neoplasm of prostate 
+  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs (note: no results returned)
+  #'R972',   # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+  'D075',    # D07.5: Carcinoma in situ of prostate
+  'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+  'N423'     # N42.3: Dysplasia of prostate (note: no results returned)
+))%>%
   dplyr::select("eid", "ICD10")
+
+exclusions_cancerregistry_ICD9 <- read_cancer(icd9 = c(
+  185,      # 185: Malignant neoplasm of prostate
+  'V104',   # V10.4: Personal history of malignant neoplasm of genital organs (note: no results returned)
+  2334,     # 233.4: Carcinoma in situ of the prostate (note: no results returned)
+  2365,     # 236.5: Neoplasm of uncertain behavior of the prostate 
+  6023      # 602.3: Dysplasia of the prostate (note: no results returned)
+))%>%
+  dplyr::select("eid", "ICD9")
+
+exclusions_death <- read_death(c(
+  'C61',     # C61: Malignant neoplasm of prostate 
+  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs (note: no results returned)
+  #'R972',   # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+  'D075',    # D07.5: Carcinoma in situ of prostate
+  'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+  'N423'     # N42.3: Dysplasia of prostate (note: no results returned)
+))%>%
+  dplyr::select("eid", "cause_icd10")
 
 exclusions_OPCS <- read_OPCS(c('M61',      # M61: Prostatectomy
                                'M611',     # M61.1: Radical prostatectomy
@@ -3127,7 +3162,27 @@ exclusions_OPCS <- read_OPCS(c('M61',      # M61: Prostatectomy
 
 possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
 possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
-possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry_ICD10, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry_ICD9, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_death, by = "eid", all = T)
+
+### Sanity check - did we isolate the intended codes correctly?
+
+possible_PrCa_unique_codes <- possible_PrCa_cases %>%
+  dplyr::select(diag_icd9, diag_icd10, oper4, ICD9, ICD10, cause_icd10) %>%
+  tidyr::pivot_longer(
+    cols = dplyr::everything(),
+    names_to = "source_column",
+    values_to = "code"
+  ) %>%
+  dplyr::filter(!is.na(code), code != "") %>%
+  dplyr::distinct(source_column, code) %>%
+  dplyr::arrange(source_column, code)
+
+possible_PrCa_unique_codes
+
+possible_PrCa_unique_codes %>%
+  dplyr::count(source_column, name = "n_unique_codes")
 
 # Collapse exclusions to one row per participant, leaving only eids
 possible_PrCa_cases <- possible_PrCa_cases %>%
@@ -4139,9 +4194,10 @@ PCaCases_HES<-read_ICD10(c('C61', 'Z8546', 'R9721')) # Creates a dataframe of *a
 PCaCases_ICD9<-read_ICD9(c(185, 'V1046'))
 # V10.46 is "Personal history of malignant neoplasm of prostate". Adding this to read_ICD9 does not add any cases
 PCaCases_ICD9 <- PCaCases_ICD9 %>%
-  mutate(
+  dplyr::mutate(
     diag_icd10 = case_when(
-      diag_icd9 %in% c("1859") ~ "C61",
+      diag_icd9 %in% c("185", "1851", "1852", "1853", "1854", "1855", "1856", "1857", "1858", "1859") ~ "C61",
+      diag_icd9 %in% c("V1046") ~ "Z8546",
       TRUE ~ NA_character_
     )
   )
@@ -4150,7 +4206,16 @@ PCaCases_ICD9 <- PCaCases_ICD9 %>%
 
 PCaCases_HES <- bind_rows(PCaCases_HES, PCaCases_ICD9) # Now we have all, after adding old ICD9 diagnoses
 
-PCaCases_cancerregistry<-read_cancer('C61') # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+PCaCases_cancerregistry<-read_cancer(icd9 = '185', icd10 = 'C61') %>% # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+  dplyr::mutate(
+    ICD10 = case_when(
+      ICD9 %in% c("185", "1851", "1852", "1853", "1854", "1855", "1856", "1857", "1858", "1859") ~ "C61",
+      ICD9 %in% c("V1046") ~ "Z8546",
+      ICD10 %in% c("C61") ~ "C61",
+      TRUE ~ NA_character_
+    )
+  )
+
 PCaCases_death<-read_death('C61') # Creates a dataframe of all recorded prostate cancer deaths in death records
 
 PCaCases_HES_earliest <- PCaCases_HES %>%
@@ -4262,9 +4327,9 @@ PCaCases_earliest <- PCaCases_earliest %>%
 # Sanity check - are the assessment centre dates the same in both HES and cancer registry, unless NA on either side?
 
 mismatched_assessdates <- with(PCaCases_earliest,
-                               !is.na(assess_date_initial_ICD10) &
-                                 !is.na(assess_date_initial_cr) &
-                                 assess_date_initial_ICD10 != assess_date_initial_cr
+                               (!is.na(assess_date_initial_ICD10) & !is.na(assess_date_initial_cr) & assess_date_initial_ICD10 != assess_date_initial_cr) |
+                                 (!is.na(assess_date_initial_ICD10) & !is.na(assess_date_initial_death) & assess_date_initial_ICD10 != assess_date_initial_death) |
+                                 (!is.na(assess_date_initial_cr) & !is.na(assess_date_initial_death) & assess_date_initial_cr != assess_date_initial_death)
 )
 
 any(mismatched_assessdates)
@@ -4294,7 +4359,8 @@ Earliest_PrCa_diagnosis2 <- PrCa_symptoms_diagnosis %>%
 # Tag participants who had a prostate cancer record in HES but not in cancer registry or death records as "HES-only" (these will be excluded later)
 
 PrCa_symptoms_diagnosis <- PrCa_symptoms_diagnosis %>%
-  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
+  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death),
+                death_only = !is.na(icd10_death) & is.na(icd10_cr) & is.na(icd10_HES))
 
 
 
@@ -4323,7 +4389,7 @@ Cancer_death_earliest2 <- Cancer_death2 %>%
 
 # Dataframe for chemotherapy (IV, IM, unspecified),
 
-chemotherapy2  <- read_OPCS(c('X70', 'X71', 'X72'))
+chemotherapy2  <- read_OPCS(c('X70', 'X71', 'X72', 'X73', 'X74'))
 chemotherapy2 <- merge(chemotherapy2, Earliest_PrCa_diagnosis2, by = 'eid') 
 chemotherapy2 <- chemotherapy2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -4357,7 +4423,7 @@ death_chemo2 <- death_chemo2 %>%
 
 # Dataframe for prostatectomy
 
-surgery2 <- read_OPCS(c('M61', 'M611', 'M612', 'M613'))
+surgery2 <- read_OPCS(c('M61', 'M611', 'M612', 'M613', 'M614'))
 surgery2 <- merge(surgery2, Earliest_PrCa_diagnosis2, by = 'eid')
 surgery2 <- surgery2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -4371,7 +4437,7 @@ surgery_earliest2 <- surgery2 %>%
 
 # Dataframe for radiotherapy (external, brachytherapy, planning, unspecified)
 
-radiotherapy2 <- read_OPCS(c('X65', 'X66', 'X67', 'X69'))
+radiotherapy2 <- read_OPCS(c('X65', 'X67', 'X68', 'X69', 'Y91'))
 radiotherapy2 <- merge(radiotherapy2, Earliest_PrCa_diagnosis2, by = 'eid')
 radiotherapy2 <- radiotherapy2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -4385,7 +4451,7 @@ radiotherapy_earliest2 <- radiotherapy2 %>%
 
 # Dataframe for androgen (therapy?)
 
-androgen2 <- read_OPCS(c('X741', 'X383', 'S525', 'S526'))
+androgen2 <- read_OPCS(c('X741', 'X383', 'S525', 'S526', 'X376'))
 androgen2 <- merge(androgen2, Earliest_PrCa_diagnosis2, by = 'eid')
 androgen2 <- androgen2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -4821,21 +4887,24 @@ PCa_iv_covariates_GRS_severity2 <- merge(PCa_iv_covariates_GRS2, actionable_crit
 ## with alterations to remove ICD9: V84.03 and ICD10: Z15.03 since these describe genetic susceptibility to prostate cancer)
 ## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
 
-exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostate
-                               'V104',       # V10.4: Personal history of malignant neoplasm of genital organs
-                               2334,        # 233.4: Carcinoma in situ of the prostate
-                               2365,        # 236.5: Neoplasm of uncertain behavior of the prostate
-                               6023,        # 602.3: Dysplasia of the prostate
-                               6021,        # 60.21: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
-                               6029,        # 60.29: Other transurethral prostatectomy
-                               603,         # 60.3: Suprapubic prostatectomy
-                               604,         # 60.4: Retropubic prostatectomy
-                               605,         # 60.5: Radical prostatectomy
-                               6061,        # 60.61: Local excision of lesion of prostate
-                               6062,        # 60.62: Perineal prostatectomy
-                               6069)        # 60.69: Other prostatectomy
-) %>%
-  dplyr::select("eid", "diag_icd9")
+icd9_exclusion_prefixes <- c('185',         # 185: Malignant neoplasm of prostate
+                             'V104',        # V10.4: Personal history of malignant neoplasm of genital organs
+                             '2334',        # 233.4: Carcinoma in situ of the prostate
+                             '2365',        # 236.5: Neoplasm of uncertain behavior of the prostate
+                             '6023')        # 602.3: Dysplasia of the prostate
+
+icd9_exclusion_regex <- paste0(
+  "^(",
+  paste(gsub("[^A-Za-z0-9]", "", toupper(icd9_exclusion_prefixes)), collapse = "|"),
+  ")"
+)
+
+exclusions_ICD9 <- read_ICD9(icd9_exclusion_prefixes) %>%
+  dplyr::select("eid", "diag_icd9") %>%
+  dplyr::filter(
+    !is.na(diag_icd9),
+    grepl(icd9_exclusion_regex, gsub("[^A-Za-z0-9]", "", toupper(diag_icd9)))
+  )
 
 exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
                                  'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
@@ -4846,14 +4915,34 @@ exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostat
 )%>%
   dplyr::select("eid", "diag_icd10")
 
-exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
-                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
-                                           #'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
-                                           'D075',    # D07.5: Carcinoma in situ of prostate
-                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
-                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
-)%>%
+exclusions_cancerregistry_ICD10 <- read_cancer(icd10 = c(
+  'C61',     # C61: Malignant neoplasm of prostate 
+  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs (note: no results returned)
+  #'R972',   # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+  'D075',    # D07.5: Carcinoma in situ of prostate
+  'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+  'N423'     # N42.3: Dysplasia of prostate (note: no results returned)
+))%>%
   dplyr::select("eid", "ICD10")
+
+exclusions_cancerregistry_ICD9 <- read_cancer(icd9 = c(
+  185,      # 185: Malignant neoplasm of prostate
+  'V104',   # V10.4: Personal history of malignant neoplasm of genital organs (note: no results returned)
+  2334,     # 233.4: Carcinoma in situ of the prostate (note: no results returned)
+  2365,     # 236.5: Neoplasm of uncertain behavior of the prostate 
+  6023      # 602.3: Dysplasia of the prostate (note: no results returned)
+))%>%
+  dplyr::select("eid", "ICD9")
+
+exclusions_death <- read_death(c(
+  'C61',     # C61: Malignant neoplasm of prostate 
+  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs (note: no results returned)
+  #'R972',   # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+  'D075',    # D07.5: Carcinoma in situ of prostate
+  'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+  'N423'     # N42.3: Dysplasia of prostate (note: no results returned)
+))%>%
+  dplyr::select("eid", "cause_icd10")
 
 exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                'M611',      # M61.1: Radical prostatectomy
@@ -4880,7 +4969,27 @@ exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
 
 possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
 possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
-possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry_ICD10, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry_ICD9, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_death, by = "eid", all = T)
+
+### Sanity check - did we isolate the intended codes correctly?
+
+possible_PrCa_unique_codes <- possible_PrCa_cases %>%
+  dplyr::select(diag_icd9, diag_icd10, oper4, ICD9, ICD10, cause_icd10) %>%
+  tidyr::pivot_longer(
+    cols = dplyr::everything(),
+    names_to = "source_column",
+    values_to = "code"
+  ) %>%
+  dplyr::filter(!is.na(code), code != "") %>%
+  dplyr::distinct(source_column, code) %>%
+  dplyr::arrange(source_column, code)
+
+possible_PrCa_unique_codes
+
+possible_PrCa_unique_codes %>%
+  dplyr::count(source_column, name = "n_unique_codes")
 
 # Collapse exclusions to one row per participant, leaving only eids
 possible_PrCa_cases <- possible_PrCa_cases %>%
