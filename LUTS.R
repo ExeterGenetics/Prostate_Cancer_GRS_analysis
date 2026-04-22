@@ -368,9 +368,10 @@ PCaCases_HES<-read_ICD10(c('C61', 'Z8546', 'R9721')) # Creates a dataframe of *a
 PCaCases_ICD9<-read_ICD9(c(185, 'V1046'))
 # V10.46 is "Personal history of malignant neoplasm of prostate". Adding this to read_ICD9 does not add any cases
 PCaCases_ICD9 <- PCaCases_ICD9 %>%
-  mutate(
+  dplyr::mutate(
     diag_icd10 = case_when(
-      diag_icd9 %in% c("1859") ~ "C61",
+      diag_icd9 %in% c("185", "1851", "1852", "1853", "1854", "1855", "1856", "1857", "1858", "1859") ~ "C61",
+      diag_icd9 %in% c("V1046") ~ "Z8546",
       TRUE ~ NA_character_
     )
   )
@@ -379,7 +380,16 @@ PCaCases_ICD9 <- PCaCases_ICD9 %>%
 
 PCaCases_HES <- bind_rows(PCaCases_HES, PCaCases_ICD9) # Now we have all, after adding old ICD9 diagnoses
 
-PCaCases_cancerregistry<-read_cancer('C61') # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+PCaCases_cancerregistry<-read_cancer(icd9 = '185', icd10 = 'C61') %>% # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+  dplyr::mutate(
+    ICD10 = case_when(
+      ICD9 %in% c("185", "1851", "1852", "1853", "1854", "1855", "1856", "1857", "1858", "1859") ~ "C61",
+      ICD9 %in% c("V1046") ~ "Z8546",
+      ICD10 %in% c("C61") ~ "C61",
+      TRUE ~ NA_character_
+    )
+  )
+
 PCaCases_death<-read_death('C61') # Creates a dataframe of all recorded prostate cancer deaths in death records
 
 PCaCases_HES_earliest <- PCaCases_HES %>%
@@ -491,9 +501,9 @@ PCaCases_earliest <- PCaCases_earliest %>%
 # Sanity check - are the assessment centre dates the same in both HES and cancer registry, unless NA on either side?
 
 mismatched_assessdates <- with(PCaCases_earliest,
-                               !is.na(assess_date_initial_ICD10) &
-                                 !is.na(assess_date_initial_cr) &
-                                 assess_date_initial_ICD10 != assess_date_initial_cr
+                               (!is.na(assess_date_initial_ICD10) & !is.na(assess_date_initial_cr) & assess_date_initial_ICD10 != assess_date_initial_cr) |
+                                 (!is.na(assess_date_initial_ICD10) & !is.na(assess_date_initial_death) & assess_date_initial_ICD10 != assess_date_initial_death) |
+                                 (!is.na(assess_date_initial_cr) & !is.na(assess_date_initial_death) & assess_date_initial_cr != assess_date_initial_death)
 )
 
 any(mismatched_assessdates)
@@ -523,7 +533,8 @@ Earliest_PrCa_diagnosis2 <- PrCa_symptoms_diagnosis %>%
 # Tag participants who had a prostate cancer record in HES but not in cancer registry or death records as "HES-only" (these will be excluded later)
 
 PrCa_symptoms_diagnosis <- PrCa_symptoms_diagnosis %>%
-  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death))
+  dplyr::mutate(HES_only = !is.na(icd10_HES) & is.na(icd10_cr) & is.na(icd10_death),
+                death_only = !is.na(icd10_death) & is.na(icd10_cr) & is.na(icd10_HES))
 
 
 
@@ -552,7 +563,7 @@ Cancer_death_earliest2 <- Cancer_death2 %>%
 
 # Dataframe for chemotherapy (IV, IM, unspecified),
 
-chemotherapy2  <- read_OPCS(c('X70', 'X71', 'X72'))
+chemotherapy2  <- read_OPCS(c('X70', 'X71', 'X72', 'X73', 'X74'))
 chemotherapy2 <- merge(chemotherapy2, Earliest_PrCa_diagnosis2, by = 'eid') 
 chemotherapy2 <- chemotherapy2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -586,7 +597,7 @@ death_chemo2 <- death_chemo2 %>%
 
 # Dataframe for prostatectomy
 
-surgery2 <- read_OPCS(c('M61', 'M611', 'M612', 'M613'))
+surgery2 <- read_OPCS(c('M61', 'M611', 'M612', 'M613', 'M614'))
 surgery2 <- merge(surgery2, Earliest_PrCa_diagnosis2, by = 'eid')
 surgery2 <- surgery2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -600,7 +611,7 @@ surgery_earliest2 <- surgery2 %>%
 
 # Dataframe for radiotherapy (external, brachytherapy, planning, unspecified)
 
-radiotherapy2 <- read_OPCS(c('X65', 'X66', 'X67', 'X69'))
+radiotherapy2 <- read_OPCS(c('X65', 'X67', 'X68', 'X69', 'Y91'))
 radiotherapy2 <- merge(radiotherapy2, Earliest_PrCa_diagnosis2, by = 'eid')
 radiotherapy2 <- radiotherapy2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -614,7 +625,7 @@ radiotherapy_earliest2 <- radiotherapy2 %>%
 
 # Dataframe for androgen (therapy?)
 
-androgen2 <- read_OPCS(c('X741', 'X383', 'S525', 'S526'))
+androgen2 <- read_OPCS(c('X741', 'X383', 'S525', 'S526', 'X376'))
 androgen2 <- merge(androgen2, Earliest_PrCa_diagnosis2, by = 'eid')
 androgen2 <- androgen2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -1050,21 +1061,24 @@ PCa_iv_covariates_GRS_severity2 <- merge(PCa_iv_covariates_GRS2, actionable_crit
 ## with alterations to remove ICD9: V84.03 and ICD10: Z15.03 since these describe genetic susceptibility to prostate cancer)
 ## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
 
-exclusions_ICD9 <- read_ICD9(c(185,         # 185: Malignant neoplasm of prostate
-                               'V104',       # V10.4: Personal history of malignant neoplasm of genital organs
-                               2334,        # 233.4: Carcinoma in situ of the prostate
-                               2365,        # 236.5: Neoplasm of uncertain behavior of the prostate
-                               6023,        # 602.3: Dysplasia of the prostate
-                               6021,        # 60.21: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
-                               6029,        # 60.29: Other transurethral prostatectomy
-                               603,         # 60.3: Suprapubic prostatectomy
-                               604,         # 60.4: Retropubic prostatectomy
-                               605,         # 60.5: Radical prostatectomy
-                               6061,        # 60.61: Local excision of lesion of prostate
-                               6062,        # 60.62: Perineal prostatectomy
-                               6069)        # 60.69: Other prostatectomy
-) %>%
-  dplyr::select("eid", "diag_icd9")
+icd9_exclusion_prefixes <- c('185',         # 185: Malignant neoplasm of prostate
+                             'V104',        # V10.4: Personal history of malignant neoplasm of genital organs
+                             '2334',        # 233.4: Carcinoma in situ of the prostate
+                             '2365',        # 236.5: Neoplasm of uncertain behavior of the prostate
+                             '6023')        # 602.3: Dysplasia of the prostate
+
+icd9_exclusion_regex <- paste0(
+  "^(",
+  paste(gsub("[^A-Za-z0-9]", "", toupper(icd9_exclusion_prefixes)), collapse = "|"),
+  ")"
+)
+
+exclusions_ICD9 <- read_ICD9(icd9_exclusion_prefixes) %>%
+  dplyr::select("eid", "diag_icd9") %>%
+  dplyr::filter(
+    !is.na(diag_icd9),
+    grepl(icd9_exclusion_regex, gsub("[^A-Za-z0-9]", "", toupper(diag_icd9)))
+  )
 
 exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
                                  'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
@@ -1075,14 +1089,34 @@ exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostat
 )%>%
   dplyr::select("eid", "diag_icd10")
 
-exclusions_cancerregistry <- read_cancer(c('C61',    # C61: Malignant neoplasm of prostate 
-                                           'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs
-                                           #'R972',    # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
-                                           'D075',    # D07.5: Carcinoma in situ of prostate
-                                           'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
-                                           'N423')    # N42.3: Dysplasia of prostate (note: no results returned)
-)%>%
+exclusions_cancerregistry_ICD10 <- read_cancer(icd10 = c(
+  'C61',     # C61: Malignant neoplasm of prostate 
+  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs (note: no results returned)
+  #'R972',   # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+  'D075',    # D07.5: Carcinoma in situ of prostate
+  'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+  'N423'     # N42.3: Dysplasia of prostate (note: no results returned)
+))%>%
   dplyr::select("eid", "ICD10")
+
+exclusions_cancerregistry_ICD9 <- read_cancer(icd9 = c(
+  185,      # 185: Malignant neoplasm of prostate
+  'V104',   # V10.4: Personal history of malignant neoplasm of genital organs (note: no results returned)
+  2334,     # 233.4: Carcinoma in situ of the prostate (note: no results returned)
+  2365,     # 236.5: Neoplasm of uncertain behavior of the prostate 
+  6023      # 602.3: Dysplasia of the prostate (note: no results returned)
+))%>%
+  dplyr::select("eid", "ICD9")
+
+exclusions_death <- read_death(c(
+  'C61',     # C61: Malignant neoplasm of prostate 
+  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs (note: no results returned)
+  #'R972',   # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+  'D075',    # D07.5: Carcinoma in situ of prostate
+  'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
+  'N423'     # N42.3: Dysplasia of prostate (note: no results returned)
+))%>%
+  dplyr::select("eid", "cause_icd10")
 
 exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
                                'M611',      # M61.1: Radical prostatectomy
@@ -1109,7 +1143,27 @@ exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
 
 possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
 possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_OPCS, by = "eid", all = T)
-possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry_ICD10, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_cancerregistry_ICD9, by = "eid", all = T)
+possible_PrCa_cases <- merge(possible_PrCa_cases, exclusions_death, by = "eid", all = T)
+
+### Sanity check - did we isolate the intended codes correctly?
+
+possible_PrCa_unique_codes <- possible_PrCa_cases %>%
+  dplyr::select(diag_icd9, diag_icd10, oper4, ICD9, ICD10, cause_icd10) %>%
+  tidyr::pivot_longer(
+    cols = dplyr::everything(),
+    names_to = "source_column",
+    values_to = "code"
+  ) %>%
+  dplyr::filter(!is.na(code), code != "") %>%
+  dplyr::distinct(source_column, code) %>%
+  dplyr::arrange(source_column, code)
+
+possible_PrCa_unique_codes
+
+possible_PrCa_unique_codes %>%
+  dplyr::count(source_column, name = "n_unique_codes")
 
 # Collapse exclusions to one row per participant, leaving only eids
 possible_PrCa_cases <- possible_PrCa_cases %>%
@@ -1512,203 +1566,3 @@ print(RR_table$wide_formatted)
 #)
 
 #print(nri_result)
-
-######################################################################################
-# Step 10 - Generate comprehensive logreg summary table for all GRSs and populations # (the lazy way)
-######################################################################################
-
-## By default, logreg_table() will compute all combinations of population, outcome, GRS, and covariates
-
-bulk2 <- logreg_table(
-  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
-  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
-  version = "Symptomatic Triage",
-  adjust_for_PCs = TRUE
-)
-
-## The below block adds, for each row that represents a GRS + Age model, the
-## equivalent Age-only model, and compares confidence intervals between them
-
-age_only_reference2 <- bulk2 %>%
-  dplyr::filter(Predictor == "Age", Covariates == "None") %>%
-  dplyr::select(
-    Outcome,
-    Population,
-    Age_only_ROC_AUC_CI_Upper = ROC_AUC_CI_Upper
-  )
-
-formatted2 <- bulk2 %>%   ## To present ROC AUC and 95% CIs to 4 decimal places
-  dplyr::left_join(age_only_reference2, by = c("Outcome", "Population")) %>%
-  dplyr::mutate(
-    ROC_AUC_4dp = dplyr::if_else(
-      is.na(ROC_AUC),
-      NA_character_,
-      sprintf("%.4f", ROC_AUC)
-    ),
-    ROC_AUC_CI_95_4dp = dplyr::if_else(
-      is.na(ROC_AUC_CI_Lower) | is.na(ROC_AUC_CI_Upper),
-      NA_character_,
-      sprintf("%.4f [%.4f-%.4f]", ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper)
-    ),
-    OR_per_1SD_CI_95 = dplyr::if_else(
-      is.na(OR_per_1SD) | is.na(OR_per_1SD_CI_Lower) | is.na(OR_per_1SD_CI_Upper),
-      NA_character_,
-      sprintf("%.4f [%.4f-%.4f]", OR_per_1SD, OR_per_1SD_CI_Lower, OR_per_1SD_CI_Upper)
-    ),
-    `GRS+Age > Age?` = dplyr::case_when(
-      Covariates != "Age" | Predictor == "Age" ~ NA_character_,
-      is.na(ROC_AUC_CI_Lower) | is.na(Age_only_ROC_AUC_CI_Upper) ~ NA_character_,
-      ROC_AUC_CI_Lower > Age_only_ROC_AUC_CI_Upper ~ "YES",
-      ROC_AUC_CI_Lower <= Age_only_ROC_AUC_CI_Upper ~ "NO"
-    )
-  ) %>%
-  dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "N_Cases", "N_Controls", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Prevalence", "PR_AUC"))
-
-## This block is to view a subset of the bulk logistic regression table. Change
-## the filter to investigate a specific Population, Predictor, Outcome, or Covariate
-
-subset2 <- formatted2 %>%                        
-  dplyr::filter(                          
-    Population == "Black",
-    #Predictor == "PagadalaGRS",
-    #Outcome == "PrCa_severe_10yrs",
-    #Covariates == "Age" #| Covariates == "None"
-  )    
-
-
-######################################################################################
-# Step 11 - Generate comprehensive NRI table for all GRSs, populations, and outcomes # 
-######################################################################################
-
-## By default, nri_table() will compute all combinations of population, outcome, and GRS for the NRI comparison between a GRS+Age model vs. an Age-only model, and a GRS+Age+FH model vs. an Age+FH model
-
-nri_bulk2 <- nri_table(
-  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-                "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
-  subset_controls = FALSE,            # Set to TRUE to randomly subset controls to match number of cases in each model
-  version = "Symptomatic Triage",
-  adjust_for_PCs = TRUE
-)
-
-nri_bulk2 <- nri_bulk2 %>%
-  dplyr::mutate(
-    NRI_significant = dplyr::case_when(
-      is.na(p_NRI) ~ NA_character_,
-      p_NRI < 0.05 ~ "YES",
-      p_NRI >= 0.05 ~ "NO"
-    )
-  )
-
-
-## This block is to view a subset of the bulk NRI table. Change the filter to investigate a specific Population, Predictor, or Outcome
-
-nri_subset2 <- nri_bulk2 %>%
-  dplyr::filter(
-    Population == "Black",
-    #GRS == "PagadalaGRS",
-    #Outcome == "PrCa_severe_10yrs"
-  )
-
-
-################################
-# Step 12 - Feature importance #
-################################
-
-## For each (Outcome, Population, GRS), this compares GRS+Age model vs. an Age-only model, and a GRS+Age+FH model vs. an Age+FH model using:
-##  - LRT drop-in-fit p-values
-##  - Delta AUC (full minus reduced)
-
-FI_bulk2 <- feature_importance_table(
-  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444", 
-               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
-  subset_controls = FALSE,
-  version = "Symptomatic Triage",
-  adjust_for_PCs = TRUE
-)
-
-FI_formatted2 <- FI_bulk2 %>%
-  dplyr::mutate(
-    Full_ROC_AUC_4dp = sprintf("%.4f", Full_ROC_AUC),
-    Delta_AUC_drop_GRS_4dp = sprintf("%.4f", Delta_AUC_drop_GRS),
-    Delta_AUC_drop_Age_4dp = sprintf("%.4f", Delta_AUC_drop_Age),
-    GRS_OR_adj_CI_95 = dplyr::if_else(
-      is.na(GRS_OR_adj) | is.na(GRS_OR_adj_CI_Lower) | is.na(GRS_OR_adj_CI_Upper),
-      NA_character_,
-      sprintf("%.4f [%.4f-%.4f]", GRS_OR_adj, GRS_OR_adj_CI_Lower, GRS_OR_adj_CI_Upper)
-    ),
-    Age_OR_adj_CI_95 = dplyr::if_else(
-      is.na(Age_OR_adj) | is.na(Age_OR_adj_CI_Lower) | is.na(Age_OR_adj_CI_Upper),
-      NA_character_,
-      sprintf("%.4f [%.4f-%.4f]", Age_OR_adj, Age_OR_adj_CI_Lower, Age_OR_adj_CI_Upper)
-    ),
-    GRS_added_value = dplyr::case_when(
-      is.na(LRT_drop_GRS_p) ~ NA_character_,
-      LRT_drop_GRS_p < 0.05 ~ "YES",
-      TRUE ~ "NO"
-    ),
-    Age_added_value = dplyr::case_when(
-      is.na(LRT_drop_Age_p) ~ NA_character_,
-      LRT_drop_Age_p < 0.05 ~ "YES",
-      TRUE ~ "NO"
-    )
-  ) %>%
-  dplyr::select(
-    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
-    Full_ROC_AUC_4dp,
-    Delta_AUC_drop_GRS_4dp, LRT_drop_GRS_p, GRS_added_value,
-    Delta_AUC_drop_Age_4dp, LRT_drop_Age_p, Age_added_value,
-    GRS_OR_adj_CI_95, Age_OR_adj_CI_95
-  )
-
-FI_subset2 <- FI_formatted2 %>%
-  dplyr::filter(
-    Population == "Black"
-    #Outcome == "PrCa"
-    #Predictor == "ContiAfricanGRS246"
-  )
-
-##############################################
-# Step 13 - Random Forest feature importance #
-##############################################
-
-## Random Forest version of feature importance
-
-RF_bulk2 <- rf_feature_importance_table(
-  grs_list = c("ContimultiethnicGRS267", "ContiAfricanGRS246", "ContiORadjustedGRS", "WangAfricanGRS444",
-               "SchumacherGRS145", "BARCODE1GRS129", "SeibertGRS52", "PagadalaGRS285", "GenomicsPLC_PRS"),
-  ntree = 100,
-  subset_controls = FALSE,
-  version = "Symptomatic Triage",
-  adjust_for_PCs = TRUE
-)
-
-RF_formatted2 <- RF_bulk2 %>%
-  dplyr::mutate(
-    OOB_ROC_AUC_4dp = sprintf("%.4f", OOB_ROC_AUC),
-    GRS_MDA_4dp = sprintf("%.4f", GRS_MDA),
-    Age_MDA_4dp = sprintf("%.4f", Age_MDA),
-    GRS_Pct_Importance_1dp = dplyr::if_else(
-      is.na(GRS_Pct_Importance),
-      NA_character_,
-      sprintf("%.1f%%", GRS_Pct_Importance)
-    ),
-    Age_Pct_Importance_1dp = dplyr::if_else(
-      is.na(Age_Pct_Importance),
-      NA_character_,
-      sprintf("%.1f%%", Age_Pct_Importance)
-    )
-  ) %>%
-  dplyr::select(
-    Outcome, Population, Predictor, Covariates, N_Cases, N_Controls,
-    OOB_ROC_AUC_4dp,
-    GRS_MDA_4dp, Age_MDA_4dp,
-    GRS_Pct_Importance_1dp, Age_Pct_Importance_1dp
-  )
-
-RF_subset2 <- RF_formatted2 %>%
-  dplyr::filter(
-    Population == "Black"
-    #Outcome == "PrCa"
-    #Predictor == "ContiAfricanGRS246"
-  )
