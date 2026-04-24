@@ -577,7 +577,7 @@ PrCa_cases_and_exclusions <- merge(PrCa_cases_and_exclusions, possible_PrCa_case
 
 PrCa_cases_and_exclusions <- PrCa_cases_and_exclusions %>%
   dplyr::mutate(
-    exclude = if_else(possible_PrCa_case == 1 & PrCa_case == 0, 1L, 0L, missing = 0L) ## Tagged for exclusion, so that exclusion can occur after joining with main dataframe
+    exclude = if_else(possible_PrCa_case == 1 & (PrCa_case == 0 | is.na(PrCa_case)), 1L, 0L, missing = 0L) ## Tagged for exclusion, so that exclusion can occur after joining with main dataframe
   )
 
 
