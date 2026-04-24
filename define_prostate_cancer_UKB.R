@@ -707,3 +707,21 @@ PrCa_dataframe <- PrCa_dataframe %>%
     HES_only == FALSE | is.na(HES_only), ## to remove participants with HES-only PrCa diagnoses
     exclude == 0 | is.na(exclude) ## to remove controls who meet any of the exclusion criteria for controls
   )
+
+############################################# 
+# Important - remove withdrawn participants #  
+#############################################  
+
+exclude_withdrawn=function(df){
+  system('dx download Callum/Withdrawals/withdrawn_20260310.csv --overwrite') ## This file is a list of participants who withdrew from the Biobank up to the date 10th March 2026. This was sent from the UK Biobank team via email to members of approved applications
+  df2 = df %>% left_join(
+    read_csv("withdrawn_20260310.csv", col_names = FALSE, show_col_types = FALSE) %>%
+      mutate(w=1) %>%
+      rename(eid=X1),
+    by='eid'
+  ) %>%
+    filter(is.na(w))
+  return(df2)
+}
+
+PrCa_dataframe <- exclude_withdrawn(PrCa_dataframe)
