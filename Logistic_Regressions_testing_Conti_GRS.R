@@ -35,6 +35,7 @@ OPCS_control_exclusion_codes <- c('M61',                                        
                                  #'X69',                                         ## X69: Other radiotherapy
                                  #'Y91',                                         ## Y91: External beam radiotherapy
                                   'M706',                                        ## M70.6 Radioactive seed implantation into prostate
+                                  'M707',                                        ## M70.7: Transurethral radiofrequency needle ablation of prostate
                                  #'Y35',                                         ## Y35: Introduction Material Radioactive Removable NOC
                                  #'Y36',                                         ## Y36: Introduction Material Non-removable NOC
                                  #'T856',                                        ## T85.6: Block dissection of pelvic lymph nodes
@@ -43,17 +44,15 @@ OPCS_control_exclusion_codes <- c('M61',                                        
                                  #'N04',                                         ## N04: Orchidectomy (note: no results returned)
                                   'M65',                                         ## M65: Endoscopic resection of prostate
                                   'M68',                                         ## M68: Endoscopic insertion of prosthesis into prostate
-                                  'M671',                                        ## M67.1: Endoscopic cryotherapy to lesion of prostate
-                                  'M711',                                        ## M71.1: High intensity focused ultrasound of prostate
-                                  'M712')                                        ## M71.2: Implantation of radioactive substance into prostate
+                                  'M67',                                         ## M67: Other therapeutic endoscopic operations on prostate
+                                  'M71')                                         ## M71: Other operations on prostate (HIFU, radioactive implant, and other/unspecified prostate operations)
 
 # Procedures (to define actionable/severe cases)
 
 OPCS_chemotherapy_codes <- c('X70',                                              ## X70: Procurement of drugs for chemotherapy for neoplasm in Bands 1-5
                              'X71',                                              ## X71: Procurement of drugs for chemotherapy for neoplasm in Bands 6-10
                              'X72',                                              ## X72: Delivery of chemotherapy for neoplasm
-                             'X73',                                              ## X73: Delivery of oral chemotherapy for neoplasm
-                             'X74')                                              ## X74: Other chemotherapy drugs
+                             'X73')                                              ## X73: Delivery of oral chemotherapy for neoplasm
 
 OPCS_surgery_codes <- c('M61',                                                   ## M61: Open excision of prostate
                         'M611',                                                  ## M61.1: Total excision of prostate and capsule of prostate (Radical prostatectomy)
