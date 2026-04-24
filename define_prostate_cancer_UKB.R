@@ -582,9 +582,109 @@ PrCa_cases_and_exclusions <- PrCa_cases_and_exclusions %>%
 
 
 
+#######################################################################
+# Step 5: Set prediction horizons to define prostate cancer endpoints #
+#######################################################################
+
+library(lubridate)
+
+endpoints <- PrCa_cases_and_exclusions %>%
+  dplyr::mutate(
+    PrCa_post_assessment  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial
+    ),
+    PrCa_2yrs  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(2)
+    ),
+    PrCa_5yrs  = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(5)
+    ),
+    PrCa_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(10)
+    ),
+    PrCa_severe = as.integer(
+      !is.na(earliest_PrCa_date) & (
+        (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+      )
+    ),
+    PrCa_severe_2yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(2) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_severe_5yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(5) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_severe_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(10) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable = as.integer(
+      !is.na(earliest_PrCa_date) & (
+        (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+          (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+      )
+    ),
+    PrCa_actionable_2yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(2) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable_5yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(5) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    ),
+    PrCa_actionable_10yrs = as.integer(
+      !is.na(earliest_PrCa_date) & !is.na(assess_date_initial) &
+        earliest_PrCa_date >= assess_date_initial &
+        earliest_PrCa_date <= assess_date_initial %m+% lubridate::years(10) & (
+          (!is.na(chemo_opdate) & chemo_opdate >= earliest_PrCa_date & chemo_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(date_of_cancer_death) & date_of_cancer_death >= earliest_PrCa_date & date_of_cancer_death <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(surgery_opdate) & surgery_opdate >= earliest_PrCa_date & surgery_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(radio_opdate) & radio_opdate >= earliest_PrCa_date & radio_opdate <= earliest_PrCa_date %m+% lubridate::years(2)) |
+            (!is.na(androgen_opdate) & androgen_opdate >= earliest_PrCa_date & androgen_opdate <= earliest_PrCa_date %m+% lubridate::years(2))
+        )
+    )
+  )
 
 ########################################################
-# ---------- Step 5: Join with main dataframe ---------#
+# ---------- Step 6: Join with main dataframe ---------#
 #-----------              (example)           ---------#
 ########################################################
 
@@ -595,11 +695,11 @@ main <- read_csv("Age_Sex_PRS_GA.csv")
 main <- main %>% 
   rename('Age' = 'p21022', 'Sex' = 'p31', 'GenomicsPLC_PRS' = 'p26267', 'Enhanced_PRS' = 'p26268', 'Genetic_sex' = 'p22001', 'Genetic_similarity' = 'p30079')
 
-main <- merge(main, PrCa_cases_and_exclusions, by = "eid", all.x = T)
+PrCa_dataframe <- merge(main, endpoints, by = "eid", all.x = T)
 
 ## Remove excluded participants, females, and those with missing PRS, pre-diagnosed prostate cancer, or HES-only prostate cancer diagnoses
 
-main <- main %>%
+PrCa_dataframe <- PrCa_dataframe %>%
   dplyr::filter(
     Sex == 'Male',
     !is.na(GenomicsPLC_PRS),
