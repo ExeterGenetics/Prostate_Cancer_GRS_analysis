@@ -455,7 +455,7 @@ PCaCases_ICD9 <- PCaCases_ICD9 %>%
 
 PCaCases_HES <- bind_rows(PCaCases_HES, PCaCases_ICD9) # Now we have all, after adding old ICD9 diagnoses
 
-PCaCases_cancerregistry<-read_cancer(icd9 = '185', icd10 = 'C61') %>% # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
+PCaCases_cancerregistry<-read_cancer(icd9 = ICD9_case_inclusion_codes, icd10 = ICD10_case_inclusion_codes) %>% # Creates a dataframe of all recorded prostate cancer diagnoses in cancer registry records
   dplyr::mutate(
     ICD10 = case_when(
       ICD9 %in% c("185", "1851", "1852", "1853", "1854", "1855", "1856", "1857", "1858", "1859") ~ "C61",
@@ -465,7 +465,7 @@ PCaCases_cancerregistry<-read_cancer(icd9 = '185', icd10 = 'C61') %>% # Creates 
     )
   )
 
-PCaCases_death<-read_death('C61') # Creates a dataframe of all recorded prostate cancer deaths in death records
+PCaCases_death<-read_death(ICD10_case_inclusion_codes) # Creates a dataframe of all recorded prostate cancer deaths in death records
 
 PCaCases_HES_earliest <- PCaCases_HES %>%
   dplyr::mutate(epistart = as.Date(epistart)) %>%
