@@ -5,6 +5,80 @@
 
 ## Note: this script requires first running "functions.r"
 
+## Configuration - set phenotype codes here
+
+# Case inclusion
+
+ICD9_case_inclusion_codes <- c('185')                                            ## 185: Malignant neoplasm of prostate
+ICD10_case_inclusion_codes <- c('C61')                                           ## C61: Malignant neoplasm of prostate
+
+# Control exclusion
+
+ICD9_control_exclusion_codes <- c('185',                                         ## 185: Malignant neoplasm of prostate
+                                  'V104',                                        ## V10.4: Personal history of malignant neoplasm of genital organs
+                                  '2334',                                        ## 233.4: Carcinoma in situ of the prostate 
+                                  '2365',                                        ## 236.5: Neoplasm of uncertain behavior of the prostate 
+                                  '6023')                                        ## 602.3: Dysplasia of the prostate 
+
+ICD10_control_exclusion_codes <- c('C61',                                        ## C61: Malignant neoplasm of prostate
+                                   'Z854',                                       ## Z85.4: Personal History of malignant neoplasm of genital organs
+                                  #'R972',                                       ## R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
+                                   'D075',                                       ## D07.5: Carcinoma in situ of prostate
+                                   'D400',                                       ## D40.0: Neoplasm of uncertain behavior of prostate
+                                   'N423')                                       ## N42.3: Dysplasia of prostate   
+
+OPCS_control_exclusion_codes <- c('M61',                                         ## M61: Prostatectomy
+                                  'M611',                                        ## M61.1: Radical prostatectomy
+                                  'M612',                                        ## M61.2: Retropubic Prostatectomy
+                                  'M613',                                        ## M61.3: Transvesical Prostatectomy
+                                  'M614',                                        ## M61.4: Perineal Prostatectomy
+                                 #'X65',                                         ## X65: Radiotherapy Delivery
+                                 #'X67',                                         ## X67: Preparation of radiotherapy
+                                 #'X68',                                         ## X68: Brachytherapy preparation
+                                 #'X69',                                         ## X69: Other radiotherapy
+                                 #'Y91',                                         ## Y91: External beam radiotherapy
+                                  'M706',                                        ## M70.6 Radioactive seed implantation into prostate
+                                 #'Y35',                                         ## Y35: Introduction Material Radioactive Removable NOC
+                                 #'Y36',                                         ## Y36: Introduction Material Non-removable NOC
+                                 #'T856',                                        ## T85.6: Block dissection of pelvic lymph nodes
+                                 #'M702',                                        ## M70.2: Perineal needle biopsy of prostate
+                                 #'M703',                                        ## M70.3: Rectal needle biopsy of prostate
+                                 #'N04',                                         ## N04: Orchidectomy (note: no results returned)
+                                  'M65',                                         ## M65: Endoscopic resection of prostate
+                                  'M68',                                         ## M68: Endoscopic insertion of prosthesis into prostate
+                                  'M671',                                        ## M67.1: Endoscopic cryotherapy to lesion of prostate
+                                  'M711',                                        ## M71.1: High intensity focused ultrasound of prostate
+                                  'M712')                                        ## M71.2: Implantation of radioactive substance into prostate
+
+# Procedures (to define actionable/severe cases)
+
+OPCS_chemotherapy_codes <- c('X70',                                              ## X70: Procurement of drugs for chemotherapy for neoplasm in Bands 1-5
+                             'X71',                                              ## X71: Procurement of drugs for chemotherapy for neoplasm in Bands 6-10
+                             'X72',                                              ## X72: Delivery of chemotherapy for neoplasm
+                             'X73',                                              ## X73: Delivery of oral chemotherapy for neoplasm
+                             'X74')                                              ## X74: Other chemotherapy drugs
+
+OPCS_surgery_codes <- c('M61',                                                   ## M61: Open excision of prostate
+                        'M611',                                                  ## M61.1: Total excision of prostate and capsule of prostate (Radical prostatectomy)
+                        'M612',                                                  ## M61.2: Retropubic Prostatectomy
+                        'M613',                                                  ## M61.3: Transvesical Prostatectomy
+                        'M614')                                                  ## M61.4: Perineal Prostatectomy
+
+OPCS_radiotherapy_codes <- c('X65',                                              ## X65: Radiotherapy Delivery
+                          'X67',                                                 ## X67: Preparation for external beam radiotherapy
+                          'X68',                                                 ## X68: Preparation for brachytherapy
+                          'X69',                                                 ## X69: Other radiotherapy
+                          'Y91',                                                 ## Y91: External beam radiotherapy
+                          'M706')                                                ## M70.6 Radioactive seed implantation into prostate
+
+OPCS_androgen_therapy_codes <- c('X741',                                         ## X74.1: Cancer hormonal treatment drugs Band 1
+                                 'X383',                                         ## X38.3: Injection of hormone for local action NEC
+                                 'S525',                                         ## S52.5: Insertion of hormone into subcutaneous tissue
+                                 'S526',                                         ## S52.6: Replacement of hormone in subcutaneous tissue
+                                 'X376')                                         ## X37.6: Intramuscular hormone therapy
+
+## Setup
+
 library(RMySQL)
 library(dplyr)
 library(readr)
@@ -362,10 +436,11 @@ test_df %>%
 ################################################################################
 
 
-PCaCases_HES<-read_ICD10(c('C61', 'Z8546', 'R9721')) # Creates a dataframe of *almost* all recorded prostate cancer diagnoses in HES records
-# Z85.46 is "Personal history of malignant neoplasm of prostate" and R97.21 is "Elevated prostate specific antigen (PSA)". Adding these to read_ICD10 does not add any cases
+PCaCases_HES<-read_ICD10(ICD10_case_inclusion_codes) # Creates a dataframe of *almost* all recorded prostate cancer diagnoses in HES records
+# Z85.46 (Z8546 in UKB format) is "Personal history of malignant neoplasm of prostate" and R97.21 (R9721 in UKB format) is 
+# "Elevated prostate specific antigen (PSA)". Adding these to read_ICD10 does not add any cases
 
-PCaCases_ICD9<-read_ICD9(c(185, 'V1046'))
+PCaCases_ICD9<-read_ICD9(ICD9_case_inclusion_codes)
 # V10.46 is "Personal history of malignant neoplasm of prostate". Adding this to read_ICD9 does not add any cases
 PCaCases_ICD9 <- PCaCases_ICD9 %>%
   dplyr::mutate(
@@ -563,7 +638,7 @@ Cancer_death_earliest2 <- Cancer_death2 %>%
 
 # Dataframe for chemotherapy (IV, IM, unspecified),
 
-chemotherapy2  <- read_OPCS(c('X70', 'X71', 'X72', 'X73', 'X74'))
+chemotherapy2  <- read_OPCS(OPCS_chemotherapy_codes)
 chemotherapy2 <- merge(chemotherapy2, Earliest_PrCa_diagnosis2, by = 'eid') 
 chemotherapy2 <- chemotherapy2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -597,7 +672,7 @@ death_chemo2 <- death_chemo2 %>%
 
 # Dataframe for prostatectomy
 
-surgery2 <- read_OPCS(c('M61', 'M611', 'M612', 'M613', 'M614'))
+surgery2 <- read_OPCS(OPCS_surgery_codes)
 surgery2 <- merge(surgery2, Earliest_PrCa_diagnosis2, by = 'eid')
 surgery2 <- surgery2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -611,7 +686,7 @@ surgery_earliest2 <- surgery2 %>%
 
 # Dataframe for radiotherapy (external, brachytherapy, planning, unspecified)
 
-radiotherapy2 <- read_OPCS(c('X65', 'X67', 'X68', 'X69', 'Y91'))
+radiotherapy2 <- read_OPCS(OPCS_radiotherapy_codes)
 radiotherapy2 <- merge(radiotherapy2, Earliest_PrCa_diagnosis2, by = 'eid')
 radiotherapy2 <- radiotherapy2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -625,7 +700,7 @@ radiotherapy_earliest2 <- radiotherapy2 %>%
 
 # Dataframe for androgen (therapy?)
 
-androgen2 <- read_OPCS(c('X741', 'X383', 'S525', 'S526', 'X376'))
+androgen2 <- read_OPCS(OPCS_androgen_therapy_codes)
 androgen2 <- merge(androgen2, Earliest_PrCa_diagnosis2, by = 'eid')
 androgen2 <- androgen2 %>%
   dplyr::filter(opdate >= earliest_PrCa_date)
@@ -1061,11 +1136,7 @@ PCa_iv_covariates_GRS_severity2 <- merge(PCa_iv_covariates_GRS2, actionable_crit
 ## with alterations to remove ICD9: V84.03 and ICD10: Z15.03 since these describe genetic susceptibility to prostate cancer)
 ## AND with some creative interpretation for OPCS codes, since they are given as CPT codes in the spreadsheet
 
-icd9_exclusion_prefixes <- c('185',         # 185: Malignant neoplasm of prostate
-                             'V104',        # V10.4: Personal history of malignant neoplasm of genital organs
-                             '2334',        # 233.4: Carcinoma in situ of the prostate
-                             '2365',        # 236.5: Neoplasm of uncertain behavior of the prostate
-                             '6023')        # 602.3: Dysplasia of the prostate
+icd9_exclusion_prefixes <- ICD9_control_exclusion_codes
 
 icd9_exclusion_regex <- paste0(
   "^(",
@@ -1080,65 +1151,19 @@ exclusions_ICD9 <- read_ICD9(icd9_exclusion_prefixes) %>%
     grepl(icd9_exclusion_regex, gsub("[^A-Za-z0-9]", "", toupper(diag_icd9)))
   )
 
-exclusions_ICD10 <- read_ICD10(c('C61',     # C61: Malignant neoplasm of prostate
-                                 'Z854',     # Z85.4: Personal History of malignant neoplasm of genital organs
-                                 #'R972',     # R97.2: Elevated prostate specific antigen [PSA]
-                                 'D075',     # D07.5: Carcinoma in situ of prostate
-                                 'D400',     # D40.0: Neoplasm of uncertain behavior of prostate
-                                 'N423')     # N42.3: Dysplasia of prostate
-)%>%
+exclusions_ICD10 <- read_ICD10(ICD10_control_exclusion_codes)%>%
   dplyr::select("eid", "diag_icd10")
 
-exclusions_cancerregistry_ICD10 <- read_cancer(icd10 = c(
-  'C61',     # C61: Malignant neoplasm of prostate 
-  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs (note: no results returned)
-  #'R972',   # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
-  'D075',    # D07.5: Carcinoma in situ of prostate
-  'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
-  'N423'     # N42.3: Dysplasia of prostate (note: no results returned)
-))%>%
+exclusions_cancerregistry_ICD10 <- read_cancer(icd10 = ICD10_control_exclusion_codes)%>%
   dplyr::select("eid", "ICD10")
 
-exclusions_cancerregistry_ICD9 <- read_cancer(icd9 = c(
-  185,      # 185: Malignant neoplasm of prostate
-  'V104',   # V10.4: Personal history of malignant neoplasm of genital organs (note: no results returned)
-  2334,     # 233.4: Carcinoma in situ of the prostate (note: no results returned)
-  2365,     # 236.5: Neoplasm of uncertain behavior of the prostate 
-  6023      # 602.3: Dysplasia of the prostate (note: no results returned)
-))%>%
+exclusions_cancerregistry_ICD9 <- read_cancer(icd9 = ICD9_control_exclusion_codes)%>%
   dplyr::select("eid", "ICD9")
 
-exclusions_death <- read_death(c(
-  'C61',     # C61: Malignant neoplasm of prostate 
-  'Z854',    # Z85.4: Personal History of malignant neoplasm of genital organs (note: no results returned)
-  #'R972',   # R97.2: Elevated prostate specific antigen [PSA] (note: no results returned)
-  'D075',    # D07.5: Carcinoma in situ of prostate
-  'D400',    # D40.0: Neoplasm of uncertain behavior of prostate
-  'N423'     # N42.3: Dysplasia of prostate (note: no results returned)
-))%>%
+exclusions_death <- read_death(ICD10_control_exclusion_codes)%>%
   dplyr::select("eid", "cause_icd10")
 
-exclusions_OPCS <- read_OPCS(c('M61',       # M61: Prostatectomy
-                               'M611',      # M61.1: Radical prostatectomy
-                               'M612',      # M61.2: Retropubic Prostatectomy
-                               'M613',      # M61.3: Transvesical Prostatectomy
-                               'M614',     # M61.4: Perineal Prostatectomy
-                               'X65',       # X65: Radiotherapy Delivery
-                               'X67',       # X67: Preparation of radiotherapy
-                               'X68',       # X68: Brachytherapy preparation
-                               'M706',      # M70.6 Radioactive seed implantation into prostate
-                               'Y35',       # Y35: Introduction Material Radioactive Removable NOC
-                               'Y36',       # Y36: Introduction Material Non-removable NOC
-                               'T856',      # T85.6: Block dissection of pelvic lymph nodes
-                               #'M702',      # M70.2: Perineal needle biopsy of prostate
-                               #'M703',      # M70.3: Rectal needle biopsy of prostate
-                               'N04',       # N04: Orchidectomy
-                               'M65',       # M65: Endoscopic resection of prostate
-                               'M68',       # M68: Endoscopic insertion of prosthesis into prostate
-                               'M671',      # M67.1: Endoscopic cryotherapy to lesion of prostate
-                               'M711',      # M71.1: High intensity focused ultrasound of prostate
-                               'M712')      # M71.2: Implantation of radioactive substance into prostate
-) %>%
+exclusions_OPCS <- read_OPCS(OPCS_control_exclusion_codes) %>%
   dplyr::select("eid", "oper4")
 
 possible_PrCa_cases <- merge(exclusions_ICD9, exclusions_ICD10, by = "eid", all = T)
