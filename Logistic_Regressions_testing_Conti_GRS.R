@@ -25,7 +25,7 @@ ICD10_control_exclusion_codes <- c('C61',                                       
                                    'N423')                                       ## N42.3: Dysplasia of prostate   
 
 OPCS_control_exclusion_codes <- c('M61',                                         ## M61: Prostatectomy
-                                  'M611',                                        ## M61.1: Radical prostatectomy
+                                  'M611',                                        ## M61.1: Total excision of prostate and capsule of prostate (Radical prostatectomy)
                                   'M612',                                        ## M61.2: Retropubic Prostatectomy
                                   'M613',                                        ## M61.3: Transvesical Prostatectomy
                                   'M614',                                        ## M61.4: Perineal Prostatectomy
@@ -42,7 +42,7 @@ OPCS_control_exclusion_codes <- c('M61',                                        
                                  #'M702',                                        ## M70.2: Perineal needle biopsy of prostate
                                  #'M703',                                        ## M70.3: Rectal needle biopsy of prostate
                                  #'N04',                                         ## N04: Orchidectomy (note: no results returned)
-                                  'M65',                                         ## M65: Endoscopic resection of prostate
+                                  'M65',                                         ## M65: Endoscopic resection of outlet of male bladder
                                   'M68',                                         ## M68: Endoscopic insertion of prosthesis into prostate
                                   'M67',                                         ## M67: Other therapeutic endoscopic operations on prostate
                                   'M71')                                         ## M71: Other operations on prostate (HIFU, radioactive implant, and other/unspecified prostate operations)
