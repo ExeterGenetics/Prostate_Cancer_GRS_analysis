@@ -38,6 +38,9 @@ OPCS_control_exclusion_codes <- c('M61',                                        
                                  #'X68',                                         ## X68: Brachytherapy preparation
                                  #'X69',                                         ## X69: Other radiotherapy
                                  #'Y91',                                         ## Y91: External beam radiotherapy
+                                  'M65',                                         ## M65: Endoscopic resection of outlet of male bladder
+                                  'M67',                                         ## M67: Other therapeutic endoscopic operations on prostate
+                                  'M68',                                         ## M68: Endoscopic insertion of prosthesis into prostate
                                   'M706',                                        ## M70.6 Radioactive seed implantation into prostate
                                   'M707',                                        ## M70.7: Transurethral radiofrequency needle ablation of prostate
                                  #'Y35',                                         ## Y35: Introduction Material Radioactive Removable NOC
@@ -46,9 +49,6 @@ OPCS_control_exclusion_codes <- c('M61',                                        
                                  #'M702',                                        ## M70.2: Perineal needle biopsy of prostate
                                  #'M703',                                        ## M70.3: Rectal needle biopsy of prostate
                                  #'N04',                                         ## N04: Orchidectomy (note: no results returned)
-                                  'M65',                                         ## M65: Endoscopic resection of outlet of male bladder
-                                  'M68',                                         ## M68: Endoscopic insertion of prosthesis into prostate
-                                  'M67',                                         ## M67: Other therapeutic endoscopic operations on prostate
                                   'M71')                                         ## M71: Other operations on prostate (HIFU, radioactive implant, and other/unspecified prostate operations)
 
 # Procedures (to define actionable/severe cases)
