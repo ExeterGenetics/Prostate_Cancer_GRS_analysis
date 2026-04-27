@@ -32,23 +32,34 @@ OPCS_control_exclusion_codes <- c('M61',                                        
                                   'M612',                                        ## M61.2: Retropubic Prostatectomy
                                   'M613',                                        ## M61.3: Transvesical Prostatectomy
                                   'M614',                                        ## M61.4: Perineal Prostatectomy
-                                 #'X65',                                         ## X65: Radiotherapy Delivery
-                                 #'X67',                                         ## X67: Preparation of radiotherapy
-                                 #'X68',                                         ## X68: Brachytherapy preparation
-                                 #'X69',                                         ## X69: Other radiotherapy
-                                 #'Y91',                                         ## Y91: External beam radiotherapy
-                                  'M65',                                         ## M65: Endoscopic resection of outlet of male bladder
-                                  'M67',                                         ## M67: Other therapeutic endoscopic operations on prostate
-                                  'M68',                                         ## M68: Endoscopic insertion of prosthesis into prostate
-                                  'M706',                                        ## M70.6 Radioactive seed implantation into prostate
-                                  'M707',                                        ## M70.7: Transurethral radiofrequency needle ablation of prostate
-                                 #'Y35',                                         ## Y35: Introduction Material Radioactive Removable NOC
-                                 #'Y36',                                         ## Y36: Introduction Material Non-removable NOC
-                                 #'T856',                                        ## T85.6: Block dissection of pelvic lymph nodes
-                                 #'M702',                                        ## M70.2: Perineal needle biopsy of prostate
-                                 #'M703',                                        ## M70.3: Rectal needle biopsy of prostate
+                                  'M621',                                        ## M62.1: Open extirpation of lesion of prostate
+                                 #'M651',                                        ## M65.1: Endoscopic resection of prostate using electrotome (TURP variant - primarily used for BPH, not prostate cancer)
+                                 #'M652',                                        ## M65.2: Endoscopic resection of prostate using punch (TURP variant - primarily used for BPH, not prostate cancer)
+                                 #'M653',                                        ## M65.3: Endoscopic resection of prostate NEC (TURP variant - primarily used for BPH, not prostate cancer)
+                                 #'M654',                                        ## M65.4: Endoscopic resection of prostate using laser (TURP variant - primarily used for BPH, not prostate cancer)
+                                 #'M655',                                        ## M65.5: Endoscopic resection of prostate using vapotrode (TURP variant - primarily used for BPH, not prostate cancer)
+                                 #'M656',                                        ## M65.6: Endoscopic ablation of prostate using steam (TURP variant - primarily used for BPH, not prostate cancer)
+                                 #'M67',                                         ## M67: Other therapeutic endoscopic operations on prostate (parent code - excluded to avoid capturing non-cancer subcodes e.g. M67.3 drainage, M67.4 calculus removal)
+                                  'M671',                                        ## M67.1: Endoscopic cryotherapy to lesion of prostate
+                                 #'M672',                                        ## M67.2: Endoscopic destruction of lesion of prostate NEC (NEC qualifier makes this non-specific; could encompass benign lesion destruction)
+                                 #'M675',                                        ## M67.5: Endoscopic microwave destruction of lesion of prostate (TUMT - primarily used for BPH, not prostate cancer)
+                                  'M676',                                        ## M67.6: Endoscopic radiofrequency ablation of lesion of prostate (focal ablation therapy for prostate cancer)
+                                 #'M68',                                         ## M68: Endoscopic insertion of prosthesis into prostate (prostatic stents used for urinary obstruction, not cancer treatment)
+                                 #'M702',                                        ## M70.2: Perineal needle biopsy of prostate (biopsy alone does not confirm cancer diagnosis)
+                                 #'M703',                                        ## M70.3: Rectal needle biopsy of prostate (biopsy alone does not confirm cancer diagnosis)
+                                  'M706',                                        ## M70.6: Radioactive seed implantation into prostate
+                                 #'M707',                                        ## M70.7: Transurethral radiofrequency needle ablation of prostate (TUNA - primarily used for BPH, not prostate cancer)
+                                  'M71'                                          ## M71: Other operations on prostate (HIFU, radioactive implant, and other/unspecified prostate operations)
+                                 #'X65',                                         ## X65: Radiotherapy Delivery (not prostate-specific; also used for many other cancers)
+                                 #'X67',                                         ## X67: Preparation for external beam radiotherapy (not prostate-specific; also used for many other cancers)
+                                 #'X68',                                         ## X68: Preparation for brachytherapy (not prostate-specific; also used for many other cancers)
+                                 #'X69',                                         ## X69: Other radiotherapy (not prostate-specific; also used for many other cancers)
+                                 #'Y91',                                         ## Y91: External beam radiotherapy (not prostate-specific; also used for many other cancers)
+                                 #'Y35',                                         ## Y35: Introduction of radioactive removable material NOC (not prostate-specific)
+                                 #'Y36',                                         ## Y36: Introduction of non-removable material NOC (not prostate-specific)
+                                 #'T856',                                        ## T85.6: Block dissection of pelvic lymph nodes (not prostate-specific; also performed for other pelvic malignancies)
                                  #'N04',                                         ## N04: Orchidectomy (note: no results returned)
-                                  'M71')                                         ## M71: Other operations on prostate (HIFU, radioactive implant, and other/unspecified prostate operations)
+)
 
 # Procedures (to define actionable/severe cases)
 
