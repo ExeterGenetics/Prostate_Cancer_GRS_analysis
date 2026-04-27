@@ -5948,14 +5948,6 @@ Anyone with any of the following ICD9 codes in their Hospital Episode Statistics
 -   233.4: Carcinoma in situ of the prostate
 -   236.5: Neoplasm of uncertain behavior of the prostate
 -   602.3: Dysplasia of the prostate
--   602.1: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
--   602.9: Other transurethral prostatectomy
--   603: Suprapubic prostatectomy
--   604: Retropubic prostatectomy
--   605: Radical prostatectomy
--   606.1: Local excision of lesion of prostate
--   606.2: Perineal prostatectomy
--   606.9: Other prostatectomy
 
 Anyone with any of the following ICD10 codes in their HES records or in the cancer registry:
 
@@ -5968,31 +5960,17 @@ Anyone with any of the following ICD10 codes in their HES records or in the canc
 Anyone with any of the following codes in their OPCS records:
 
 -   M61: Prostatectomy
--   M61.1: Radical prostatectomy
--   M61.2: Retropubic Prostatectomy
--   M61.3: Transvesical Prostatectomy
--   M61.4: Perineal Prostatectomy
--   X65: Radiotherapy Delivery
--   X67: Preparation of radiotherapy
--   X68: Brachytherapy preparation
--   M70.6: Radioactive seed implantation into prostate
--   Y35: Introduction Material Radioactive Removable NOC
--   Y36: Introduction Material Non-removable NOC
--   T85.6: Block dissection of pelvic lymph nodes
--   N04: Orchidectomy
--   M65: Endoscopic resection of prostate
--   M68: Endoscopic insertion of prosthesis into prostate
+-   M62.1: Open extirpation of lesion of prostate
 -   M67.1: Endoscopic cryotherapy to lesion of prostate
--   M71.1: High intensity focused ultrasound of prostate
--   M71.2: Implantation of radioactive substance into prostate
+-   M67.6: Endoscopic radiofrequency ablation of lesion of prostate (focal ablation therapy for prostate cancer)
+-   M70.6: Radioactive seed implantation into prostate
+-   M71: Other operations on prostate (HIFU, radioactive implant, and other/unspecified prostate operations)
 
 ## Conditions
 
 Age = Age at initial assessment centre visit
 
 FH = Family history of prostate cancer or breast cancer (fields p20107, p20107, p20107, p20107, p20110, p20110, p20110, p20110, p20111, p20111, p20111, p20111)
-
-Models are adjusted for the first 10 genetic principal components (PCs) (projected onto 1000 Genomes + HGDP reference panel)
 
 Genetic similarity* is defined by Pan-UKB study (Karczewski et al., 2025)
 
@@ -15231,11 +15209,11 @@ Can the GRS predict which men presenting with symptoms to their GP will be diagn
 
 *General:*
 
--   Females (based on self-report of 'Sex'. Using 'Genetic Sex' did not alter the results)
+-   Females (based on self-report of "Sex")
 
 -   Anyone without linked genetic data (imputed genotypes)
 
--   Anyone with a record of prostate cancer diagnosis before symptom presentation
+-   Anyone with a record of prostate cancer diagnosis before initial assessment centre visit
 
 *Controls:*
 
@@ -15246,14 +15224,6 @@ Anyone with any of the following ICD9 codes in their Hospital Episode Statistics
 -   233.4: Carcinoma in situ of the prostate
 -   236.5: Neoplasm of uncertain behavior of the prostate
 -   602.3: Dysplasia of the prostate
--   602.1: Transurethral (ultrasound) guided laser induced prostatectomy (TULIP)
--   602.9: Other transurethral prostatectomy
--   603: Suprapubic prostatectomy
--   604: Retropubic prostatectomy
--   605: Radical prostatectomy
--   606.1: Local excision of lesion of prostate
--   606.2: Perineal prostatectomy
--   606.9: Other prostatectomy
 
 Anyone with any of the following ICD10 codes in their HES records or in the cancer registry:
 
@@ -15266,23 +15236,11 @@ Anyone with any of the following ICD10 codes in their HES records or in the canc
 Anyone with any of the following codes in their OPCS records:
 
 -   M61: Prostatectomy
--   M61.1: Radical prostatectomy
--   M61.2: Retropubic Prostatectomy
--   M61.3: Transvesical Prostatectomy
--   M61.4: Perineal Prostatectomy
--   X65: Radiotherapy Delivery
--   X67: Preparation of radiotherapy
--   X68: Brachytherapy preparation
--   M70.6: Radioactive seed implantation into prostate
--   Y35: Introduction Material Radioactive Removable NOC
--   Y36: Introduction Material Non-removable NOC
--   T85.6: Block dissection of pelvic lymph nodes
--   N04: Orchidectomy
--   M65: Endoscopic resection of prostate
--   M68: Endoscopic insertion of prosthesis into prostate
+-   M62.1: Open extirpation of lesion of prostate
 -   M67.1: Endoscopic cryotherapy to lesion of prostate
--   M71.1: High intensity focused ultrasound of prostate
--   M71.2: Implantation of radioactive substance into prostate
+-   M67.6: Endoscopic radiofrequency ablation of lesion of prostate (focal ablation therapy for prostate cancer)
+-   M70.6: Radioactive seed implantation into prostate
+-   M71: Other operations on prostate (HIFU, radioactive implant, and other/unspecified prostate operations)
 
 ## Conditions
 
