@@ -1,4 +1,4 @@
-**This repository includes Callum's scripts for assessing Prostate Cancer GRS performance in Black Men.**
+**This repository includes Callum's scripts for assessing Prostate Cancer GRS performance in Black Men in the UK Biobank.**
 
 Key:
 
