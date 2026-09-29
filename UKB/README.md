@@ -2,7 +2,7 @@
 
 Key:
 
-- "**Logistic_Regressions_testing_Conti_GRS.R**" is the main analysis pipeline, which includes instructions for how to derive all relevant datasets using the UKB-RAP cohort browser and/or other scripts in the repository.
+- "**SummaryOfLogisticRegressions.R**" is the main analysis pipeline summarised as an Rmd, which includes instructions for how to derive all relevant datasets using the UKB-RAP cohort browser and/or other scripts in the repository.
 
 - The folder "**AncestryProbability1_bigsnpr**" contains 1 shell script (ideally to run on Slade) and 2 subsequent R scripts for:
   
@@ -14,7 +14,7 @@ Key:
 
   iv) Saving this output as "AncestryProbability", which is used in the main analysis pipeline
 
-- The folder "**AncestryProbability2_plink**" contains an R script for doing something similar. If in doubt, use this one as it is more reproducible and more faithful to the Pan-UKB study which first derived the "Genomic Ancestry" (Genetic Similarity) variable in the UK Biobank (https://github.com/atgu/ukbb_pan_ancestry/tree/master):
+- The folder "**AncestryProbability2_plink**" contains an R script for doing something similar. If in doubt, use this one over **AncestryProbability1_bigsnpr** as it is more reproducible and more faithful to the Pan-UKB study which first derived the "Genomic Ancestry" (Genetic Similarity) variable in the UK Biobank (https://github.com/atgu/ukbb_pan_ancestry/tree/master):
 
   i) Downloading pre-computed Principal Components and the corresponding Allele Frequencies and Loadings for the Human Genome Diversity Project (HGDP) + 1000 Genomes project participants
 
