@@ -5985,6 +5985,31 @@ options(
 
 ```
 
+Setup script 14: Function to remove counts <5 in tables and dataframes used in Figures
+
+```{r remove_counts_u5, include=FALSE, cache=FALSE}
+
+remove_counts_u5 <- function(df) {
+
+  mixed_fails <- df %>%
+    dplyr::filter(
+      Population == "Mixed",
+      (N_Cases < 5 | N_Controls < 5)
+    ) %>%
+    nrow() > 0
+
+  df <- df %>%
+    dplyr::filter(N_Cases >= 5, N_Controls >= 5)
+
+  if (mixed_fails) {
+    df <- df %>%
+      dplyr::filter(Population != "Black+Mixed")
+  }
+
+  df
+}
+```
+
 # Part 1: Asymptomatic Screening
 
 Can the GRS predict which men in the UKB will be diagnosed with prostate cancer in a given timeframe after the assessment centre?
@@ -6066,7 +6091,9 @@ table1 <- formatted %>%
     Outcome == "PrCa",
     Covariates == "None"
   ) %>%
-  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+  dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC")) 
+
+table1 <- remove_counts_u5(table1)
 
 pretty_print_table(table1)
 
@@ -6136,6 +6163,8 @@ forestplot1 <- bulk %>%
     Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR")))))
   )
 
+forestplot1 <- remove_counts_u5(forestplot1)
+
 ggplot(
   forestplot1,
   aes(x = Population, y = ROC_AUC, color = Predictor)
@@ -6185,6 +6214,8 @@ forestplot1 <- bulk %>%
     Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR")))))
   )
 
+forestplot1 <- remove_counts_u5(forestplot1)
+
 ggplot(
   forestplot1,
   aes(x = Population, y = OR_per_1SD, color = Predictor)
@@ -6226,6 +6257,8 @@ table2 <- formatted %>%
     Covariates == "None" | Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table2 <- remove_counts_u5(table2)
 
 pretty_print_table(table2)
 
@@ -6467,6 +6500,8 @@ forestplot2 <- bulk %>%
     Model = paste(Predictor, Covariates, sep = " | ")
   )
 
+forestplot2 <- remove_counts_u5(forestplot2)
+
 ggplot(
   forestplot2,
   aes(x = Population, y = ROC_AUC, color = Model)
@@ -6517,6 +6552,8 @@ forestplot2 <- bulk %>%
     Model = paste(Predictor, Covariates, sep = " | ")
   )
 
+forestplot2 <- remove_counts_u5(forestplot2)
+
 ggplot(
   forestplot2,
   aes(x = Population, y = OR_per_1SD, color = Model)
@@ -6558,6 +6595,8 @@ table3 <- formatted %>%
     Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table3 <- remove_counts_u5(table3)
 
 pretty_print_table(table3)
 
@@ -6800,6 +6839,8 @@ forestplot3 <- bulk %>%
     Model = paste(Predictor, Covariates, sep = " | ")
   )
 
+forestplot3 <- remove_counts_u5(forestplot3)
+
 ggplot(
   forestplot3,
   aes(x = Population, y = ROC_AUC, color = Model, group = Model)
@@ -6847,6 +6888,8 @@ forestplot3 <- bulk %>%
     Model = paste(Predictor, Covariates, sep = " | ")
   )
 
+forestplot3 <- remove_counts_u5(forestplot3)
+
 ggplot(
   forestplot3,
   aes(x = Population, y = OR_per_1SD, color = Model, group = Model)
@@ -6884,246 +6927,6 @@ But what does "Genetic Similarity" even mean?
 -   Problem: strict clustering method that excluded >50,000 participants
 
     -   Anyone who did not have >50% probability of fitting into a particular cluster (EUR, AFR, EAS, CSA, MID, AMR) was excluded
-
-## Principal Components plot 1: HGDP+1KG Reference Panel
-
-```{r pc-plot1-hgdp1kg, echo=FALSE, cache = FALSE}
-
-library(ggplot2)
-
-dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs.csv") # HGDP+1KG Principal components as calculated using AncestryProbability1_bigsnpr folder scripts
-dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
-dxdownload("Callum/HGDP_1KG/hgdp_tgp_pca_covid19hgi_snps_scores.txt") # can be downloaded from:
-# https://console.cloud.google.com/storage/browser/covid19-hg-public/pca_projection;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
-
-## Working out which column of the HGDP+1KG metadata file to use as ancestry labels
-
-HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv")
-
-## Decided on using "Genetic Region" as it is closest to what we see in UK Biobank "Genomic Ancestry" variable
-
-HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
-  dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s") %>%
-  dplyr::mutate("Genetic_similarity" = case_when(
-    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
-    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
-    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
-    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
-    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
-    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
-    TRUE ~ NA_character_
-  ))
-
-HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
-HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
-
-HGDP_1KG_PCs_og <- read.delim("hgdp_tgp_pca_covid19hgi_snps_scores.txt") %>% # Publicly available PCs
-  dplyr::rename("IID" = "s")
-HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylabel, by = "IID")
-
-################################################################################
-#-------------------------------- Setup done ----------------------------------#
-################################################################################
-
-test_population <- HGDP_1KG_PCs_og_w_labels              # Publicly available PCs
-#test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
-#test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
-
-HGDP_1KG_PC_plot <- ggplot(test_population, aes(x = PC1, y = PC2, color = Genetic_similarity)) +
-  geom_point(size = 0.5) +
-  theme_minimal() +
-  # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
-  labs(
-    x = "Principal Component 1",
-    y = "Principal Component 2",
-    color = "Genetic Similarity"
-  )
-
-print(HGDP_1KG_PC_plot)
-
-```
-
-This is the reference panel (HGDP+1KG)
-
-## Principal Components plot 2: UK Biobank Participants who were successfully clustered
-
-```{r pc-plot2-ukb-clustered, echo=FALSE, cache = FALSE}
-
-library(ggplot2)
-
-dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs.csv") # HGDP+1KG Principal components as calculated using AncestryProbability1_bigsnpr folder scripts
-dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
-dxdownload("Callum/HGDP_1KG/hgdp_tgp_pca_covid19hgi_snps_scores.txt") # can be downloaded from:
-# https://console.cloud.google.com/storage/browser/covid19-hg-public/pca_projection;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
-
-## Working out which column of the HGDP+1KG metadata file to use as ancestry labels
-
-HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv")
-
-## Decided on using "Genetic Region" as it is closest to what we see in UK Biobank "Genomic Ancestry" variable
-
-HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
-  dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s") %>%
-  dplyr::mutate("Genetic_similarity" = case_when(
-    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
-    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
-    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
-    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
-    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
-    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
-    TRUE ~ NA_character_
-  ))
-
-HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
-HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
-
-HGDP_1KG_PCs_og <- read.delim("hgdp_tgp_pca_covid19hgi_snps_scores.txt") %>% # Publicly available PCs
-  dplyr::rename("IID" = "s")
-HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylabel, by = "IID")
-
-################################################################################
-#-------------------------------- Setup done ----------------------------------#
-################################################################################
-
-#test_population <- HGDP_1KG_PCs_og_w_labels              # Publicly available PCs
-#test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
-test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
-
-UKB_PC_plot1 <- ggplot(test_population %>% dplyr::filter(!is.na(Genetic_similarity)), aes(x = PC1, y = PC2, color = Genetic_similarity)) +
-  geom_point(size = 0.5) +
-  theme_minimal() +
-  # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
-  labs(
-    x = "Principal Component 1",
-    y = "Principal Component 2",
-    color = "Genetic Similarity"
-  )
-
-print(UKB_PC_plot1)
-
-```
-
-## Principal Components plot 3: all UK Biobank Participants
-
-```{r pc-plot3-ukb-all, echo=FALSE, cache = FALSE}
-
-library(ggplot2)
-
-dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs.csv") # HGDP+1KG Principal components as calculated using AncestryProbability1_bigsnpr folder scripts
-dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
-dxdownload("Callum/HGDP_1KG/hgdp_tgp_pca_covid19hgi_snps_scores.txt") # can be downloaded from:
-# https://console.cloud.google.com/storage/browser/covid19-hg-public/pca_projection;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
-
-## Working out which column of the HGDP+1KG metadata file to use as ancestry labels
-
-HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv")
-
-## Decided on using "Genetic Region" as it is closest to what we see in UK Biobank "Genomic Ancestry" variable
-
-HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
-  dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s") %>%
-  dplyr::mutate("Genetic_similarity" = case_when(
-    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
-    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
-    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
-    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
-    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
-    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
-    TRUE ~ NA_character_
-  ))
-
-HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
-HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
-
-HGDP_1KG_PCs_og <- read.delim("hgdp_tgp_pca_covid19hgi_snps_scores.txt") %>% # Publicly available PCs
-  dplyr::rename("IID" = "s")
-HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylabel, by = "IID")
-
-################################################################################
-#-------------------------------- Setup done ----------------------------------#
-################################################################################
-
-#test_population <- HGDP_1KG_PCs_og_w_labels              # Publicly available PCs
-#test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
-test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
-
-UKB_PC_plot1 <- ggplot(test_population, aes(x = PC1, y = PC2, color = Genetic_similarity)) +
-  geom_point(size = 0.5) +
-  theme_minimal() +
-  # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
-  labs(
-    x = "Principal Component 1",
-    y = "Principal Component 2",
-    color = "Genetic Similarity"
-  )
-
-print(UKB_PC_plot1)
-
-```
-
-This is what it looks like when you include participants who were not successfully clustered.
-
-## Principal Components plot 4: UK Biobank Participants by self-reported ethnicity
-
-```{r pc-plot4-ukb-ethnicity, echo=FALSE, cache = FALSE}
-
-library(ggplot2)
-
-dxdownload("Callum/HGDP_1KG/HGDP_1KG_PCs.csv") # HGDP+1KG Principal components as calculated using AncestryProbability1_bigsnpr folder scripts
-dxdownload("Callum/HGDP_1KG/release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv") # This can be downloaded from https://console.cloud.google.com/storage/browser/gcp-public-data--gnomad/release/3.1/secondary_analyses/hgdp_1kg_v2/metadata_and_qc
-dxdownload("Callum/HGDP_1KG/hgdp_tgp_pca_covid19hgi_snps_scores.txt") # can be downloaded from:
-# https://console.cloud.google.com/storage/browser/covid19-hg-public/pca_projection;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
-
-## Working out which column of the HGDP+1KG metadata file to use as ancestry labels
-
-HGDP_1KG_metadata <- read.delim("release_3.1_secondary_analyses_hgdp_1kg_v2_metadata_and_qc_gnomad_meta_updated.tsv")
-
-## Decided on using "Genetic Region" as it is closest to what we see in UK Biobank "Genomic Ancestry" variable
-
-HGDP_1KG_metadata_ancestrylabel <- HGDP_1KG_metadata %>%
-  dplyr::select(c("s", "hgdp_tgp_meta.Genetic.region")) %>%
-  dplyr::rename("IID" = "s") %>%
-  dplyr::mutate("Genetic_similarity" = case_when(
-    hgdp_tgp_meta.Genetic.region == "AFR" ~ "African ancestry (AFR)",
-    hgdp_tgp_meta.Genetic.region == "AMR" ~ "Admixed American ancestry (AMR)",
-    hgdp_tgp_meta.Genetic.region == "CSA" ~ "Central/South Asian ancestry (CSA)",
-    hgdp_tgp_meta.Genetic.region == "EAS" ~ "East Asian ancestry (EAS)",
-    hgdp_tgp_meta.Genetic.region == "EUR" ~ "European ancestry (EUR)",
-    hgdp_tgp_meta.Genetic.region == "MID" ~ "Middle Eastern ancestry (MID)",
-    TRUE ~ NA_character_
-  ))
-
-HGDP_1KG_PCs <- read.csv("HGDP_1KG_PCs.csv") # PCs as I calculated them
-HGDP_1KG_PCs_w_labels <- merge(HGDP_1KG_PCs, HGDP_1KG_metadata_ancestrylabel, by = "IID")
-
-HGDP_1KG_PCs_og <- read.delim("hgdp_tgp_pca_covid19hgi_snps_scores.txt") %>% # Publicly available PCs
-  dplyr::rename("IID" = "s")
-HGDP_1KG_PCs_og_w_labels <- merge(HGDP_1KG_PCs_og, HGDP_1KG_metadata_ancestrylabel, by = "IID")
-
-################################################################################
-#-------------------------------- Setup done ----------------------------------#
-################################################################################
-
-#test_population <- HGDP_1KG_PCs_og_w_labels              # Publicly available PCs
-#test_population <- HGDP_1KG_PCs_w_labels                 # PCs as I calculated them
-test_population <- PCa_iv_covariates_GRS_clean           # Projected PCs of UKB participants - requires running "Logistic_Regresions_testing_Conti_GRS.R" to create
-
-UKB_PC_plot1 <- ggplot(test_population %>% dplyr::filter(ethnicity_group_narrow == "White" | ethnicity_group_narrow == "Black" | ethnicity_group_narrow == "Mixed White and Black"), aes(x = PC1, y = PC2, color = ethnicity_group_narrow)) +
-  geom_point(size = 0.5) +
-  theme_minimal() +
-  # coord_cartesian(xlim = c(-50, 80), ylim = c(-50, 60)) +
-  labs(
-    x = "Principal Component 1",
-    y = "Principal Component 2",
-    color = "Self-reported ethnicity"
-  )
-
-print(UKB_PC_plot1)
-
-```
 
 ## Karczewski's method
 
@@ -7163,6 +6966,8 @@ table1 <- formatted %>%
     Covariates == "Age" | Covariates == "FH_PrCa_BrCa" | Covariates == "Age + FH_PrCa_BrCa"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table1 <- remove_counts_u5(table1)
 
 pretty_print_table(table1)
 
@@ -7313,8 +7118,13 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
+
 model_levels <- unique(forestplot_df$Model)
+
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7343,8 +7153,13 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
+
 model_levels <- unique(forestplot_df$Model)
+
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -7360,18 +7175,6 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
 Conclusion: No significant difference, or significantly worse, compared to using multiethnic GRS weightings
 
 Since ROC AUCs were most similar across groups at the 10-year prediction horizon, let's see how well these integrated risk models can stratify participants:
-
-## Reference (Stratification using GRS alone)
-
-```{r download-grs-stratification, echo=FALSE, cache = FALSE}
-
-dxdownload("Callum/External_figures/GRSstratification.png")
-
-```
-
-![](GRSstratification.png)
-
-Risk ratio = ~1.7 Risk ratio ~ 2.7
 
 ## Top 10% of Integrated Risk Model "pred" score vs. bottom 90%
 
@@ -7759,6 +7562,8 @@ table4 <- formatted %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
+table4 <- remove_counts_u5(table4)
+
 pretty_print_table(table4)
 
 ## Statistical tests ##
@@ -7938,10 +7743,17 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
+
 pop_palette <- study_palette
+
 pop_levels <- levels(forestplot_df$Population)
+
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -7969,10 +7781,17 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   ) %>%
   dplyr::filter(!is.na(OR_per_1SD), !is.na(OR_per_1SD_CI_Lower), !is.na(OR_per_1SD_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
+
 pop_palette <- study_palette
+
 pop_levels <- levels(forestplot_df$Population)
+
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
+
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -7996,6 +7815,8 @@ table5 <- formatted %>%
     Outcome == "PrCa_2yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table5 <- remove_counts_u5(table5)
 
 pretty_print_table(table5)
 
@@ -8176,10 +7997,14 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   ) %>%
   dplyr::filter(!is.na(ROC_AUC), !is.na(ROC_AUC_CI_Lower), !is.na(ROC_AUC_CI_Upper)) %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
+
 pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -8211,6 +8036,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -8235,6 +8063,8 @@ table6 <- formatted %>%
     Outcome == "PrCa_5yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table6 <- remove_counts_u5(table6)
 
 pretty_print_table(table6)
 
@@ -8419,6 +8249,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -8450,6 +8283,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -8474,6 +8310,8 @@ table7 <- formatted %>%
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table7 <- remove_counts_u5(table7)
 
 pretty_print_table(table7)
 
@@ -8657,6 +8495,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -8688,6 +8529,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -8703,14 +8547,6 @@ ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group =
 ## So far, we've looked at general prostate cancer diagnoses
 
 But prostate cancer often has an overdiagnosis problem - cancers that are never expected to cause harm in a person's natural lifespan are unnecessarily treated
-
-```{r download-cruk-png, echo=FALSE, cache = FALSE}
-
-dxdownload("Callum/External_figures/CRUKprostatecancerscreening.png")
-
-```
-
-![](CRUKprostatecancerscreening.png)
 
 Overdiagnosis and overtreatment leads to harmful effects on healthy men: [Dushimova, 2025] 
 
@@ -8739,6 +8575,8 @@ table8 <- formatted %>%
     Outcome == "PrCa_actionable"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table8 <- remove_counts_u5(table8)
 
 pretty_print_table(table8)
 
@@ -8923,6 +8761,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -8954,6 +8795,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -8977,6 +8821,8 @@ table9 <- formatted %>%
     Outcome == "PrCa_actionable_2yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "Covariates", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome"))
+
+table9 <- remove_counts_u5(table9)
 
 pretty_print_table(table9)
 
@@ -9161,6 +9007,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -9192,6 +9041,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -9216,6 +9068,8 @@ table10 <- formatted %>%
     Outcome == "PrCa_actionable_5yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table10 <- remove_counts_u5(table10)
 
 pretty_print_table(table10)
 
@@ -9400,6 +9254,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -9431,6 +9288,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -9455,6 +9315,8 @@ table11 <- formatted %>%
     Outcome == "PrCa_actionable_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table11 <- remove_counts_u5(table11)
 
 pretty_print_table(table11)
 
@@ -9639,6 +9501,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -9670,6 +9535,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -9693,6 +9561,8 @@ table12 <- formatted %>%
     Outcome == "PrCa_severe"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table12 <- remove_counts_u5(table12)
 
 pretty_print_table(table12)
 
@@ -9877,6 +9747,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -9908,6 +9781,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -9932,6 +9808,8 @@ table13 <- formatted %>%
     Outcome == "PrCa_severe_2yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table13 <- remove_counts_u5(table13)
 
 pretty_print_table(table13)
 
@@ -10116,6 +9994,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -10147,6 +10028,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -10171,6 +10055,8 @@ table14 <- formatted %>%
     Outcome == "PrCa_severe_5yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table14 <- remove_counts_u5(table14)
 
 pretty_print_table(table14)
 
@@ -10355,6 +10241,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -10386,6 +10275,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -10410,6 +10302,8 @@ table15 <- formatted %>%
     Outcome == "PrCa_severe_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table15 <- remove_counts_u5(table15)
 
 pretty_print_table(table15)
 
@@ -10594,6 +10488,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -10625,6 +10522,9 @@ pop_palette <- study_palette
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(pop_palette[seq_along(pop_levels)], pop_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -10669,6 +10569,8 @@ table16 <- formatted %>%
     Outcome == "PrCa_actionable"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table16 <- remove_counts_u5(table16)
 
 pretty_print_table(table16)
 
@@ -10939,6 +10841,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -10968,6 +10873,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -10991,6 +10899,8 @@ table17 <- formatted %>%
     Outcome == "PrCa_actionable_2yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table17 <- remove_counts_u5(table17)
 
 pretty_print_table(table17)
 
@@ -11261,6 +11171,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -11290,6 +11203,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -11314,6 +11230,8 @@ table18 <- formatted %>%
     Outcome == "PrCa_actionable_5yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table18 <- remove_counts_u5(table18)
 
 pretty_print_table(table18)
 
@@ -11584,6 +11502,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -11613,6 +11534,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -11637,6 +11561,8 @@ table19 <- formatted %>%
     Outcome == "PrCa_actionable_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table19 <- remove_counts_u5(table19)
 
 pretty_print_table(table19)
 
@@ -11907,6 +11833,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -11936,6 +11865,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -11960,6 +11892,8 @@ table20 <- formatted %>%
     Outcome == "PrCa_severe"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table20 <- remove_counts_u5(table20)
 
 pretty_print_table(table20)
 
@@ -12230,6 +12164,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -12259,6 +12196,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -12283,6 +12223,8 @@ table21 <- formatted %>%
     Outcome == "PrCa_severe_2yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table21 <- remove_counts_u5(table21)
 
 pretty_print_table(table21)
 
@@ -12553,6 +12495,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -12582,6 +12527,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -12605,6 +12553,8 @@ table22 <- formatted %>%
     Outcome == "PrCa_severe_5yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table22 <- remove_counts_u5(table22)
 
 pretty_print_table(table22)
 
@@ -12875,6 +12825,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -12904,6 +12857,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -12928,6 +12884,8 @@ table23 <- formatted %>%
     Outcome == "PrCa_severe_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table23 <- remove_counts_u5(table23)
 
 pretty_print_table(table23)
 
@@ -13198,6 +13156,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -13227,6 +13188,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -13259,6 +13223,8 @@ table32 <- formatted %>%
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table32 <- remove_counts_u5(table32)
 
 pretty_print_table(table32)
 
@@ -13421,6 +13387,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -13450,6 +13419,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -13475,6 +13447,8 @@ table33 <- formatted %>%
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table33 <- remove_counts_u5(table33)
 
 pretty_print_table(table33)
 
@@ -13637,6 +13611,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -13666,6 +13643,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -13691,6 +13671,8 @@ table34 <- formatted %>%
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table34 <- remove_counts_u5(table34)
 
 pretty_print_table(table34)
 
@@ -13853,6 +13835,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -13882,6 +13867,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -13907,6 +13895,8 @@ table35 <- formatted %>%
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table35 <- remove_counts_u5(table35)
 
 pretty_print_table(table35)
 
@@ -14069,6 +14059,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -14098,6 +14091,9 @@ forestplot_df <- bulk %>%
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -14127,6 +14123,8 @@ table36 <- formatted %>%
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table36 <- remove_counts_u5(table36)
 
 pretty_print_table(table36)
 
@@ -14245,6 +14243,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   dplyr::mutate(Population = factor(Population, levels = rev(c(c("White", "Black", "Mixed", "Black+Mixed", "AFR")[c("White", "Black", "Mixed", "Black+Mixed", "AFR") %in% unique(as.character(Population))], setdiff(unique(as.character(Population)), c("White", "Black", "Mixed", "Black+Mixed", "AFR"))))), Model = paste(Predictor, Covariates, sep = " | "))
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -14275,6 +14276,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
 model_levels <- unique(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
 dodge <- position_dodge(width = 0.6)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = dodge, width = 0.2, linewidth = 0.6) +
@@ -14300,6 +14304,8 @@ table37 <- formatted %>%
   #  Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table37 <- remove_counts_u5(table37)
 
 pretty_print_table(table37)
 
@@ -14482,6 +14488,9 @@ Population == "White" | Population == "Black",
   )
 pop_levels <- levels(forestplot_df$Population)
 pop_colors <- setNames(c("#00c896", "#003c3c")[seq_along(pop_levels)], pop_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Outcome, y = ROC_AUC, color = Population, group = Population)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -15062,6 +15071,8 @@ table38 <- formatted %>%
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp",  "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?"))
 
+table38 <- remove_counts_u5(table38)
+
 pretty_print_table(table38)
 
 ## Statistical tests ##
@@ -15217,6 +15228,8 @@ table39 <- nri_bulk %>%
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "NRI", "NRI_CI_Lower", "NRI_CI_Upper", "p_NRI", "p_NRI_adj", "p_NRI_BH", "N_Cases", "N_Controls", "NRI_significant", "NRI_significant_adj", "NRI_significant_BH", "Cases_Percent_Reclassified_Up", "Cases_Percent_Reclassified_Down", "Controls_Percent_Reclassified_Up", "Controls_Percent_Reclassified_Down"))
 
+table39 <- remove_counts_u5(table39)
+
 pretty_print_table(table39)
 
 ```
@@ -15236,6 +15249,8 @@ table40 <- FI_formatted %>%
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "Full_ROC_AUC_4dp", "Delta_AUC_drop_GRS_4dp", "Delta_AUC_drop_Age_4dp", "GRS_OR_adj_CI_95", "Age_OR_adj_CI_95", "GRS_added_value", "Age_added_value", "N_Cases", "N_Controls"))
 
+table40 <- remove_counts_u5(table40)
+
 pretty_print_table(table40)
 
 ```
@@ -15250,6 +15265,8 @@ table41 <- RF_formatted %>%
     Predictor == "ContimultiethnicGRS267" | Predictor == "ContiAfricanGRS246" | Predictor == "ContiORadjustedGRS" | Predictor == "WangAfricanGRS444" | Predictor == "SchumacherGRS145" | Predictor == "BARCODE1GRS129" | Predictor == "SeibertGRS52" | Predictor == "PagadalaGRS285" | Predictor == "GenomicsPLC_PRS"
   ) %>%
   dplyr::select(c("Outcome", "Population", "Predictor", "Covariates", "OOB_ROC_AUC_4dp", "GRS_MDA_4dp", "Age_MDA_4dp", "GRS_Pct_Importance_1dp", "Age_Pct_Importance_1dp", "N_Cases", "N_Controls"))
+
+table41 <- remove_counts_u5(table41)
 
 pretty_print_table(table41)
 
@@ -15346,6 +15363,8 @@ table42 <- formatted2 %>%
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
 
+table42 <- remove_counts_u5(table42)
+
 pretty_print_table(table42)
 
 ```
@@ -15380,6 +15399,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -15422,6 +15444,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -15450,6 +15475,8 @@ table43 <- formatted2 %>%
     Outcome == "PrCa_2yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table43 <- remove_counts_u5(table43)
 
 pretty_print_table(table43)
 
@@ -15485,6 +15512,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -15527,6 +15557,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -15555,6 +15588,8 @@ table44 <- formatted2 %>%
     Outcome == "PrCa_5yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table44 <- remove_counts_u5(table44)
 
 pretty_print_table(table44)
 
@@ -15590,6 +15625,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -15632,6 +15670,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -15660,6 +15701,8 @@ table45 <- formatted2 %>%
     Outcome == "PrCa_10yrs"
   ) %>%
   dplyr::select(c("Population", "Predictor", "Covariates", "ROC_AUC_CI_95_4dp", "OR_per_1SD_CI_95", "N_Cases", "N_Controls", "Age_only_ROC_AUC_CI_Upper", "GRS+Age > Age?", "Outcome", "Prevalence", "PR_AUC"))
+
+table45 <- remove_counts_u5(table45)
 
 pretty_print_table(table45)
 
@@ -15695,6 +15738,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = ROC_AUC, color = Model, group = Model)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = ROC_AUC_CI_Lower, ymax = ROC_AUC_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
@@ -15737,6 +15783,9 @@ Population == "White" | Population == "Black" | Population == "Mixed" | Populati
   )
 model_levels <- levels(forestplot_df$Model)
 model_colors <- palette_named(model_levels)
+
+forestplot_df <- remove_counts_u5(forestplot_df)
+
 ggplot(forestplot_df, aes(x = Population, y = OR_per_1SD, color = Model, group = Model)) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "#898b8d") +
   geom_errorbar(aes(ymin = OR_per_1SD_CI_Lower, ymax = OR_per_1SD_CI_Upper), position = position_dodge(width = 0.6), width = 0.2, linewidth = 0.6) +
