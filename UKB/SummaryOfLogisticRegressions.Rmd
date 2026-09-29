@@ -1,5 +1,5 @@
 ﻿---
-title: "Callum's Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
+title: "Summary of Logistic Regressions, Odds Ratios, Risk Ratios, NRIs, etc. to test GRS performance in Prostate Cancer risk prediction"
 output: html_document
 date: "2026-04-22"
 ---
@@ -15,6 +15,66 @@ knitr::opts_chunk$set(
   fig.path = "htmlsummary_files/figure-html/",
   cache.path = "htmlsummary_cache/"
 )
+
+```
+
+
+```{r instructions, eval=FALSE, echo=FALSE, include=FALSE, cache=FALSE}
+
+## For this script to work, you will need to collate some datasets using the cohort browser
+## AND run some scripts to prepare genetic risk scores and other variables. These are as follows:
+## (file paths are given so you know where in your DNAnexus project to store them if you want the script to run as written)
+
+
+# Callum/Derived_datasets/KLK3.csv			              # Dataset of KLK3 (Olink Instance 0 NPX Result proteomics) readings, created using the UKB-RAP cohort browser
+# Callum/Derived_datasets/imputed_rs72725854.csv			# Dataset of rs72725854 SNP carrier status, created using "Extracting_rs72725854_carriers.R"
+# Callum/Derived_datasets/Age_Sex_PRS_GA.csv			    # Dataset of Age at Recruitment (p21022), Sex (p31), Genetically-inferred Sex (p22001), Standard PRS for Prostate cancer (p26267), Enhanced PRS for Prostate cancer (p26268), Genomic Ancestry (p30079), created using the UKB-RAP cohort browser
+# Callum/Derived_datasets/ethnicity.csv			          # Dataset of self-reported Ethnic Background (p21000_i0), created using the UKB-RAP cohort browser
+# Callum/HGDP_1KG/HGDP_1KG_PCs_UKB2_scaled.csv	      # Projected Principal Components of UKB participants in the principal components space of the HGDP+1000 Genomes reference panel, calculated using "AncestryProbability2calculation.R" in AncestryProbability2_plink folder
+# Callum/Derived_datasets/AncestryProbability1.csv	  # Genetic similarity probabilities for Ancestry group calculated using AncestryProbability1_bigsnpr folder scripts
+# Callum/Derived_datasets/AncestryProbability2.csv 	  # Genetic similarity probabilities for Ancestry group calculated using AncestryProbability2_plink folder script
+# Callum/Derived_datasets/FH_PrCa_BrCa.csv		        # Dataset of Family History of Prostate Cancer and Breast Cancer, created using "Family_history.R" script
+
+# Callum/GRSs/Conti_multi_ethnic.pgs.tsv		          # Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Multiethnic Analysis"
+# Callum/GRSs/Conti_European.pgs.tsv 		              # Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "European...16"
+# Callum/GRSs/Conti_African.pgs.tsv			              # Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "African...19"
+# Callum/GRSs/Conti_East_Asian.pgs.tsv		            # Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "East Asian...22"
+# Callum/GRSs/Conti_Hispanic.pgs.tsv		              # Calculated Conti GRS for all eligible participants using "Conti_script" with "effect_weight" set to "Hispanic...25"
+
+# Callum/GRSs/Conti_multiethnicGRS_267.tsv		        # Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Conti"
+# Callum/GRSs/Conti_EuropeanGRS_265.tsv 		          # Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Conti"
+# Callum/GRSs/Conti_AfricanGRS_246.tsv			          # Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Conti"
+# Callum/GRSs/Conti_East_AsianGRS_222.tsv		          # Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Conti"
+# Callum/GRSs/Conti_HispanicGRS_253.tsv		            # Calculated Conti GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Conti"
+
+# Callum/GRSs/Wang_multi_ethnic.pgs.tsv		            # Calculated Wang GRS for all eligible participants using "Conti_script"
+# Callum/GRSs/Wang_European.pgs.tsv 		              # Calculated Wang GRS for all eligible participants using "Conti_script" 
+# Callum/GRSs/Wang_African.pgs.tsv			              # Calculated Wang GRS for all eligible participants using "Conti_script"
+# Callum/GRSs/Wang_East_Asian.pgs.tsv		              # Calculated Wang GRS for all eligible participants using "Conti_script"
+# Callum/GRSs/Wang_Hispanic.pgs.tsv		                # Calculated Wang GRS for all eligible participants using "Conti_script"
+
+# Callum/GRSs/Wang_multiethnicGRS_450.tsv		          # Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_MULTI" and "source" set to "Wang"
+# Callum/GRSs/Wang_EuropeanGRS_445.tsv 		            # Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EUR" and "source" set to "Wang"
+# Callum/GRSs/Wang_AfricanGRS_444.tsv			            # Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_AFR" and "source" set to "Wang"
+# Callum/GRSs/Wang_East_AsianGRS_379.tsv		          # Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_EAS" and "source" set to "Wang"
+# Callum/GRSs/Wang_HispanicGRS_446.tsv		            # Calculated Wang GRS for all eligible participants using "Conti_GRS_267.R" with "OR_column" set to "OR_HIS" and "source" set to "Wang"
+
+# Callum/GRSs/OR_adjustedGRS_267.tsv	                # Calculated using "Create_adjustedGRS_weighting_Conti_odds_ratios_by_AncestryProbability2.R" script
+
+# Callum/GRSs/Schumacher.pgs.tsv                      # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_script"
+# Callum/GRSs/SchumacherGRS_145.tsv                   # Calculated Schumacher (2018) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Schumacher"
+
+# Callum/GRSs/BARCODE1.pgs.tsv                        # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_script"
+# Callum/GRSs/BARCODE1GRS_129.tsv                     # Calculated BARCODE1 (2021) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "BARCODE1"
+
+# Callum/GRSs/Seibert.pgs.tsv                         # Calculated Seibert (2018) GRS for all eligible participants using "Conti_script"
+# Callum/GRSs/SeibertGRS_52.tsv                       # Calculated Seibert (2018) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Seibert"
+
+# Callum/GRSs/Pagadala.pgs.tsv                        # Calculated Pagadala (2022) GRS for all eligible participants using "Conti_script"
+# Callum/GRSs/PagadalaGRS_285.tsv                     # Calculated Pagadala (2022) GRS for all eligible participants using "Conti_GRS_267.R" with "source" set to "Pagadala"
+
+# Callum/LUTS/Green2022supplementarytable1.csv        # This is the supplementary table 1 from Harry Green's LUTS paper, converted to .csv format using excel. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC9553867/
+
 
 ```
 
