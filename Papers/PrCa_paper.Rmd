@@ -4311,7 +4311,7 @@ supplementary_table3 <- asymptomatic_screening_summary %>% dplyr::select(
     Population, Predictor, Covariates, Outcome, N_Cases, N_Controls, Prevalence, ROC_AUC_CI_95_4dp, ROC_AUC, ROC_AUC_CI_Lower, ROC_AUC_CI_Upper, OR_per_1SD, OR_per_1SD_CI_Lower, OR_per_1SD_CI_Upper, PR_AUC
 ) %>% dplyr::filter(
   Population == "White" | Population == "Black" | Population == "EUR" | Population == "AFR",
-  Outcome == "PrCa_2yrs" | Outcome == "PrCa_5yrs" | Outcome == "PrCa_10yrs",
+  Outcome == "PrCa_2yrs" | Outcome == "PrCa_5yrs" | Outcome == "PrCa_10yrs" | Outcome == "PrCa_actionable_2yrs" | Outcome == "PrCa_actionable_5yrs" | Outcome == "PrCa_actionable_10yrs",
   Predictor != "GRS147" & Predictor != "GRS269-ORadj" & Predictor != "PHS290" & Predictor != "PHS54"
 ) %>% dplyr::distinct() # ensure there are no duplicate rows
 
@@ -5454,4 +5454,4 @@ knitr::include_graphics(supplementary_figure_path3)
 
 ```
 
-**Supplementary Figure 3: Odds Ratio of PrCa diagnosis by Age-only / Age + GRS~269~-Multi IRM decile; and ethnicity, relative to the median quintile (40-60%).**
+**Supplementary Figure 3: Odds Ratio of PrCa diagnosis by Age-only / Age + GRS~269~-Multi IRM decile; and ethnicity, relative to the median quintile (40-60%).** Results are shown for a 10-year prediction horizon following the UK Biobank assessment centre visit. Decile bins were standardised A) within subpopulation groups; and B) within the global population of men in the cohort. Figure generated in `r R.version$version.string` ("`r R.version$nickname`").
