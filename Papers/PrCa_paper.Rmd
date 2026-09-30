@@ -4818,15 +4818,6 @@ s2_group_bounds <- list(
 
 write_grouped_sheet(wb, "S2", supplementary_table2, s2_group_bounds, header_style, group_style)
 
-## S8: preserve the model/threshold group headings, derived from its existing group-size index
-
-s8_group_ends <- cumsum(supplementary_table8_group_index)
-s8_group_starts <- s8_group_ends - supplementary_table8_group_index + 1L
-s8_group_bounds <- Map(c, s8_group_starts, s8_group_ends)
-names(s8_group_bounds) <- names(supplementary_table8_group_index)
-
-write_grouped_sheet(wb, "S8", supplementary_table8_display, s8_group_bounds, header_style, group_style)
-
 ## S3-S7: plain sheets
 
 for (sheet_name in c("S3", "S4", "S5", "S6", "S7")) {
@@ -4835,6 +4826,15 @@ for (sheet_name in c("S3", "S4", "S5", "S6", "S7")) {
   openxlsx::writeData(wb, sheet_name, sheet_data, headerStyle = header_style)
   openxlsx::setColWidths(wb, sheet_name, cols = 1:ncol(sheet_data), widths = "auto")
 }
+
+## S8: preserve the model/threshold group headings, derived from its existing group-size index
+
+s8_group_ends <- cumsum(supplementary_table8_group_index)
+s8_group_starts <- s8_group_ends - supplementary_table8_group_index + 1L
+s8_group_bounds <- Map(c, s8_group_starts, s8_group_ends)
+names(s8_group_bounds) <- names(supplementary_table8_group_index)
+
+write_grouped_sheet(wb, "S8", supplementary_table8_display, s8_group_bounds, header_style, group_style)
 
 openxlsx::saveWorkbook(wb, file = "supplementary_tables.xlsx", overwrite = TRUE)
 
