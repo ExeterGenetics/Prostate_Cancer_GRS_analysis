@@ -2262,12 +2262,15 @@ if (UKB_summary_table_source == "RMarkdown_HTML") {
       Model_A == "Age" & Model_B == "GRS269-Multi + Age",
       Outcome %in% c("PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs")
     ) %>%
-    dplyr::mutate(Delta_ROC_AUC = AUC_B - AUC_A) %>% 
+    dplyr::mutate(
+      Delta_ROC_AUC = AUC_B - AUC_A,
+      Delta_ROC_AUC_pct = (Delta_ROC_AUC / AUC_A) * 100
+    ) %>%   
     dplyr::summarise(
       delta_ROC_AUC_min = min(Delta_ROC_AUC, na.rm = TRUE),
-      delta_ROC_AUC_min_pct = min(Delta_ROC_AUC, na.rm = TRUE) / first(AUC_A) * 100,
+      delta_ROC_AUC_min_pct = min(Delta_ROC_AUC_pct, na.rm = TRUE),
       delta_ROC_AUC_max = max(Delta_ROC_AUC, na.rm = TRUE),
-      delta_ROC_AUC_max_pct = max(Delta_ROC_AUC, na.rm = TRUE) / first(AUC_A) * 100,
+      delta_ROC_AUC_max_pct = max(Delta_ROC_AUC_pct, na.rm = TRUE),
       p_value_BH_min = min(p_value_BH, na.rm = TRUE),
       p_value_BH_max = max(p_value_BH, na.rm = TRUE)
     )
@@ -2278,12 +2281,15 @@ if (UKB_summary_table_source == "RMarkdown_HTML") {
       Model_A == "Age" & Model_B == "GRS269-Multi + Age",
       Outcome %in% c("PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs")
     ) %>%
-    dplyr::mutate(Delta_ROC_AUC = AUC_B - AUC_A) %>% 
+    dplyr::mutate(
+      Delta_ROC_AUC = AUC_B - AUC_A,
+      Delta_ROC_AUC_pct = (Delta_ROC_AUC / AUC_A) * 100
+    ) %>% 
     dplyr::summarise(
       delta_ROC_AUC_min = min(Delta_ROC_AUC, na.rm = TRUE),
-      delta_ROC_AUC_min_pct = min(Delta_ROC_AUC, na.rm = TRUE) / first(AUC_A) * 100,
+      delta_ROC_AUC_min_pct = min(Delta_ROC_AUC_pct, na.rm = TRUE),
       delta_ROC_AUC_max = max(Delta_ROC_AUC, na.rm = TRUE),
-      delta_ROC_AUC_max_pct = max(Delta_ROC_AUC, na.rm = TRUE) / first(AUC_A) * 100,
+      delta_ROC_AUC_max_pct = max(Delta_ROC_AUC_pct, na.rm = TRUE),
       p_value_BH_min = min(p_value_BH, na.rm = TRUE),
       p_value_BH_max = max(p_value_BH, na.rm = TRUE)
     )
@@ -2306,12 +2312,15 @@ if (UKB_summary_table_source == "RMarkdown_HTML") {
       Model_A == "GRS269-Multi + Age" & Model_B == "GRS269-Multi + Age + FHx",
       Outcome %in% c("PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs")
     ) %>%
-    dplyr::mutate(Delta_ROC_AUC = AUC_B - AUC_A) %>% 
+    dplyr::mutate(
+      Delta_ROC_AUC = AUC_B - AUC_A,
+      Delta_ROC_AUC_pct = (Delta_ROC_AUC / AUC_A) * 100
+    ) %>% 
     dplyr::summarise(
       delta_ROC_AUC_min = min(Delta_ROC_AUC, na.rm = TRUE),
-      delta_ROC_AUC_min_pct = min(Delta_ROC_AUC, na.rm = TRUE) / first(AUC_A) * 100,
+      delta_ROC_AUC_min_pct = min(Delta_ROC_AUC_pct, na.rm = TRUE),
       delta_ROC_AUC_max = max(Delta_ROC_AUC, na.rm = TRUE),
-      delta_ROC_AUC_max_pct = max(Delta_ROC_AUC, na.rm = TRUE) / first(AUC_A) * 100,
+      delta_ROC_AUC_max_pct = max(Delta_ROC_AUC_pct, na.rm = TRUE),
       p_value_BH_min = min(p_value_BH, na.rm = TRUE),
       p_value_BH_max = max(p_value_BH, na.rm = TRUE)
     )
@@ -2322,12 +2331,15 @@ if (UKB_summary_table_source == "RMarkdown_HTML") {
       Model_A == "GRS269-Multi + Age" & Model_B == "GRS269-Multi + Age + FHx",
       Outcome %in% c("PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs")
     ) %>%
-    dplyr::mutate(Delta_ROC_AUC = AUC_B - AUC_A) %>% 
+    dplyr::mutate(
+      Delta_ROC_AUC = AUC_B - AUC_A,
+      Delta_ROC_AUC_pct = (Delta_ROC_AUC / AUC_A) * 100
+    ) %>% 
     dplyr::summarise(
       delta_ROC_AUC_min = min(Delta_ROC_AUC, na.rm = TRUE),
-      delta_ROC_AUC_min_pct = min(Delta_ROC_AUC, na.rm = TRUE) / first(AUC_A) * 100,
+      delta_ROC_AUC_min_pct = min(Delta_ROC_AUC_pct, na.rm = TRUE),
       delta_ROC_AUC_max = max(Delta_ROC_AUC, na.rm = TRUE),
-      delta_ROC_AUC_max_pct = max(Delta_ROC_AUC, na.rm = TRUE) / first(AUC_A) * 100,
+      delta_ROC_AUC_max_pct = max(Delta_ROC_AUC_pct, na.rm = TRUE),
       p_value_BH_min = min(p_value_BH, na.rm = TRUE),
       p_value_BH_max = max(p_value_BH, na.rm = TRUE)
     )
