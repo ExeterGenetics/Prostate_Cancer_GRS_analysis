@@ -3904,7 +3904,7 @@ Correspondence should be addressed to Harry Green (H.D.Green@exeter.ac.uk).
 
 ### Acknowledgements
 
-The authors thank Prostate Cancer UK for funding and supporting this research, as well as all staff and research participants who have donated their data to the UK Biobank and Our Future Health research programmes. The authors also thank Freemasons for their support.
+The authors thank Prostate Cancer UK for funding and supporting this research, as well as all staff and research participants who have donated their data to the UK Biobank and Our Future Health research programmes. The authors also thank the Royal Arch Freemasons Devonshire for their generous donations, which supported this work.
 
 \newpage
 
