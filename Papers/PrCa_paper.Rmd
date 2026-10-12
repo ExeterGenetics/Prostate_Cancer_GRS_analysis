@@ -3878,7 +3878,7 @@ Not applicable.
 
 ### Availability of data and materials
 
-All data in this study were obtained from the UK Biobank and Our Future Health studies under study IDs 103356 and OFHS260023, respectively. Information on how to access these datasets can be found at https://www.ukbiobank.ac.uk/use-our-data/apply-for-access/ and https://ourfuturehealth.org.uk/researchers/, respectively.
+This research has been conducted using the UK Biobank and Our Future Health resources under study IDs 103356 and OFHS260023, respectively. Information on how to access these datasets can be found at https://www.ukbiobank.ac.uk/use-our-data/apply-for-access/ and https://ourfuturehealth.org.uk/researchers/.
 
 This work uses data that has been provided by patients and collected by the NHS as part of their care and support. The data are collated, maintained and quality assured by the National Disease Registration Service, which is part of NHS England. Access to the data was facilitated by the NHS England Data Access Request Service.
 
