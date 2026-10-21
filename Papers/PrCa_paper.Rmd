@@ -5465,3 +5465,119 @@ knitr::include_graphics(supplementary_figure_path3)
 ```
 
 **Supplementary Figure 3: Odds Ratio of PrCa diagnosis by Age-only / Age + GRS~269~-Multi IRM decile; and ethnicity, relative to the median quintile (40-60%).** Results are shown for a 10-year prediction horizon following the UK Biobank assessment centre visit. Decile bins were standardised A) within subpopulation groups; and B) within the global population of men in the cohort. Figure generated in `r R.version$version.string` ("`r R.version$nickname`").
+
+
+
+```{r figure1_simplified, eval=TRUE, echo=FALSE, include=TRUE, cache=FALSE, fig.height=5}
+
+ROC_AUC_forestplot_simplified <- create_forest_plot(
+  data = asymptomatic_screening_summary,
+  outcome = "PrCa_10yrs",
+  populations = c("White", "Black"),
+  predictors = c("Age", "GRS269-Multi"),
+  covariates = c("None", "Age"),
+  metric = "ROC_AUC",
+  title = FALSE,
+  key = TRUE
+)
+
+OR_per_SD_forestplot_simplified <- create_forest_plot(
+  data = asymptomatic_screening_summary,
+  outcome = "PrCa_10yrs",
+  populations = c("White", "Black"),
+  predictors = c("Age", "GRS269-Multi"),
+  covariates = c("None", "Age"),
+  metric = "OR_per_1SD",
+  title = FALSE,
+  key = TRUE
+) #+
+  #theme(
+  #  axis.title.y = element_blank(),              ## Commented out when plotting top and bottom panels together
+  #  axis.text.y = element_blank(),
+  #  plot.margin = margin(l = -12, r = -8)
+  #)
+
+## Collate as a multi-panel figure, with only one legend for the whole figure
+
+library(cowplot)
+
+legend <- cowplot::get_legend(
+  ROC_AUC_forestplot_simplified +
+    theme(
+      legend.position = "right",
+      legend.direction = "vertical",
+      legend.box = "vertical",
+      legend.box.margin = margin(l = 10, r = 15),
+      legend.key.size = unit(0.8, "cm"),
+      legend.margin = margin(l = 10, r = 10)
+    ) +
+    guides(
+      color = guide_legend(
+        ncol = 1,
+        override.aes = list(size = 3)
+      )
+    )
+)
+
+plots3 <- plot_grid(
+  ROC_AUC_forestplot_simplified + theme(legend.position = "none"),
+  OR_per_SD_forestplot_simplified + theme(legend.position = "none"),
+  ncol = 1,
+  nrow = 2,
+  align = "hv",
+  rel_heights = c(1, 1),
+  labels = "AUTO",
+  label_size = 14,
+  label_fontface = "bold",
+  label_x = 0,
+  label_y = 1,
+  hjust = 0,
+  vjust = 1
+)
+
+legend_right <- cowplot::ggdraw() +
+  cowplot::draw_grob(
+    legend,
+    x = 1,
+    y = 0.5,
+    width = 1,
+    height = 1,
+    hjust = 1,
+    vjust = 0.5
+  )
+
+multi_panel_figure1_simplified <- cowplot::ggdraw() +
+  cowplot::draw_plot(
+    plots3,
+    x = 0,
+    y = 0,
+    width = 0.75,
+    height = 1
+  ) +
+  cowplot::draw_plot(
+    legend_right,
+    x = 0.75,
+    y = 0,
+    width = 0.25,
+    height = 1
+  )
+
+## ggsave the figure then import
+
+figure_path_simplified1 <- file.path("figures", "multi_panel_figure1_simplified.png")
+
+ggplot2::ggsave(
+  filename = figure_path_simplified1,
+  plot = multi_panel_figure1_simplified,
+  width = 170,
+  height = 170,
+  units = "mm",
+  dpi = 300,
+  bg = "white"
+)
+
+knitr::include_graphics(figure_path_simplified1)
+
+```
+
+## Alt Figure 1 with 10 year only
