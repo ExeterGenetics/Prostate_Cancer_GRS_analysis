@@ -114,9 +114,11 @@ run_logreg <- function(data,
   }
   
   logreg <- glm(formula, data = data, family = binomial)
+
   if (show_output) {
     print(summary(logreg))
   }
+
   data$pred <- predict(logreg, data, type = "response")
   data$predtop10 <- data$pred >= quantile(data$pred, probs = 0.9, na.rm = TRUE, names = FALSE)
   data$predtop20 <- data$pred >= quantile(data$pred, probs = 0.8, na.rm = TRUE, names = FALSE)
@@ -1416,9 +1418,11 @@ logreg_table <- function(
   
   # Total combinations to process
   total_combos <- length(outcomes) * length(populations) * length(grs_list) * length(covariates_list)
+  
   if (include_age_only) {
     total_combos <- total_combos + length(outcomes) * length(populations)
   }
+
   combo_count <- 0
   
   # Loop over all combinations
@@ -1446,6 +1450,7 @@ logreg_table <- function(
           }
 
           missing_covariates <- setdiff(effective_covariates, colnames(pop_data))
+          
           if (length(missing_covariates) > 0) {
             if (verbose) {
               cat(sprintf("  Skipping (missing covariates in %s: %s)\n",
