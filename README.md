@@ -13,7 +13,7 @@ If you are here to reproduce the analyses from the paper "Current Prostate Cance
 
 ### Step 2: Reproduce Our Future Health Results
 
-1. Run `GRS_script.ipynb`. This requires that you upload supplementary table 4 from both Conti et al. (2021) (link: https://www.nature.com/articles/s41588-020-00748-0) and supplementary table 4 from Wang et al. (2023) (https://www.nature.com/articles/s41588-023-01534-4) as .csv files with the first ~4 rows trimmed, at that you use a polygenic scoring script from lcpilling. If you do not have access to this script, please email L.Pilling@exeter.ac.uk.
+1. Run `GRS_script.ipynb`. This requires that you upload supplementary table 4 from both Conti et al. (2021) (link: https://www.nature.com/articles/s41588-020-00748-0) and supplementary table 4 from Wang et al. (2023) (https://www.nature.com/articles/s41588-023-01534-4) as .csv files with the first ~4 rows trimmed, at that you use a polygenic scoring script from lcpilling, found in https://github.com/ExeterGenetics/OFH_Tutorials_and_Functions/blob/main/polygenic_score/polygenic_score.sh
 2. Run `Logistic_Regressions.ipynb`. Tip: use a higher instance for this (at least 32GB RAM).
 3. Run `Age_at_Diagnosis.ipynb`.
 
