@@ -6,6 +6,8 @@
 ### and "Age_at_Diagnosis.ipynb" in the Our Future Health TRE on DNAnexus. After retrieving those files from the
 ### TRE via an airlock request, this script creates plots from the summary statistics tables.
 
+## Since this code runs locally, it does not require a spark cluster
+
 ###############################################################################################
 # Step 0: set working directory to the folder where the summary statistics tables are stored, #
 #         and read in the summary statistics tables                                           #

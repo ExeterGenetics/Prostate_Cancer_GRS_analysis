@@ -6,6 +6,8 @@
 ## - PC2
 ## - PC3
 ## - ...etc
+##
+## Note that these functions do not require a spark cluster instance.
 
 plot_principal_components <- function(
     data,

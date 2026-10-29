@@ -1,6 +1,9 @@
 # This script sets up the logistic regression, confusion matrix, and net benefit decision curve functions used in 
 # Logistic_Regressions.ipynb
 
+# Note that this script does not inherently require a spark cluster, but it is mainly used in
+# Logistic_Regressions.ipynb which does require a spark cluster. 
+
 ## Helper: attempt installation without stopping immediately if installation fails
 
 try_install_package <- function(pkg) {
