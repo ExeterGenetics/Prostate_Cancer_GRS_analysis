@@ -2040,7 +2040,7 @@ build_populations_for_screening_date <- function(screening_date,
                                                  require_genetic_data = TRUE,
                                                  genetic_data_marker = "ContiMultiethnicGRS") {
 
-  base_data <- PrCa_prediagnosis_males %>%
+  base_data <- all_data_PrCa_GRS_males %>%
     dplyr::filter(!is.na(.data[[screening_date]]))
 
   if (isTRUE(require_genetic_data)) {
@@ -3556,16 +3556,16 @@ simulate_participant_risk <- function(logreg_model,
     # Use global standardisation: calculate the quantiles based on the entire dataset
 
     participant_data <- data.frame(
-      ContiMultiethnicGRS = quantile(PrCa_prediagnosis_males$ContiMultiethnicGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      ContiEURGRS = quantile(PrCa_prediagnosis_males$ContiEURGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      ContiAFRGRS = quantile(PrCa_prediagnosis_males$ContiAFRGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      ContiEASGRS = quantile(PrCa_prediagnosis_males$ContiEASGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      ContiHISGRS = quantile(PrCa_prediagnosis_males$ContiHISGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      WangMultiethnicGRS = quantile(PrCa_prediagnosis_males$WangMultiethnicGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      WangEURGRS = quantile(PrCa_prediagnosis_males$WangEURGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      WangAFRGRS = quantile(PrCa_prediagnosis_males$WangAFRGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      WangEASGRS = quantile(PrCa_prediagnosis_males$WangEASGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
-      WangHISGRS = quantile(PrCa_prediagnosis_males$WangHISGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      ContiMultiethnicGRS = quantile(all_data_PrCa_GRS_males$ContiMultiethnicGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      ContiEURGRS = quantile(all_data_PrCa_GRS_males$ContiEURGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      ContiAFRGRS = quantile(all_data_PrCa_GRS_males$ContiAFRGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      ContiEASGRS = quantile(all_data_PrCa_GRS_males$ContiEASGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      ContiHISGRS = quantile(all_data_PrCa_GRS_males$ContiHISGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      WangMultiethnicGRS = quantile(all_data_PrCa_GRS_males$WangMultiethnicGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      WangEURGRS = quantile(all_data_PrCa_GRS_males$WangEURGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      WangAFRGRS = quantile(all_data_PrCa_GRS_males$WangAFRGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      WangEASGRS = quantile(all_data_PrCa_GRS_males$WangEASGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
+      WangHISGRS = quantile(all_data_PrCa_GRS_males$WangHISGRS, probs = participant_GRS_percentile, na.rm = TRUE, names = FALSE),
       FHx_PrCa = participant_FHx_PrCa,
       FHx_BrCa = participant_FHx_BrCa,
       FHx_PrCa_BrCa = participant_FHx_PrCa_BrCa,
