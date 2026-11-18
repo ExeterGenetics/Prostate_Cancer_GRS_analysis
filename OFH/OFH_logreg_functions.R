@@ -498,8 +498,9 @@ assess_logistic_calibration <- function(
 
 run_logreg <- function(data,
                        outcome,
-                       predictor,
+                       predictor = NULL,
                        covariates = NULL,
+                       formula = NULL,
                        screening_date = NULL,
                        subset_controls = FALSE,
                        plot_roc = TRUE,
@@ -510,6 +511,34 @@ run_logreg <- function(data,
                        remove_dead_controls = TRUE,
                        remove_too_young_controls = TRUE,
                        suppress_warnings = FALSE) {
+
+  if (is.null(formula) && is.null(predictor)) {
+    stop("Either formula or predictor must be supplied.")
+  }
+
+  using_formula <- !is.null(formula)
+
+  if (!is.null(formula)) {
+    if (!is.null(predictor) || !is.null(covariates)) {
+      stop("formula cannot be used with predictor or covariates. Supply either formula, or predictor and covariates.")
+    }
+
+    formula <- tryCatch(
+      stats::as.formula(formula),
+      error = function(e) {
+        stop("formula must be a valid glm-ready formula: ", e$message)
+      }
+    )
+
+    if (length(formula) != 3L) {
+      stop("formula must include both a response and predictor terms.")
+    }
+
+    formula_outcome <- as.character(formula[[2L]])
+    if (!identical(formula_outcome, outcome)) {
+      stop("The response in formula must match outcome.")
+    }
+  }
 
   manual_roc_fallback <- function(data, outcome, show_output = TRUE) {
     y <- data[[outcome]]
@@ -586,10 +615,16 @@ run_logreg <- function(data,
 
   ## Skip age_asd models for fixed screening dates
 
+  formula_terms <- if (!using_formula) {
+    character()
+  } else {
+    all.vars(formula)[-1L]
+  }
+
   if (uses_age_asd_inappropriately(
     screening_date = screening_date,
     predictor = predictor,
-    covariates = covariates
+    covariates = c(covariates, formula_terms)
   )) {
     if (!suppress_warnings) message(age_asd_skip_message)
 
@@ -601,6 +636,7 @@ run_logreg <- function(data,
       outcome = outcome,
       predictor = predictor,
       covariates = covariates,
+      formula = formula,
       roc = NULL,
       pr = NULL,
       calibration = NULL,
@@ -736,19 +772,36 @@ run_logreg <- function(data,
       data <- subset_controls_to_case_count(data, case_col = outcome)
     }
 
-  if (is.null(covariates)) {
-    formula <- as.formula(paste(outcome, "~", predictor))
+  if (!using_formula) {
+    if (is.null(covariates)) {
+      formula <- as.formula(paste(outcome, "~", predictor))
+    } else {
+      formula <- as.formula(
+        paste(outcome, "~", predictor, "+", paste(covariates, collapse = " + "))
+      )
+    }
+  }
+
+  formula_label <- if (using_formula) {
+    paste(deparse(formula), collapse = "")
+  } else if (is.null(covariates)) {
+    predictor
   } else {
-    formula <- as.formula(
-      paste(outcome, "~", predictor, "+", paste(covariates, collapse = " + "))
-    )
+    paste(predictor, "+", paste(covariates, collapse = " + "))
   }
   
   ## Complete-case check
 
   # Split interaction/transformed terms (e.g. "A*B") into underlying column names
-  covariate_vars <- unique(unlist(lapply(covariates, function(x) all.vars(stats::as.formula(paste("~", x))))))
-  model_vars <- unique(c(outcome, all.vars(stats::as.formula(paste("~", predictor))), covariate_vars))
+  if (!using_formula) {
+    covariate_vars <- unique(unlist(lapply(covariates, function(x) all.vars(stats::as.formula(paste("~", x))))))
+    model_vars <- unique(c(outcome, all.vars(stats::as.formula(paste("~", predictor))), covariate_vars))
+  } else {
+    model_vars <- unique(all.vars(formula))
+    if ("." %in% model_vars) {
+      model_vars <- unique(c(outcome, setdiff(names(data), outcome)))
+    }
+  }
 
   missing_model_vars <- setdiff(model_vars, names(data))
 
@@ -821,15 +874,7 @@ run_logreg <- function(data,
       plot_calibration = plot_calibration && show_output,
       plot_title = paste0(
         "Calibration plot: ",
-        predictor,
-        if (!is.null(covariates)) {
-          paste0(
-            " + ",
-            paste(covariates, collapse = " + ")
-          )
-        } else {
-          ""
-        },
+        formula_label,
         "\nOutcome: ",
         outcome
       ),
@@ -919,12 +964,7 @@ run_logreg <- function(data,
       )
 
       if (!is.null(pr_obj) && plot_pr && show_output) {
-        model_label <- if (is.null(covariates)) {
-          predictor
-        } else {
-          paste(predictor, "+", paste(covariates, collapse = " + "))
-        }
-        plot(pr_obj, main = paste("Precision-Recall Curve:", model_label),
+        plot(pr_obj, main = paste("Precision-Recall Curve:", formula_label),
              xlab = "Recall", ylab = "Precision")
         abline(h = prevalence, col = "red", lty = 2, lwd = 2)
         legend("bottomleft",
@@ -948,6 +988,7 @@ run_logreg <- function(data,
     outcome = outcome,
     predictor = predictor,
     covariates = covariates,
+    formula = formula,
     roc = roc_obj,
     pr = pr_obj,
     calibration = calibration_obj,
@@ -964,7 +1005,7 @@ run_logreg <- function(data,
 run_logreg_advanced <- function(model_population,
                                 eval_population,
                                 outcome,
-                                predictor,
+                                predictor = NULL,
                                 covariates = NULL,
                                 screening_date = NULL,
                                 subset_controls = FALSE,
@@ -975,7 +1016,28 @@ run_logreg_advanced <- function(model_population,
                                 show_output = TRUE,
                                 remove_dead_controls = TRUE,
                                 remove_too_young_controls = TRUE,
-                                suppress_warnings = FALSE) {
+                                suppress_warnings = FALSE,
+                                formula = NULL) {
+
+  if (is.null(formula) && is.null(predictor)) {
+    stop("Either formula or predictor must be supplied.")
+  }
+
+  using_formula <- !is.null(formula)
+  if (using_formula) {
+    if (!is.null(predictor) || !is.null(covariates)) {
+      stop("formula cannot be used with predictor or covariates. Supply either formula, or predictor and covariates.")
+    }
+    formula <- tryCatch(
+      stats::as.formula(formula),
+      error = function(e) {
+        stop("formula must be a valid glm-ready formula: ", e$message)
+      }
+    )
+    if (length(formula) != 3L || !identical(as.character(formula[[2L]]), outcome)) {
+      stop("formula must include a response matching outcome and predictor terms.")
+    }
+  }
 
   manual_roc_fallback <- function(data, outcome, show_output = TRUE) {
     y <- data[[outcome]]
@@ -1055,7 +1117,7 @@ run_logreg_advanced <- function(model_population,
   if (uses_age_asd_inappropriately(
     screening_date = screening_date,
     predictor = predictor,
-    covariates = covariates
+    covariates = if (using_formula) all.vars(formula)[-1L] else covariates
   )) {
     if (!suppress_warnings) message(age_asd_skip_message)
 
@@ -1222,19 +1284,28 @@ run_logreg_advanced <- function(model_population,
     model_population <- subset_controls_to_case_count(model_population, case_col = outcome)
   }
 
-  if (is.null(covariates)) {
-    formula <- as.formula(paste(outcome, "~", predictor))
-  } else {
-    formula <- as.formula(
-      paste(outcome, "~", predictor, "+", paste(covariates, collapse = " + "))
-    )
+  if (!using_formula) {
+    if (is.null(covariates)) {
+      formula <- as.formula(paste(outcome, "~", predictor))
+    } else {
+      formula <- as.formula(
+        paste(outcome, "~", predictor, "+", paste(covariates, collapse = " + "))
+      )
+    }
   }
   
   ## Complete-case check (model-fitting cohort)
 
   # Split interaction/transformed terms (e.g. "A*B") into underlying column names
-  covariate_vars <- unique(unlist(lapply(covariates, function(x) all.vars(stats::as.formula(paste("~", x))))))
-  model_vars <- unique(c(outcome, all.vars(stats::as.formula(paste("~", predictor))), covariate_vars))
+  if (using_formula) {
+    model_vars <- unique(all.vars(formula))
+    if ("." %in% model_vars) {
+      model_vars <- unique(c(outcome, setdiff(names(model_population), outcome)))
+    }
+  } else {
+    covariate_vars <- unique(unlist(lapply(covariates, function(x) all.vars(stats::as.formula(paste("~", x))))))
+    model_vars <- unique(c(outcome, all.vars(stats::as.formula(paste("~", predictor))), covariate_vars))
+  }
 
   missing_model_vars <- setdiff(model_vars, names(model_population))
 
@@ -1321,8 +1392,8 @@ run_logreg_advanced <- function(model_population,
       plot_calibration = plot_calibration && show_output,
       plot_title = paste0(
         "External calibration plot: ",
-        predictor,
-        if (!is.null(covariates)) {
+        if (using_formula) paste(deparse(formula), collapse = "") else predictor,
+        if (!using_formula && !is.null(covariates)) {
           paste0(
             " + ",
             paste(covariates, collapse = " + ")
@@ -1419,7 +1490,9 @@ run_logreg_advanced <- function(model_population,
       )
 
       if (!is.null(pr_obj) && plot_pr && show_output) {
-        model_label <- if (is.null(covariates)) {
+        model_label <- if (using_formula) {
+          paste(deparse(formula), collapse = "")
+        } else if (is.null(covariates)) {
           predictor
         } else {
           paste(predictor, "+", paste(covariates, collapse = " + "))
@@ -1449,6 +1522,7 @@ run_logreg_advanced <- function(model_population,
     outcome = outcome,
     predictor = predictor,
     covariates = covariates,
+    formula = formula,
     roc = roc_obj,
     pr = pr_obj,
     calibration = calibration_obj,
@@ -2184,14 +2258,33 @@ logreg_table <- function(
     predictors = NULL,
     outcomes = c("PrCa_post_assessment", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs"),
     covariates_list = list(NULL),
+    formula = NULL,
     subset_controls = FALSE,
     plot_roc = FALSE,
     verbose = TRUE,
     adjust_for_PCs = FALSE
 ) {
 
+  formula_mode <- !is.null(formula)
+  if (formula_mode) {
+    if (length(outcomes) != 1L || !is.null(predictors) ||
+        !(is.null(covariates_list) || identical(covariates_list, list(NULL))) ||
+        isTRUE(adjust_for_PCs)) {
+      stop("formula mode requires exactly one outcome and no predictors, covariates_list, or PC adjustment.")
+    }
+    formula <- tryCatch(
+      stats::as.formula(formula),
+      error = function(e) stop("formula must be a valid glm-ready formula: ", e$message)
+    )
+    covariates_list <- list(NULL)
+    if (length(formula) != 3L || !identical(as.character(formula[[2L]]), outcomes[[1L]])) {
+      stop("formula must include a response matching the single supplied outcome.")
+    }
+    predictors <- paste(deparse(formula), collapse = "")
+  }
+
   # Default GRS list if not specified
-  if (is.null(predictors)) {
+  if (is.null(predictors) && !formula_mode) {
     predictors <- c(
       # Conti GRSs
       "ContiMultiethnicGRS",
@@ -2323,7 +2416,7 @@ logreg_table <- function(
 
         for (predictor in predictors) {
 
-          if (!predictor %in% colnames(pop_data)) {
+          if (!formula_mode && !predictor %in% colnames(pop_data)) {
             if (isTRUE(verbose)) {
               cat(sprintf(
                 "Skipping %s (not in %s, %s)\n",
@@ -2339,13 +2432,13 @@ logreg_table <- function(
           for (cov in covariates_list) {
             combo_count <- combo_count + 1
 
-            effective_covariates <- resolve_covariates(cov, predictor = predictor)
+            effective_covariates <- if (formula_mode) NULL else resolve_covariates(cov, predictor = predictor)
             cov_label <- covariate_label(effective_covariates)
             
             if (uses_age_asd_inappropriately(
               screening_date = sd,
               predictor = predictor,
-              covariates = effective_covariates
+              covariates = if (formula_mode) all.vars(formula)[-1L] else effective_covariates
         )) {
 
               message(age_asd_skip_message)
@@ -2376,7 +2469,7 @@ logreg_table <- function(
               flush.console()
             }
 
-            missing_covariates <- setdiff(effective_covariates, colnames(pop_data))
+            missing_covariates <- if (formula_mode) character(0) else setdiff(effective_covariates, colnames(pop_data))
             if (length(missing_covariates) > 0) {
               if (isTRUE(verbose)) {
                 cat(sprintf(
@@ -2409,8 +2502,9 @@ logreg_table <- function(
               model <- run_logreg(
                 data = pop_data,
                 outcome = current_outcome,
-                predictor = predictor,
-                covariates = effective_covariates,
+                predictor = if (formula_mode) NULL else predictor,
+                covariates = if (formula_mode) NULL else effective_covariates,
+                formula = if (formula_mode) formula else NULL,
                 screening_date = sd,
                 subset_controls = subset_controls,
                 plot_roc = plot_roc,
@@ -2443,31 +2537,46 @@ logreg_table <- function(
               ## Calculate SD of the globally z-transformed predictor within the current model population (cases and controls included)
               ## (this allows calculation of subpopulation-specific OR per 1 SD increase in predictor, as well as OR per global SD)
               
-              model_vars_for_sd <- c(current_outcome, predictor, effective_covariates)
+              model_vars_for_sd <- if (formula_mode) {
+                character(0)
+              } else {
+                c(current_outcome, predictor, effective_covariates)
+              }
 
-              complete_rows_for_sd <- stats::complete.cases(
-                model$data[, model_vars_for_sd, drop = FALSE]
-              )
-
-              rows_for_sd <- complete_rows_for_sd &
-                !is.na(model$data[[current_outcome]])
-
-              subpop_sd <- stats::sd(
-                model$data[[predictor]][rows_for_sd],
-                na.rm = TRUE
-              )
-
-              if (!is.finite(subpop_sd) || subpop_sd <= 0) {
+              if (formula_mode) {
                 subpop_sd <- NA_real_
-              }
+                or_global <- NA_real_
+                or_global_ci_lower <- NA_real_
+                or_global_ci_upper <- NA_real_
+                p_val <- NA_real_
+                or_subpop <- NA_real_
+                or_subpop_ci_lower <- NA_real_
+                or_subpop_ci_upper <- NA_real_
+                p_subpop <- NA_real_
+              } else {
+                complete_rows_for_sd <- stats::complete.cases(
+                  model$data[, model_vars_for_sd, drop = FALSE]
+                )
 
-              if (!grepl("GRS$", predictor)) { ## Ensure that non-GRS predictors (e.g., age) are not rescaled to the subpopulation
+                rows_for_sd <- complete_rows_for_sd &
+                  !is.na(model$data[[current_outcome]])
+
+                subpop_sd <- stats::sd(
+                  model$data[[predictor]][rows_for_sd],
+                  na.rm = TRUE
+                )
+
+                if (!is.finite(subpop_sd) || subpop_sd <= 0) {
                   subpop_sd <- NA_real_
-              }
+                }
 
-              ## Calculate OR per 1 SD increase in predictor (z-transformed to global male population and subpopulation-specific)
+                if (!grepl("GRS$", predictor)) {
+                  subpop_sd <- NA_real_
+                }
 
-              if (predictor %in% rownames(coef_tbl)) {
+                ## Calculate OR per 1 SD increase in predictor (z-transformed to global male population and subpopulation-specific)
+
+                if (predictor %in% rownames(coef_tbl)) {
                 beta <- coef_tbl[predictor, "Estimate"]
                 se <- coef_tbl[predictor, "Std. Error"]
                 p_val <- coef_tbl[predictor, "Pr(>|z|)"]
@@ -2485,11 +2594,12 @@ logreg_table <- function(
                   or_subpop_ci_lower <- exp((beta - 1.96 * se) * subpop_sd)
                   or_subpop_ci_upper <- exp((beta + 1.96 * se) * subpop_sd)
                   p_subpop <- p_val
-                } else {
+                  } else {
                   or_subpop <- NA_real_
                   or_subpop_ci_lower <- NA_real_
                   or_subpop_ci_upper <- NA_real_
                   p_subpop <- NA_real_
+                  }
                 }
 
               } else {
@@ -2612,8 +2722,9 @@ logreg_table <- function(
 
 bulk_nb_curve <- function(populations = c("All", "White", "Black", "Mixed", "EUR", "AFR", "EAS", "SAS", "MID", "AMR"),
                           outcomes = c("PrCa_post_assessment", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs"),
-                          predictors,
+                          predictors = NULL,
                           covariates_list = list(NULL),
+                          formula = NULL,
                           screening_dates = c("artificial_screening_date", "date40", "date45", "date50", "date55", "date60", "date65"),
                           cutoff_values = seq(0.01, 0.99, by = 0.01),
                           positive_level = 1,
@@ -2627,6 +2738,22 @@ bulk_nb_curve <- function(populations = c("All", "White", "Black", "Mixed", "EUR
                           suppress_counts = TRUE,         # Set to TRUE for rows with TP/TN/FP/FN counts less than 10 to have algorithmic fairness metrics suppressed
                           custom_thresholds = NULL        # supply as a set (e.g., custom_thresholds = c(0.1, 0.2, 0.3))
                           ) {
+
+  formula_mode <- !is.null(formula)
+  if (formula_mode) {
+    if (length(outcomes) != 1L || !is.null(predictors) ||
+        !identical(covariates_list, list(NULL))) {
+      stop("formula mode requires exactly one outcome and no predictors or covariates_list.")
+    }
+    formula <- tryCatch(
+      stats::as.formula(formula),
+      error = function(e) stop("formula must be a valid glm-ready formula: ", e$message)
+    )
+    if (length(formula) != 3L || !identical(as.character(formula[[2L]]), outcomes[[1L]])) {
+      stop("formula must include a response matching the single supplied outcome.")
+    }
+    predictors <- paste(deparse(formula), collapse = "")
+  }
 
   if (length(populations) == 0) stop("Provide at least one population.")
   if (length(outcomes) == 0) stop("Provide at least one outcome.")
@@ -3320,7 +3447,7 @@ for (screening_date in screening_dates) {
       for (current_outcome in outcomes) {
         for (pred in predictors) {
 
-        if (!pred %in% colnames(d)) {
+        if (!formula_mode && !pred %in% colnames(d)) {
           if (isTRUE(verbose)) {
             cat(sprintf(
               "Skipping %s: predictor not found in %s at %s for %s\n",
@@ -3334,7 +3461,7 @@ for (screening_date in screening_dates) {
         }
 
           for (cov in covariates_list) {
-            effective_covariates <- resolve_covariates(cov, predictor = pred)
+            effective_covariates <- if (formula_mode) NULL else resolve_covariates(cov, predictor = pred)
             cov_label <- covariate_label(effective_covariates)
 
             combo_count <- combo_count + 1L
@@ -3356,7 +3483,7 @@ for (screening_date in screening_dates) {
             if (uses_age_asd_inappropriately(
               screening_date = screening_date,
               predictor = pred,
-              covariates = effective_covariates
+              covariates = if (formula_mode) all.vars(formula)[-1L] else effective_covariates
             )) {
               if (isTRUE(verbose)) {
                 cat("  Skipping: ", age_asd_skip_message, "\n", sep = "")
@@ -3373,10 +3500,11 @@ for (screening_date in screening_dates) {
               sep = "__"
             )
 
-            missing_covariates <- setdiff(
-              effective_covariates,
-              colnames(d)
-            )
+            missing_covariates <- if (formula_mode) {
+              character(0)
+            } else {
+              setdiff(effective_covariates, colnames(d))
+            }
 
             if (length(missing_covariates) > 0) {
               if (isTRUE(verbose)) {
@@ -3406,8 +3534,9 @@ for (screening_date in screening_dates) {
               model_fit <- run_logreg(
                 data = d,
                 outcome = current_outcome,
-                predictor = pred,
-                covariates = effective_covariates,
+                predictor = if (formula_mode) NULL else pred,
+                covariates = if (formula_mode) NULL else effective_covariates,
+                formula = if (formula_mode) formula else NULL,
                 screening_date = screening_date,
                 subset_controls = subset_controls,
                 plot_roc = FALSE,
@@ -3619,22 +3748,29 @@ simulate_participant_risk <- function(logreg_model,
 
 paired_DeLong_test <- function(populations,
                                outcome,
-                               predictor_a,
-                               predictor_b,
+                               predictor_a = NULL,
+                               predictor_b = NULL,
                                covariates_a = NULL,
                                covariates_b = NULL,
                                screening_date,
                                subset_controls = FALSE,
                                id_col = "pid",
                                min_n = 20,
-                               adjust_method = "BH") {
+                               adjust_method = "BH",
+                               formula_a = NULL,
+                               formula_b = NULL) {
 
   if (!requireNamespace("pROC", quietly = TRUE)) {
     stop("Package 'pROC' is required for paired DeLong tests.")
   }
 
-  if (missing(predictor_b) || is.null(predictor_b)) {
-    stop("predictor_b must be supplied.")
+  if ((is.null(formula_a) && is.null(predictor_a)) ||
+      (is.null(formula_b) && is.null(predictor_b))) {
+    stop("Supply either formula_a or predictor_a/covariates_a, and either formula_b or predictor_b/covariates_b.")
+  }
+  if ((!is.null(formula_a) && (!is.null(predictor_a) || !is.null(covariates_a))) ||
+      (!is.null(formula_b) && (!is.null(predictor_b) || !is.null(covariates_b)))) {
+    stop("Each formula cannot be used with its corresponding predictor or covariates.")
   }
 
   if (missing(screening_date) || is.null(screening_date)) {
@@ -3648,13 +3784,17 @@ paired_DeLong_test <- function(populations,
     )
   }
 
-  model_a_label <- if (is.null(covariates_a) || length(covariates_a) == 0) {
+  model_a_label <- if (!is.null(formula_a)) {
+    paste(deparse(stats::as.formula(formula_a)), collapse = "")
+  } else if (is.null(covariates_a) || length(covariates_a) == 0) {
     predictor_a
   } else {
     paste(predictor_a, "+", paste(covariates_a, collapse = " + "))
   }
 
-  model_b_label <- if (is.null(covariates_b) || length(covariates_b) == 0) {
+  model_b_label <- if (!is.null(formula_b)) {
+    paste(deparse(stats::as.formula(formula_b)), collapse = "")
+  } else if (is.null(covariates_b) || length(covariates_b) == 0) {
     predictor_b
   } else {
     paste(predictor_b, "+", paste(covariates_b, collapse = " + "))
@@ -3669,6 +3809,7 @@ paired_DeLong_test <- function(populations,
       outcome = outcome,
       predictor = predictor_a,
       covariates = covariates_a,
+      formula = formula_a,
       screening_date = screening_date,
       subset_controls = subset_controls,
       plot_roc = FALSE,
@@ -3680,6 +3821,7 @@ paired_DeLong_test <- function(populations,
       outcome = outcome,
       predictor = predictor_b,
       covariates = covariates_b,
+      formula = formula_b,
       screening_date = screening_date,
       subset_controls = subset_controls,
       plot_roc = FALSE,
@@ -3837,16 +3979,26 @@ paired_DeLong_test <- function(populations,
 
 unpaired_DeLong_test <- function(populations,
                                  outcome,
-                                 predictor,
+                                 predictor = NULL,
                                  covariates = NULL,
                                  screening_date = NULL,
                                  subset_controls = FALSE,
                                  control_group = NULL,
                                  pairings = NULL,
                                  min_n = 20,
-                                 adjust_method = "BH") {
+                                 adjust_method = "BH",
+                                 formula = NULL) {
 
-  model_label <- if (is.null(covariates) || length(covariates) == 0) {
+  if (is.null(formula) && is.null(predictor)) {
+    stop("Either formula or predictor must be supplied.")
+  }
+  if (!is.null(formula) && (!is.null(predictor) || !is.null(covariates))) {
+    stop("formula cannot be used with predictor or covariates.")
+  }
+
+  model_label <- if (!is.null(formula)) {
+    paste(deparse(stats::as.formula(formula)), collapse = "")
+  } else if (is.null(covariates) || length(covariates) == 0) {
     predictor
   } else {
     paste(predictor, "+", paste(covariates, collapse = " + "))
@@ -3860,6 +4012,7 @@ unpaired_DeLong_test <- function(populations,
       outcome = outcome,
       predictor = predictor,
       covariates = covariates,
+      formula = formula,
       screening_date = screening_date,
       subset_controls = subset_controls,
       plot_roc = FALSE,
@@ -3968,14 +4121,15 @@ unpaired_DeLong_test <- function(populations,
 screening_date_DeLong_test <- function(populations,
                                        populations_b,
                                        outcome,
-                                       predictor,
+                                       predictor = NULL,
                                        covariates = NULL,
                                        screening_date_a,
                                        screening_date_b,
                                        subset_controls = FALSE,
                                        id_col = "pid",
                                        min_n = 20,
-                                       adjust_method = "BH") {
+                                       adjust_method = "BH",
+                                       formula = NULL) {
 
   common_pop_names <- intersect(names(populations), names(populations_b))
 
@@ -3983,7 +4137,16 @@ screening_date_DeLong_test <- function(populations,
     stop("No matching population names found between 'populations' and 'populations_b'.")
   }
 
-  model_label <- if (is.null(covariates) || length(covariates) == 0) {
+  if (is.null(formula) && is.null(predictor)) {
+    stop("Either formula or predictor must be supplied.")
+  }
+  if (!is.null(formula) && (!is.null(predictor) || !is.null(covariates))) {
+    stop("formula cannot be used with predictor or covariates.")
+  }
+
+  model_label <- if (!is.null(formula)) {
+    paste(deparse(stats::as.formula(formula)), collapse = "")
+  } else if (is.null(covariates) || length(covariates) == 0) {
     predictor
   } else {
     paste(predictor, "+", paste(covariates, collapse = " + "))
@@ -4036,6 +4199,7 @@ screening_date_DeLong_test <- function(populations,
       outcome = outcome,
       predictor = predictor,
       covariates = covariates,
+      formula = formula,
       screening_date = screening_date_a,
       subset_controls = subset_controls,
       plot_roc = FALSE,
@@ -4047,6 +4211,7 @@ screening_date_DeLong_test <- function(populations,
       outcome = outcome,
       predictor = predictor,
       covariates = covariates,
+      formula = formula,
       screening_date = screening_date_b,
       subset_controls = subset_controls,
       plot_roc = FALSE,
