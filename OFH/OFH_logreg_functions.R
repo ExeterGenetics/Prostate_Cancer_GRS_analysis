@@ -2600,8 +2600,6 @@ logreg_table <- function(
                   or_subpop_ci_upper <- NA_real_
                   p_subpop <- NA_real_
                   }
-                }
-
               } else {
                 or_global <- NA_real_
                 or_global_ci_lower <- NA_real_
@@ -2613,6 +2611,7 @@ logreg_table <- function(
                 or_subpop_ci_upper <- NA_real_
                 p_subpop <- NA_real_
               }
+            }
 
             result_count <- result_count + 1L
 
