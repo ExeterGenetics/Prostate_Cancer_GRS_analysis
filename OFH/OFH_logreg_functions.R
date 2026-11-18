@@ -2258,29 +2258,37 @@ logreg_table <- function(
     predictors = NULL,
     outcomes = c("PrCa_post_assessment", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs"),
     covariates_list = list(NULL),
-    formula = NULL,
+    formula_list = NULL,
     subset_controls = FALSE,
     plot_roc = FALSE,
     verbose = TRUE,
     adjust_for_PCs = FALSE
 ) {
 
-  formula_mode <- !is.null(formula)
+  formula_mode <- !is.null(formula_list)
   if (formula_mode) {
-    if (length(outcomes) != 1L || !is.null(predictors) ||
+    if (!is.null(predictors) ||
         !(is.null(covariates_list) || identical(covariates_list, list(NULL))) ||
         isTRUE(adjust_for_PCs)) {
-      stop("formula mode requires exactly one outcome and no predictors, covariates_list, or PC adjustment.")
+      stop("formula_list mode cannot be combined with predictors, covariates_list, or PC adjustment.")
     }
-    formula <- tryCatch(
-      stats::as.formula(formula),
-      error = function(e) stop("formula must be a valid glm-ready formula: ", e$message)
-    )
+    if (!is.list(formula_list)) formula_list <- as.list(formula_list)
+    formula_list <- lapply(formula_list, function(f) {
+      parsed <- tryCatch(
+        stats::as.formula(f),
+        error = function(e) stop("formula_list contains an invalid formula: ", e$message)
+      )
+      if (length(parsed) != 3L) {
+        stop("Each formula_list entry must include a response and predictor terms.")
+      }
+      parsed
+    })
+    if (length(formula_list) == 0L) stop("formula_list must contain at least one formula.")
     covariates_list <- list(NULL)
-    if (length(formula) != 3L || !identical(as.character(formula[[2L]]), outcomes[[1L]])) {
-      stop("formula must include a response matching the single supplied outcome.")
-    }
-    predictors <- paste(deparse(formula), collapse = "")
+    formula_outcomes <- vapply(formula_list, function(f) as.character(f[[2L]]), character(1))
+    formula_labels <- vapply(formula_list, function(f) paste(deparse(f), collapse = ""), character(1))
+    predictors <- formula_labels
+    outcomes <- seq_along(formula_list)
   }
 
   # Default GRS list if not specified
@@ -2370,7 +2378,7 @@ logreg_table <- function(
   total_combos <- length(screening_dates) *
     length(populations) *
     length(outcomes) *
-    length(predictors) *
+    (if (formula_mode) 1L else length(predictors)) *
     length(covariates_list)
 
   combo_count <- 0
@@ -2399,6 +2407,12 @@ logreg_table <- function(
     pops_selected <- pops[populations]
 
     for (current_outcome in outcomes) {
+      formula_for_model <- NULL
+      formula_index <- current_outcome
+      if (formula_mode) {
+        formula_for_model <- formula_list[[formula_index]]
+        current_outcome <- formula_outcomes[[formula_index]]
+      }
       for (pop_name in names(pops_selected)) {
         pop_data <- pops_selected[[pop_name]]
 
@@ -2415,6 +2429,9 @@ logreg_table <- function(
         }
 
         for (predictor in predictors) {
+          if (formula_mode && !identical(predictor, formula_labels[[formula_index]])) {
+            next
+          }
 
           if (!formula_mode && !predictor %in% colnames(pop_data)) {
             if (isTRUE(verbose)) {
@@ -2438,7 +2455,7 @@ logreg_table <- function(
             if (uses_age_asd_inappropriately(
               screening_date = sd,
               predictor = predictor,
-              covariates = if (formula_mode) all.vars(formula)[-1L] else effective_covariates
+              covariates = if (formula_mode) all.vars(formula_for_model)[-1L] else effective_covariates
         )) {
 
               message(age_asd_skip_message)
@@ -2504,7 +2521,7 @@ logreg_table <- function(
                 outcome = current_outcome,
                 predictor = if (formula_mode) NULL else predictor,
                 covariates = if (formula_mode) NULL else effective_covariates,
-                formula = if (formula_mode) formula else NULL,
+                formula = if (formula_mode) formula_for_model else NULL,
                 screening_date = sd,
                 subset_controls = subset_controls,
                 plot_roc = plot_roc,
@@ -2723,7 +2740,7 @@ bulk_nb_curve <- function(populations = c("All", "White", "Black", "Mixed", "EUR
                           outcomes = c("PrCa_post_assessment", "PrCa_2yrs", "PrCa_5yrs", "PrCa_10yrs"),
                           predictors = NULL,
                           covariates_list = list(NULL),
-                          formula = NULL,
+                          formula_list = NULL,
                           screening_dates = c("artificial_screening_date", "date40", "date45", "date50", "date55", "date60", "date65"),
                           cutoff_values = seq(0.01, 0.99, by = 0.01),
                           positive_level = 1,
@@ -2738,20 +2755,28 @@ bulk_nb_curve <- function(populations = c("All", "White", "Black", "Mixed", "EUR
                           custom_thresholds = NULL        # supply as a set (e.g., custom_thresholds = c(0.1, 0.2, 0.3))
                           ) {
 
-  formula_mode <- !is.null(formula)
+  formula_mode <- !is.null(formula_list)
   if (formula_mode) {
-    if (length(outcomes) != 1L || !is.null(predictors) ||
-        !identical(covariates_list, list(NULL))) {
-      stop("formula mode requires exactly one outcome and no predictors or covariates_list.")
+    if (!is.null(predictors) ||
+        !(is.null(covariates_list) || identical(covariates_list, list(NULL)))) {
+      stop("formula_list mode cannot be combined with predictors or covariates_list.")
     }
-    formula <- tryCatch(
-      stats::as.formula(formula),
-      error = function(e) stop("formula must be a valid glm-ready formula: ", e$message)
-    )
-    if (length(formula) != 3L || !identical(as.character(formula[[2L]]), outcomes[[1L]])) {
-      stop("formula must include a response matching the single supplied outcome.")
-    }
-    predictors <- paste(deparse(formula), collapse = "")
+    if (!is.list(formula_list)) formula_list <- as.list(formula_list)
+    formula_list <- lapply(formula_list, function(f) {
+      parsed <- tryCatch(
+        stats::as.formula(f),
+        error = function(e) stop("formula_list contains an invalid formula: ", e$message)
+      )
+      if (length(parsed) != 3L) {
+        stop("Each formula_list entry must include a response and predictor terms.")
+      }
+      parsed
+    })
+    if (length(formula_list) == 0L) stop("formula_list must contain at least one formula.")
+    formula_outcomes <- vapply(formula_list, function(f) as.character(f[[2L]]), character(1))
+    formula_labels <- vapply(formula_list, function(f) paste(deparse(f), collapse = ""), character(1))
+    predictors <- formula_labels
+    outcomes <- seq_along(formula_list)
   }
 
   if (length(populations) == 0) stop("Provide at least one population.")
@@ -2820,7 +2845,7 @@ bulk_nb_curve <- function(populations = c("All", "White", "Black", "Mixed", "EUR
   total_combos <- length(screening_dates) *
     length(selected_pops) *
     length(outcomes) *
-    length(predictors) *
+    (if (formula_mode) 1L else length(predictors)) *
     length(covariates_list)
 
   combo_count <- 0L
@@ -3444,7 +3469,16 @@ for (screening_date in screening_dates) {
       }
 
       for (current_outcome in outcomes) {
+        formula_for_model <- NULL
+        formula_index <- current_outcome
+        if (formula_mode) {
+          formula_for_model <- formula_list[[formula_index]]
+          current_outcome <- formula_outcomes[[formula_index]]
+        }
         for (pred in predictors) {
+        if (formula_mode && !identical(pred, formula_labels[[formula_index]])) {
+          next
+        }
 
         if (!formula_mode && !pred %in% colnames(d)) {
           if (isTRUE(verbose)) {
@@ -3482,7 +3516,7 @@ for (screening_date in screening_dates) {
             if (uses_age_asd_inappropriately(
               screening_date = screening_date,
               predictor = pred,
-              covariates = if (formula_mode) all.vars(formula)[-1L] else effective_covariates
+              covariates = if (formula_mode) all.vars(formula_for_model)[-1L] else effective_covariates
             )) {
               if (isTRUE(verbose)) {
                 cat("  Skipping: ", age_asd_skip_message, "\n", sep = "")
@@ -3535,7 +3569,7 @@ for (screening_date in screening_dates) {
                 outcome = current_outcome,
                 predictor = if (formula_mode) NULL else pred,
                 covariates = if (formula_mode) NULL else effective_covariates,
-                formula = if (formula_mode) formula else NULL,
+                formula = if (formula_mode) formula_for_model else NULL,
                 screening_date = screening_date,
                 subset_controls = subset_controls,
                 plot_roc = FALSE,
